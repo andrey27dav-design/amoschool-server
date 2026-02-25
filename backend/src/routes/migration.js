@@ -1036,7 +1036,22 @@ router.post('/create-field', async (req, res) => {
     // Создаём поле через API Kommo
     const payload = buildCreatePayload(amoField, stageMapping, kommoPipelineId);
     if (targetGroupId) payload.group_id = targetGroupId;
-    const created = await kommoApi.createCustomField(entityType, payload);
+    let created = null;
+    try {
+      created = await kommoApi.createCustomField(entityType, payload);
+    } catch (createErr) {
+      const httpStatus = createErr.response?.status;
+      if (httpStatus === 400 && payload.type === 'tracking_data') {
+        // Kommo не поддерживает данный код tracking_data (напр. _YM_UID).
+        // Fallback: создаём как обычное text-поле.
+        logger.warn(`[create-field] tracking_data 400 for "${amoField.name}" (code: ${amoField.code || 'none'}), retrying as text field`);
+        const fallbackPayload = { ...payload, type: 'text' };
+        delete fallbackPayload.code;
+        created = await kommoApi.createCustomField(entityType, fallbackPayload);
+      } else {
+        throw createErr;
+      }
+    }
     if (!created) return res.status(500).json({ ok: false, error: 'Failed to create field in Kommo' });
 
     // Обновляем маппинг на диске
