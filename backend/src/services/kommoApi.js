@@ -196,13 +196,13 @@ async function getCustomFieldGroups(entityType = 'leads') {
   const res = await kommoClient.get(`/api/v4/${entityType}/custom_fields/groups`, {
     params: { limit: 250 }
   });
-  return res.data._embedded?.custom_fields_groups || [];
+  return res.data._embedded?.custom_field_groups || [];
 }
 
 async function createCustomFieldGroup(entityType, groupData) {
   await rateLimit();
   const res = await kommoClient.post(`/api/v4/${entityType}/custom_fields/groups`, [groupData]);
-  return res.data._embedded?.custom_fields_groups?.[0] || null;
+  return res.data._embedded?.custom_field_groups?.[0] || null;
 }
 
 async function createCustomField(entityType, fieldData) {
