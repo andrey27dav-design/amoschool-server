@@ -1036,18 +1036,40 @@ router.post('/create-field', async (req, res) => {
     // Создаём поле через API Kommo
     const payload = buildCreatePayload(amoField, stageMapping, kommoPipelineId);
     if (targetGroupId) payload.group_id = targetGroupId;
+
+    // Системные group_id Kommo (только для tracking_data). Нельзя помещать туда другие типы.
+    const KOMMO_SYSTEM_GROUPS = new Set(['statistic', 'main']);
+
     let created = null;
     try {
       created = await kommoApi.createCustomField(entityType, payload);
     } catch (createErr) {
       const httpStatus = createErr.response?.status;
       if (httpStatus === 400 && payload.type === 'tracking_data') {
-        // Kommo не поддерживает данный код tracking_data (напр. _YM_UID).
-        // Fallback: создаём как обычное text-поле.
-        logger.warn(`[create-field] tracking_data 400 for "${amoField.name}" (code: ${amoField.code || 'none'}), retrying as text field`);
-        const fallbackPayload = { ...payload, type: 'text' };
-        delete fallbackPayload.code;
-        created = await kommoApi.createCustomField(entityType, fallbackPayload);
+        // Попытка 1: некоторые коды с ведущим _ не принимаются Kommo (напр. _YM_UID).
+        // Убираем ведущие подчёркивания из code и повторяем как tracking_data.
+        const origCode = payload.code || '';
+        const sanitizedCode = origCode.replace(/^_+/, '');
+        if (sanitizedCode && sanitizedCode !== origCode) {
+          logger.warn(`[create-field] tracking_data 400 for "${amoField.name}" code="${origCode}", retry with sanitized code="${sanitizedCode}"`);
+          try {
+            created = await kommoApi.createCustomField(entityType, { ...payload, code: sanitizedCode });
+          } catch (_) { /* fall through to text fallback */ }
+        }
+
+        // Попытка 2: создаём как text-поле.
+        // Системные группы (statistic, main) допускают только tracking_data — убираем group_id.
+        if (!created) {
+          const fallbackPayload = { ...payload, type: 'text' };
+          delete fallbackPayload.code;
+          if (KOMMO_SYSTEM_GROUPS.has(fallbackPayload.group_id)) {
+            logger.warn(`[create-field] tracking_data fallback for "${amoField.name}": removed system group_id="${fallbackPayload.group_id}", creating as text (ungrouped)`);
+            delete fallbackPayload.group_id;
+          } else {
+            logger.warn(`[create-field] tracking_data fallback for "${amoField.name}": creating as text in same group`);
+          }
+          created = await kommoApi.createCustomField(entityType, fallbackPayload);
+        }
       } else {
         throw createErr;
       }
