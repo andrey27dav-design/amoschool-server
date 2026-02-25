@@ -1072,4 +1072,29 @@ router.delete('/skip-field', async (req, res) => {
   }
 });
 
+/* ── Safety Guard status ─────────────────────────────────────────────── */
+router.get('/safety-status', (req, res) => {
+  try {
+    const guard = require('../utils/safetyGuard');
+    res.json({
+      ok: true,
+      stats: guard.getSafetyStats(),
+      recentBlocked: guard.getBlockedAttempts(20),
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+/* ── Reset safety index (admin only) ────────────────────────────────── */
+router.post('/safety-reset', (req, res) => {
+  try {
+    const guard = require('../utils/safetyGuard');
+    guard.resetIndex();
+    res.json({ ok: true, message: 'Индекс миграции сброшен. При следующем запуске данные будут созданы заново.' });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 module.exports = router;

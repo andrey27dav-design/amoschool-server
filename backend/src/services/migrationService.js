@@ -7,6 +7,7 @@ const logger = require('../utils/logger');
 const fs = require('fs');
 const path = require('path');
 const STAGE_MAPPING_PATH = path.join(__dirname, '../../backups/stage_mapping.json');
+const safety = require('../utils/safetyGuard');
 
 // AMO pipeline stages with their Russian names (known from API call)
 const AMO_STAGES_ORDERED = [
@@ -231,18 +232,29 @@ async function migrateCompanies(amoCompanies) {
   setStep('Перенос компаний', amoCompanies.length);
   const idMap = {}; // amoId -> kommoId
 
-  const toCreate = amoCompanies.map((c) => transformCompany(c));
+  // ═ SAFETY: пропускаем уже перенесённые компании ════════════════════
+  const { toCreate: companiesToCreate, skipped: companiesSkipped } =
+    safety.filterNotMigrated('companies', amoCompanies, c => c.id);
+  if (companiesSkipped.length > 0) {
+    addWarning(`▶️ ${companiesSkipped.length} компаний уже перенесены — пропущены (перезапись запрещена).`);
+    companiesSkipped.forEach(({ amoId, kommoId }) => { idMap[amoId] = kommoId; });
+  }
 
-  const created = await kommoApi.createCompaniesBatch(toCreate);
-  created.forEach((kommo, idx) => {
-    if (kommo && amoCompanies[idx]) {
-      idMap[amoCompanies[idx].id] = kommo.id;
-      migrationState.createdIds.companies.push(kommo.id);
-    }
-    incrementProgress();
-  });
-
-  logger.info(`Companies migrated: ${created.length}/${amoCompanies.length}`);
+  if (companiesToCreate.length > 0) {
+    const toCreate = companiesToCreate.map((c) => transformCompany(c));
+    const created = await kommoApi.createCompaniesBatch(toCreate);
+    const pairs = [];
+    created.forEach((kommo, idx) => {
+      if (kommo && companiesToCreate[idx]) {
+        idMap[companiesToCreate[idx].id] = kommo.id;
+        migrationState.createdIds.companies.push(kommo.id);
+        pairs.push({ amoId: companiesToCreate[idx].id, kommoId: kommo.id });
+      }
+      incrementProgress();
+    });
+    safety.registerMigratedBatch('companies', pairs);
+    logger.info(`Companies migrated: ${created.length}/${amoCompanies.length} (skipped: ${companiesSkipped.length})`);
+  }
   return idMap;
 }
 
@@ -253,18 +265,29 @@ async function migrateContacts(amoContacts) {
   setStep('Перенос контактов', amoContacts.length);
   const idMap = {};
 
-  const toCreate = amoContacts.map((c) => transformContact(c));
-  const created = await kommoApi.createContactsBatch(toCreate);
+  // ═ SAFETY: пропускаем уже перенесённые контакты ════════════════════
+  const { toCreate: contactsToCreate, skipped: contactsSkipped } =
+    safety.filterNotMigrated('contacts', amoContacts, c => c.id);
+  if (contactsSkipped.length > 0) {
+    addWarning(`▶️ ${contactsSkipped.length} контактов уже перенесены — пропущены (перезапись запрещена).`);
+    contactsSkipped.forEach(({ amoId, kommoId }) => { idMap[amoId] = kommoId; });
+  }
 
-  created.forEach((kommo, idx) => {
-    if (kommo && amoContacts[idx]) {
-      idMap[amoContacts[idx].id] = kommo.id;
-      migrationState.createdIds.contacts.push(kommo.id);
-    }
-    incrementProgress();
-  });
-
-  logger.info(`Contacts migrated: ${created.length}/${amoContacts.length}`);
+  if (contactsToCreate.length > 0) {
+    const toCreate = contactsToCreate.map((c) => transformContact(c));
+    const created = await kommoApi.createContactsBatch(toCreate);
+    const pairs = [];
+    created.forEach((kommo, idx) => {
+      if (kommo && contactsToCreate[idx]) {
+        idMap[contactsToCreate[idx].id] = kommo.id;
+        migrationState.createdIds.contacts.push(kommo.id);
+        pairs.push({ amoId: contactsToCreate[idx].id, kommoId: kommo.id });
+      }
+      incrementProgress();
+    });
+    safety.registerMigratedBatch('contacts', pairs);
+    logger.info(`Contacts migrated: ${created.length}/${amoContacts.length} (skipped: ${contactsSkipped.length})`);
+  }
   return idMap;
 }
 
@@ -275,22 +298,32 @@ async function migrateLeads(amoLeads, contactIdMap, companyIdMap) {
   setStep('Перенос сделок', amoLeads.length);
   const idMap = {};
 
-  const toCreate = amoLeads.map((lead) => {
+  // ═ SAFETY: пропускаем уже перенесённые сделки ══════════════════════
+  const { toCreate: leadsToCreate, skipped: leadsSkipped } =
+    safety.filterNotMigrated('leads', amoLeads, l => l.id);
+  if (leadsSkipped.length > 0) {
+    addWarning(`▶️ ${leadsSkipped.length} сделок уже перенесены — пропущены (перезапись запрещена).`);
+    leadsSkipped.forEach(({ amoId, kommoId }) => { idMap[amoId] = kommoId; });
+  }
+
+  const toCreate = leadsToCreate.map((lead) => {
     const transformed = transformLead(lead, migrationState.stageMapping);
     transformed.pipeline_id = config.kommo.pipelineId;
     return transformed;
   });
 
-  const created = await kommoApi.createLeadsBatch(toCreate);
+  const created = leadsToCreate.length > 0 ? await kommoApi.createLeadsBatch(toCreate) : [];
+  const leadPairs = [];
 
   // Link contacts and companies
   for (let idx = 0; idx < created.length; idx++) {
     const kommoLead = created[idx];
-    const amoLead = amoLeads[idx];
+    const amoLead = leadsToCreate[idx];
     if (!kommoLead) continue;
 
     idMap[amoLead.id] = kommoLead.id;
     migrationState.createdIds.leads.push(kommoLead.id);
+    leadPairs.push({ amoId: amoLead.id, kommoId: kommoLead.id });
 
     // Link contacts
     const amoContactIds = amoLead._embedded?.contacts?.map((c) => c.id) || [];
@@ -321,7 +354,8 @@ async function migrateLeads(amoLeads, contactIdMap, companyIdMap) {
     incrementProgress();
   }
 
-  logger.info(`Leads migrated: ${created.length}/${amoLeads.length}`);
+  if (leadPairs.length > 0) safety.registerMigratedBatch('leads', leadPairs);
+  logger.info(`Leads migrated: ${created.length}/${amoLeads.length} (skipped: ${leadsSkipped.length})`);
   return idMap;
 }
 

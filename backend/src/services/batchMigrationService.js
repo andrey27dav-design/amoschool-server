@@ -9,6 +9,7 @@ const kommoApi = require('./kommoApi');
 const config = require('../config');
 const logger = require('../utils/logger');
 const { loadFieldMapping, buildAllFieldMappings, saveFieldMapping } = require('../utils/fieldMapping');
+const safety = require('../utils/safetyGuard');
 
 const CACHE_FILE = path.resolve(config.backupDir, 'amo_data_cache.json');
 const BATCH_CONFIG_FILE = path.resolve(config.backupDir, 'batch_config.json');
@@ -253,13 +254,36 @@ async function runBatchMigration(stageMapping) {
     const companyIdMap = {};
     if (batchCompanies.length > 0) {
       const { transformCompany } = require('../utils/dataTransformer');
+      // ═ САФЕТИ: исключаем уже перенесённые компании ════════
+      const { toCreate: companiesToCreate, skipped: companiesSkipped } =
+        safety.filterNotMigrated('companies', batchCompanies, c => c.id);
+      if (companiesSkipped.length > 0) {
+        addWarning(
+          `▶️ ${companiesSkipped.length} компаний уже перенесены ранее — пропущены (перезапись запрещена).`,
+          'Данные в Kommo не изменены. Если перенес нужно повторить — сбросьте индекс через вкладку Бэкапы.'
+        );
+        // Добавляем уже известные пары в idMap из индекса
+        companiesSkipped.forEach(({ amoId, kommoId }) => { companyIdMap[amoId] = kommoId; });
+      }
       try {
-        const created = await kommoApi.createCompaniesBatch(batchCompanies.map(c => transformCompany(c, fieldMappings.companies)));
-        created.forEach((k, i) => {
-          if (k && batchCompanies[i]) { companyIdMap[batchCompanies[i].id] = k.id; batchState.createdIds.companies.push(k.id); }
-        });
+        if (companiesToCreate.length > 0) {
+          const created = await kommoApi.createCompaniesBatch(companiesToCreate.map(c => transformCompany(c, fieldMappings.companies)));
+          const pairs = [];
+          created.forEach((k, i) => {
+            if (k && companiesToCreate[i]) {
+              companyIdMap[companiesToCreate[i].id] = k.id;
+              batchState.createdIds.companies.push(k.id);
+              pairs.push({ amoId: companiesToCreate[i].id, kommoId: k.id });
+            }
+          });
+          safety.registerMigratedBatch('companies', pairs);
+        }
       } catch (e) {
-        addError(`Ошибка переноса компаний: ${e.message}`, 'Проверьте API-токен Kommo CRM и повторите попытку.');
+        if (e.isSafetyError) {
+          addError(`⛔ ${e.message}`);
+        } else {
+          addError(`Ошибка переноса компаний: ${e.message}`, 'Проверьте API-токен Kommo CRM и повторите попытку.');
+        }
         updateState({ status: 'error', completedAt: new Date().toISOString() }); return;
       }
     }
@@ -269,13 +293,35 @@ async function runBatchMigration(stageMapping) {
     const contactIdMap = {};
     if (batchContacts.length > 0) {
       const { transformContact } = require('../utils/dataTransformer');
+      // ═ САФЕТИ: исключаем уже перенесённые контакты ════════
+      const { toCreate: contactsToCreate, skipped: contactsSkipped } =
+        safety.filterNotMigrated('contacts', batchContacts, c => c.id);
+      if (contactsSkipped.length > 0) {
+        addWarning(
+          `▶️ ${contactsSkipped.length} контактов уже перенесены ранее — пропущены (перезапись запрещена).`,
+          'Данные в Kommo не изменены.'
+        );
+        contactsSkipped.forEach(({ amoId, kommoId }) => { contactIdMap[amoId] = kommoId; });
+      }
       try {
-        const created = await kommoApi.createContactsBatch(batchContacts.map(c => transformContact(c, fieldMappings.contacts)));
-        created.forEach((k, i) => {
-          if (k && batchContacts[i]) { contactIdMap[batchContacts[i].id] = k.id; batchState.createdIds.contacts.push(k.id); }
-        });
+        if (contactsToCreate.length > 0) {
+          const created = await kommoApi.createContactsBatch(contactsToCreate.map(c => transformContact(c, fieldMappings.contacts)));
+          const pairs = [];
+          created.forEach((k, i) => {
+            if (k && contactsToCreate[i]) {
+              contactIdMap[contactsToCreate[i].id] = k.id;
+              batchState.createdIds.contacts.push(k.id);
+              pairs.push({ amoId: contactsToCreate[i].id, kommoId: k.id });
+            }
+          });
+          safety.registerMigratedBatch('contacts', pairs);
+        }
       } catch (e) {
-        addError(`Ошибка переноса контактов: ${e.message}`, 'Проверьте API-токен Kommo CRM и повторите попытку.');
+        if (e.isSafetyError) {
+          addError(`⛔ ${e.message}`);
+        } else {
+          addError(`Ошибка переноса контактов: ${e.message}`, 'Проверьте API-токен Kommo CRM и повторите попытку.');
+        }
         updateState({ status: 'error', completedAt: new Date().toISOString() }); return;
       }
     }
@@ -304,6 +350,7 @@ async function runBatchMigration(stageMapping) {
       if (!kLead || !aLead) continue;
       leadIdMap[aLead.id] = kLead.id;
       batchState.createdIds.leads.push(kLead.id);
+      leadPairs.push({ amoId: aLead.id, kommoId: kLead.id });
 
       for (const c of (aLead._embedded?.contacts || [])) {
         const kId = contactIdMap[c.id];
@@ -323,6 +370,8 @@ async function runBatchMigration(stageMapping) {
       }
       batchState.progress.current = idx + 1;
     }
+    // Регистрируем все перенесённые сделки в индексе безопасности
+    if (leadPairs.length > 0) safety.registerMigratedBatch('leads', leadPairs);
 
     /* ── 10. Migrate tasks ──────────────────────────────────────────── */
     const batchAmoIds = new Set(batchLeads.map(l => l.id));
@@ -395,9 +444,43 @@ async function rollbackBatch() {
   const ids = batchState.createdIds;
   updateState({ status: 'rolling_back' });
   try {
-    if (ids.leads?.length)     await kommoApi.deleteLeadsBatch(ids.leads);
-    if (ids.contacts?.length)  await kommoApi.deleteContactsBatch(ids.contacts);
-    if (ids.companies?.length) await kommoApi.deleteCompaniesBatch(ids.companies);
+    // ═ САФЕТИ: при откате удаляем ТОЛЬКО те записи, которые создали САМИ
+    // (batchState.createdIds). Записи, которых нет в createdIds, не трогаем.
+    if (ids.leads?.length) {
+      const { safe: safeLeads, blocked: blockedLeads } =
+        safety.validateRollbackIds('leads', ids.leads, ids.leads);
+      if (blockedLeads.length > 0)
+        addWarning(`⛔ Откат: ${blockedLeads.length} сделок заблокированы (не созданы в этом пакете).`);
+      if (safeLeads.length > 0) await kommoApi.deleteLeadsBatch(safeLeads);
+    }
+    if (ids.contacts?.length) {
+      const { safe: safeContacts, blocked: blockedContacts } =
+        safety.validateRollbackIds('contacts', ids.contacts, ids.contacts);
+      if (blockedContacts.length > 0)
+        addWarning(`⛔ Откат: ${blockedContacts.length} контактов заблокированы.`);
+      if (safeContacts.length > 0) await kommoApi.deleteContactsBatch(safeContacts);
+    }
+    if (ids.companies?.length) {
+      const { safe: safeCompanies, blocked: blockedCompanies } =
+        safety.validateRollbackIds('companies', ids.companies, ids.companies);
+      if (blockedCompanies.length > 0)
+        addWarning(`⛔ Откат: ${blockedCompanies.length} компаний заблокированы.`);
+      if (safeCompanies.length > 0) await kommoApi.deleteCompaniesBatch(safeCompanies);
+    }
+
+    // Убираем откаченные сделки из индекса
+    if (ids.leads?.length) {
+      const idx = safety.loadIndex();
+      for (const kommoId of ids.leads) {
+        const entry = Object.entries(idx.leads || {}).find(([_a, k]) => k === String(kommoId));
+        if (entry) delete idx.leads[entry[0]];
+      }
+      require('../utils/safetyGuard'); // re-save via module
+      const fs2 = require('fs-extra');
+      const p2  = require('path');
+      const cfg2 = require('../config');
+      fs2.writeJsonSync(p2.resolve(cfg2.backupDir, 'migration_index.json'), idx, { spaces: 2 });
+    }
 
     batchConfig.offset = Math.max(0, batchConfig.offset - (ids.leads?.length || 0));
     saveBatchConfig();
