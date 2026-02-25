@@ -95,21 +95,8 @@ export default function App() {
     fetchStatus();
     fetchPipelines();
     fetchBackups();
-    // Load amo fetch status on mount
-    api.getAmoFetchStatus().then(setFetchSt).catch(() => {});
-    // Load batch stats and config on mount
-    api.getBatchStats().then(setBatchStats).catch(() => {});
-    api.getBatchStatus().then(d => {
-      setBatchStatusData(d);
-      if (d?.batchConfig) {
-        setSelectedManagers(d.batchConfig.managerIds || []);
-        setBatchSize(d.batchConfig.batchSize || 10);
-      }
-    }).catch(() => {});
-    api.getBatchConfig().then(cfg => {
-      setSelectedManagers(cfg.managerIds || []);
-      setBatchSize(cfg.batchSize || 10);
-    }).catch(() => {});
+    // NOTE: бэтч-статистика, статус загрузки amo и конфиг НЕ загружаются автоматически.
+    // Данные появляются только по явному действию пользователя (F5 = чистый старт).
   }, []);
 
   // Auto-poll while amo data is loading
@@ -120,7 +107,7 @@ export default function App() {
         setFetchSt(s);
         if (s.status !== 'loading') {
           clearInterval(iv);
-          if (s.status === 'done') loadEntities(entityType, 1, entitySearch);
+          if (s.status === 'done') loadEntities(entityType, 1, entitySearch, showOnlyManagerLeads && entityType === 'leads', selectedManagers);
         }
       }).catch(() => {});
     }, 1500);
@@ -971,9 +958,10 @@ export default function App() {
         </div>
       )}
 
-      {tab === 'fields' && (
-        <FieldSync />
-      )}
+      {/* FieldSync всегда смонтирован, скрывается через CSS — данные сохраняются между вкладками */}
+      <div style={{ display: tab === 'fields' ? '' : 'none' }}>
+        <FieldSync isActive={tab === 'fields'} />
+      </div>
 
       {tab === 'backups' && (
         <div className="card">
