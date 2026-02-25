@@ -21,6 +21,13 @@ export const getAmoEntities = (type, page = 1, limit = 50, search = '') =>
   api.get('/amo/entities', { params: { type, page, limit, search } }).then(r => r.data);
 export const getAmoStats = () => api.get('/amo/stats').then(r => r.data);
 
+// Fields sync
+export const getFieldsAnalysis = () => api.get('/migration/fields-analysis').then(r => r.data);
+export const createField = (entity, amoFieldId, status) =>
+  api.post('/migration/create-field', { entityType: entity, amoFieldId, fieldStatus: status }).then(r => r.data);
+export const skipField = (entity, amoFieldId) =>
+  api.post('/migration/skip-field', { entityType: entity, amoFieldId }).then(r => r.data);
+
 // Batch migration
 export const analyzeManagers = () => api.get('/migration/analyze-managers').then(r => r.data);
 export const getBatchConfig = () => api.get('/migration/batch-config').then(r => r.data);

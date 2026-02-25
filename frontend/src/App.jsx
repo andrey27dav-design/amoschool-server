@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as api from './api';
 import './App.css';
+import FieldSync from './FieldSync';
 
 const STATUS_LABELS = {
   idle: 'Ожидание',
@@ -389,10 +390,10 @@ export default function App() {
       )}
 
       <nav className="tabs">
-        {['dashboard', 'data', 'pipelines', 'backups'].map(t => (
+        {['dashboard', 'data', 'pipelines', 'fields', 'backups'].map(t => (
           <button key={t} className={`tab${tab === t ? ' active' : ''}`}
             onClick={() => t === 'data' ? handleOpenDataTab() : setTab(t)}>
-            {t === 'dashboard' ? '📊 Дашборд' : t === 'data' ? '📦 Данные amo' : t === 'pipelines' ? '🔀 Воронки' : '💾 Бэкапы'}
+            {t === 'dashboard' ? '📊 Дашборд' : t === 'data' ? '📦 Данные amo' : t === 'pipelines' ? '🔀 Воронки' : t === 'fields' ? '🔧 Поля' : '💾 Бэкапы'}
           </button>
         ))}
       </nav>
@@ -931,6 +932,10 @@ export default function App() {
             </div>
           )}
         </div>
+      )}
+
+      {tab === 'fields' && (
+        <FieldSync />
       )}
 
       {tab === 'backups' && (
