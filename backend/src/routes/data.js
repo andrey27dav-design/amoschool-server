@@ -121,11 +121,19 @@ router.get('/entities', (req, res) => {
   if (!memCache) loadCacheFromDisk();
   if (!memCache) return res.status(404).json({ error: 'Данные не загружены. Запустите загрузку.' });
 
-  const { type = 'leads', page = 1, limit = 50, search = '' } = req.query;
+  const { type = 'leads', page = 1, limit = 50, search = '', managersOnly = '0', managerIds = '' } = req.query;
   const validTypes = ['leads', 'contacts', 'companies', 'tasks'];
   if (!validTypes.includes(type)) return res.status(400).json({ error: 'Неверный тип сущности' });
 
   let items = memCache[type] || [];
+
+  // Manager filter (only for leads)
+  if (type === 'leads' && managersOnly === '1' && managerIds) {
+    const ids = managerIds.split(',').map(Number).filter(Boolean);
+    if (ids.length > 0) {
+      items = items.filter(item => ids.includes(item.responsible_user_id));
+    }
+  }
 
   // Search filter
   if (search) {

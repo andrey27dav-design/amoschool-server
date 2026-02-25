@@ -20,13 +20,12 @@ const STATUS_COLORS = {
 };
 
 const MIGRATION_PLAN = [
-  { step: 1, title: 'Синхронизация этапов воронки', desc: 'Нажмите «Синхронизировать этапы». Система создаст в Kommo CRM (воронка RUSSIANLANGUADGE DEPARTMENT) все 12 этапов, соответствующих воронке Школа/Репетиторство из amo CRM.' },
-  { step: 2, title: 'Резервная копия', desc: 'Создаётся автоматически при запуске миграции. Все данные amo CRM сохраняются в JSON-файл на сервере (раздел «Бэкапы»). Исходные данные в amo CRM НЕ удаляются.' },
-  { step: 3, title: 'Перенос компаний', desc: 'Все компании из amo CRM копируются в Kommo CRM с сохранением полей и реквизитов.' },
-  { step: 4, title: 'Перенос контактов', desc: 'Контакты переносятся с привязкой к компаниям. Телефоны, email и кастомные поля сохраняются.' },
-  { step: 5, title: 'Перенос сделок', desc: 'Сделки из воронки Школа/Репетиторство переносятся в воронку RUSSIANLANGUADGE DEPARTMENT с маппингом этапов. Привязки к контактам и компаниям восстанавливаются.' },
-  { step: 6, title: 'Перенос задач', desc: 'Задачи переносятся с привязкой к соответствующим сделкам. Тип, срок и ответственный сохраняются.' },
-  { step: 7, title: 'Перенос комментариев / таймлайна', desc: 'Примечания и комментарии из карточек сделок переносятся в таймлайн соответствующих сделок в Kommo CRM.' },
+  { step: 1, title: 'Синхронизация этапов воронки', desc: 'Вкладка «Воронки» → выберите воронку из amo CRM и воронку в Kommo → нажмите «Синхронизировать этапы». Система создаст в Kommo CRM (воронка RUSSIANLANGUADGE DEPARTMENT) все этапы из воронки Школа/Репетиторство. Новые этапы отмечаются бейджем NEW.' },
+  { step: 2, title: 'Синхронизация кастомных полей', desc: 'Вкладка «Поля» → загрузите анализ полей → выберите поля со статусом «Нет в Kommo» или «Частично» → нажмите «Создать выбранные». Поля с полным совпадением (синхронизированные) не требуют действий.' },
+  { step: 3, title: 'Загрузка данных из amo CRM', desc: 'Вкладка «Данные amo» → нажмите «Загрузить данные». Все сделки, контакты, компании и задачи будут загружены в кэш. После можно просматривать данные и фильтровать по менеджерам.' },
+  { step: 4, title: 'Анализ менеджеров', desc: 'Дашборд → нажмите «Анализировать менеджеров». Выберите менеджеров международного ОП, сделки которых нужно перенести. Счётчик «Доступно для переноса» покажет количество отфильтрованных сделок.' },
+  { step: 5, title: 'Пакетный перенос сделок', desc: 'Выберите размер пакета (10–200). Нажмите «Перенести N сделок». Система переносит сделки пакетами — компании → контакты → сделки → задачи → комментарии. Счётчик «Перенесено» обновляется после каждого пакета.' },
+  { step: 6, title: 'Резервная копия', desc: 'Создаётся автоматически перед каждой миграцией (вкладка «Бэкапы»). Все данные amo CRM сохраняются в JSON-файл. Исходные данные в amo CRM НЕ удаляются автоматически.' },
 ];
 
 export default function App() {
@@ -45,6 +44,7 @@ export default function App() {
   const [entityPage, setEntityPage] = useState(1);
   const [entitySearch, setEntitySearch] = useState('');
   const [entityLoading, setEntityLoading] = useState(false);
+  const [showOnlyManagerLeads, setShowOnlyManagerLeads] = useState(false);
 
   // Batch migration state
   const [batchStats, setBatchStats] = useState(null);
@@ -181,10 +181,10 @@ export default function App() {
     setLoading(false);
   };
 
-  const loadEntities = useCallback(async (type, page, search) => {
+  const loadEntities = useCallback(async (type, page, search, onlyManagers, managerIds) => {
     setEntityLoading(true);
     try {
-      const data = await api.getAmoEntities(type, page, 50, search || '');
+      const data = await api.getAmoEntities(type, page, 50, search || '', onlyManagers, managerIds || []);
       setAmoEntities(data);
     } catch (e) {
       console.error('Entities error:', e);
@@ -211,24 +211,30 @@ export default function App() {
     setEntityType(type);
     setEntityPage(1);
     setEntitySearch('');
-    loadEntities(type, 1, '');
+    loadEntities(type, 1, '', showOnlyManagerLeads && type === 'leads', selectedManagers);
   };
 
   const handleEntitySearch = (e) => {
     const val = e.target.value;
     setEntitySearch(val);
     setEntityPage(1);
-    loadEntities(entityType, 1, val);
+    loadEntities(entityType, 1, val, showOnlyManagerLeads && entityType === 'leads', selectedManagers);
   };
 
   const handleEntityPage = (p) => {
     setEntityPage(p);
-    loadEntities(entityType, p, entitySearch);
+    loadEntities(entityType, p, entitySearch, showOnlyManagerLeads && entityType === 'leads', selectedManagers);
+  };
+
+  const handleManagerLeadsToggle = (onlyManagers) => {
+    setShowOnlyManagerLeads(onlyManagers);
+    setEntityPage(1);
+    loadEntities(entityType, 1, entitySearch, onlyManagers && entityType === 'leads', selectedManagers);
   };
 
   const handleOpenDataTab = () => {
     setTab('data');
-    if (!amoEntities) loadEntities(entityType, 1, '');
+    if (!amoEntities) loadEntities(entityType, 1, '', false, []);
   };
 
   const handleSyncStages = async (amoPipelineId, kommoPipelineId) => {
@@ -361,7 +367,7 @@ export default function App() {
                 Исходные данные сохраняются — ничего не удаляется автоматически.
               </div>
               <div className="plan-warning">
-                ⚠️ Перед запуском убедитесь, что этапы воронки синхронизированы (шаг 1).
+                ⚠️ Рекомендуемый порядок: Воронки → Поля → Данные amo → Дашборд (пакетный перенос)
               </div>
               <ol className="plan-steps">
                 {MIGRATION_PLAN.map(({ step, title, desc }) => (
@@ -373,15 +379,25 @@ export default function App() {
               </ol>
               <div className="plan-section">
                 <h3>🔙 Откат данных</h3>
-                <p>Если что-то пошло не так — используйте кнопки отката на дашборде. Можно откатить всё или только отдельные сущности (сделки, контакты, компании). Откат удаляет только записи, созданные в Kommo CRM в ходе этой миграции.</p>
+                <p>Кнопка «↩ Откатить пакет» отменяет последний перенесённый пакет сделок (удаляет из Kommo только то, что создано в этом пакете). Кнопка «Откатить всё» на дашборде откатывает всю одиночную миграцию.</p>
+              </div>
+              <div className="plan-section">
+                <h3>📦 Вкладки панели</h3>
+                <ul>
+                  <li><strong>📊 Дашборд</strong> — пакетный перенос, выбор менеджеров, счётчики, откат</li>
+                  <li><strong>📦 Данные amo</strong> — просмотр загруженных данных, фильтр по менеджерам ОП</li>
+                  <li><strong>🔀 Воронки</strong> — синхронизация этапов воронок (amo ↔ Kommo)</li>
+                  <li><strong>🔧 Поля</strong> — синхронизация кастомных полей (создание в Kommo)</li>
+                  <li><strong>💾 Бэкапы</strong> — список созданных резервных копий данных</li>
+                </ul>
               </div>
               <div className="plan-section">
                 <h3>✅ После успешной миграции</h3>
                 <ol>
-                  <li>Проверьте данные в Kommo CRM — убедитесь, что все сделки, контакты и задачи на месте.</li>
-                  <li>Проверьте таймлайн нескольких карточек — комментарии должны присутствовать.</li>
-                  <li>Убедитесь в корректности этапов воронки.</li>
-                  <li>Только после проверки вручную удалите исходные данные в amo CRM.</li>
+                  <li>Проверьте счётчик «Перенесено» на дашборде — Сделки, Контакты, Компании.</li>
+                  <li>Проверьте данные в Kommo CRM — несколько карточек сделок и их таймлайн.</li>
+                  <li>Убедитесь в корректности этапов воронки и кастомных полей.</li>
+                  <li>Только после ручной проверки удалите исходные данные в amo CRM.</li>
                 </ol>
               </div>
             </div>
@@ -553,27 +569,27 @@ export default function App() {
             )}
           </div>
 
-          {/* Counters */}
-          {status?.createdIds && (
-            <div className="card counters-card">
-              <h2>Перенесено записей</h2>
-              <div className="counters">
-                {[
-                  { label: 'Сделки', key: 'leads', icon: '📋' },
-                  { label: 'Контакты', key: 'contacts', icon: '👤' },
-                  { label: 'Компании', key: 'companies', icon: '🏢' },
-                  { label: 'Задачи', key: 'tasks', icon: '✅' },
-                  { label: 'Заметки', key: 'notes', icon: '💬' },
-                ].map(({ label, key, icon }) => (
-                  <div className="counter" key={key}>
-                    <div className="counter-icon">{icon}</div>
-                    <div className="counter-value">{status.createdIds[key]?.length || 0}</div>
-                    <div className="counter-label">{label}</div>
+          {/* Counters — always visible, shows batch + single migration totals */}
+          <div className="card counters-card">
+            <h2>Перенесено</h2>
+            <div className="counters">
+              {[
+                { label: 'Сделки', key: 'leads', icon: '📋' },
+                { label: 'Контакты', key: 'contacts', icon: '👤' },
+                { label: 'Компании', key: 'companies', icon: '🏢' },
+                { label: 'Задачи', key: 'tasks', icon: '✅' },
+                { label: 'Заметки', key: 'notes', icon: '💬' },
+              ].map(({ label, key, icon }) => (
+                <div className="counter" key={key}>
+                  <div className="counter-icon">{icon}</div>
+                  <div className="counter-value">
+                    {(batchStatus?.createdIds?.[key]?.length || 0) + (status?.createdIds?.[key]?.length || 0)}
                   </div>
-                ))}
-              </div>
+                  <div className="counter-label">{label}</div>
+                </div>
+              ))}
             </div>
-          )}
+          </div>
 
           {/* Controls */}
           <div className="card controls-card">
@@ -850,9 +866,30 @@ export default function App() {
                 ))}
               </div>
 
-              <div style={{ display: 'flex', gap: 12, margin: '12px 0', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 12, margin: '12px 0', alignItems: 'center', flexWrap: 'wrap' }}>
                 <input className="search-input" placeholder="🔍 Поиск по названию..."
                   value={entitySearch} onChange={handleEntitySearch} />
+                {entityType === 'leads' && selectedManagers.length > 0 && (
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <button
+                      className={`btn btn-sm${!showOnlyManagerLeads ? ' btn-primary' : ' btn-secondary'}`}
+                      style={{ padding: '4px 12px', fontSize: 12 }}
+                      onClick={() => handleManagerLeadsToggle(false)}>
+                      Все сделки
+                    </button>
+                    <button
+                      className={`btn btn-sm${showOnlyManagerLeads ? ' btn-primary' : ' btn-secondary'}`}
+                      style={{ padding: '4px 12px', fontSize: 12 }}
+                      onClick={() => handleManagerLeadsToggle(true)}>
+                      Менеджеры ОП ({selectedManagers.length})
+                    </button>
+                  </div>
+                )}
+                {entityType === 'leads' && selectedManagers.length === 0 && (
+                  <span style={{ fontSize: 12, color: '#94a3b8' }}>
+                    💡 Выберите менеджеров на дашборде для фильтрации
+                  </span>
+                )}
               </div>
 
               {entityLoading ? (
