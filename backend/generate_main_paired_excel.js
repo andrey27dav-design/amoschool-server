@@ -93,6 +93,23 @@ const TRANSLATIONS = {
   'репетиторство рф':'tutoring','репетиторство мш':'tutoring',
   'tutoring':'репетиторство','school':'школа',
 
+  // Предметы (учебные дисциплины)
+  'алгебра':'algebra','algebra':'алгебра',
+  'геометрия':'geometry','geometry':'геометрия',
+  'математика':'mathematics','mathematics':'математика',
+  'биология':'biology','biology':'биология',
+  'химия':'chemistry','chemistry':'химия',
+  'физика':'physics','physics':'физика',
+  'английский язык':'english','english':'английский язык',
+  'испанский язык':'spanish','spanish':'испанский язык',
+  'литература':'literature','literature':'литература',
+  'история':'world history','world history':'история',
+  'обществознание':'civics','civics':'обществознание','social studies':'обществознание',
+  'информатика':'computer science','computer science':'информатика',
+  'русский язык':'language arts','language arts':'русский язык',
+  'обж':'life management skills','life management skills':'обж',
+  'технология':'elective','подготовка к школе':'pre-algebra','pre-algebra':'подготовка к школе',
+
   // Связаться (месяцы рус→eng)
   'январь':'january','january':'январь',
   'февраль':'february','february':'февраль',
@@ -201,7 +218,46 @@ const FIELD_STATUS_LABEL = {
 const MANUAL_OVERRIDES = {
   'предмет': {
     status: 'partial',
-    kommo: { name: 'Subject', type: 'multiselect', code: '—', enums: [] },
+    kommo: {
+      name: 'Subject', type: 'select', code: '—',
+      enums: [
+        { id:'ks1',  value:'Language Arts' },
+        { id:'ks2',  value:'Mathematics' },
+        { id:'ks3',  value:'Science' },
+        { id:'ks4',  value:'Social Studies' },
+        { id:'ks5',  value:'Civics' },
+        { id:'ks6',  value:'Pre-Algebra' },
+        { id:'ks7',  value:'Algebra' },
+        { id:'ks8',  value:'Geometry' },
+        { id:'ks9',  value:'Earth Space Science' },
+        { id:'ks10', value:'Life Management Skills' },
+        { id:'ks11', value:'Biology' },
+        { id:'ks12', value:'Chemistry' },
+        { id:'ks13', value:'Physics' },
+        { id:'ks14', value:'English' },
+        { id:'ks15', value:'Spanish' },
+        { id:'ks16', value:'French' },
+        { id:'ks17', value:'Chinese' },
+        { id:'ks18', value:'World History' },
+        { id:'ks19', value:'US History' },
+        { id:'ks20', value:'Comprehensive Science' },
+        { id:'ks21', value:'Digital Art Imaging' },
+        { id:'ks22', value:'Economics' },
+        { id:'ks23', value:'Elective' },
+        { id:'ks24', value:'United States Government' },
+      ],
+    },
+    matchedVia: 'mapped',
+  },
+  'класс': {
+    status: 'partial',
+    kommo: {
+      name: "Student's grade", type: 'select', code: '—',
+      enums: [
+        { id:'kg0', value:'K' },
+        ...Array.from({length:12}, (_,i) => ({ id:'kg'+(i+1), value:String(i+1) }))
+      ],
+    },
     matchedVia: 'mapped',
   },
 };
@@ -262,7 +318,7 @@ function buildSheet(wb, sheetName, tabColor, entityLabel, groups) {
   // Строка 2: легенда
   ws.mergeCells('A2:K2');
   Object.assign(ws.getCell('A2'), {
-    value: '  ✅ Зелёный = полное совпадение   🟣 Фиолетовый = частичное совпадение (не все значения в Kommo)   🟡 Жёлтый = поля/значения НЕТ в Kommo   🔵 Синий = значение есть в Kommo, но нет в AMO',
+    value: '  ✅ Зелёный = полное совпадение   🟣 Фиолетовый = частичное совпадение (не все значения в Kommo)   🟡 Жёлтый = поля/значения НЕТ в Kommo   🔵 Синий = только в Kommo   ⬜ Серый = только через API',
     font: { size:9, italic:true, color:{ argb:'FF374151' } },
     fill: { type:'pattern', pattern:'solid', fgColor:{ argb:'FFF9FAFB' } },
     alignment: { horizontal:'left', vertical:'middle' },
@@ -311,7 +367,9 @@ function buildSheet(wb, sheetName, tabColor, entityLabel, groups) {
 
       fieldNum++;
       const s = fp.status;
-      const col = C[s] || { bg:'FFFFFFFF', fg:'FF374151' };
+      // API-only поля (is_api_only в AMO или Kommo) → серый цвет
+      const isApiOnly = !!(fp.amo?.is_api_only || fp.kommo?.is_api_only);
+      const col = isApiOnly ? C.apiOnly : (C[s] || { bg:'FFFFFFFF', fg:'FF374151' });
 
       const amoEnums  = fp.amo?.enums  || [];
       const kommoEnums= fp.kommo?.enums|| [];
@@ -335,7 +393,7 @@ function buildSheet(wb, sheetName, tabColor, entityLabel, groups) {
         tl(fp.amo?.type),
         fp.amo?.code || '—',
         enumsInfo,
-        FIELD_STATUS_LABEL[s] || s,
+        isApiOnly ? FIELD_STATUS_LABEL.apiOnly : (FIELD_STATUS_LABEL[s] || s),
         fp.kommo?.name || '—',
         tl(fp.kommo?.type),
         fp.kommo?.code || '—',
