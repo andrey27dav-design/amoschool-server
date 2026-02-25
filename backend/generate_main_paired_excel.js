@@ -178,6 +178,7 @@ const C = {
   partial:  { bg: 'FFEDE9FE', fg: 'FF5B21B6' }, // фиолетовый
   missing:  { bg: 'FFFEF9C3', fg: 'FF713F12' }, // жёлтый
   skipped:  { bg: 'FFF3F4F6', fg: 'FF6B7280' },
+  apiOnly:  { bg: 'FFF3F4F6', fg: 'FF9CA3AF' }, // серый — только через API
   different:{ bg: 'FFFEE2E2', fg: 'FF991B1B' },
   // Строки enum-значений
   enumMatch:   { bg: 'FFD1FAE5', fg: 'FF065F46' }, // зелёный — значение есть в обеих
@@ -191,7 +192,18 @@ const FIELD_STATUS_LABEL = {
   partial:  '🟣 Частично',
   missing:  '🟡 Нет в Kommo',
   skipped:  '⏭ Пропущено',
+  apiOnly:  '⚙️ Только API',
   different:'🔴 Конфликт типов',
+};
+
+// ── Ручные сопоставления полей (AMO missing → известное Kommo поле) ───────────
+// Ключ = norm(amo.name), значение = патч на объект fp
+const MANUAL_OVERRIDES = {
+  'предмет': {
+    status: 'partial',
+    kommo: { name: 'Subject', type: 'multiselect', code: '—', enums: [] },
+    matchedVia: 'mapped',
+  },
 };
 
 // ── Колонки ───────────────────────────────────────────────────────────────────
@@ -291,6 +303,12 @@ function buildSheet(wb, sheetName, tabColor, entityLabel, groups) {
     }
 
     g.fields.forEach(fp => {
+      // Применяем ручные оверрайды для известных полей без автоматического совпадения
+      const manualKey = norm(fp.amo?.name || '');
+      if (MANUAL_OVERRIDES[manualKey]) {
+        fp = Object.assign({}, fp, MANUAL_OVERRIDES[manualKey]);
+      }
+
       fieldNum++;
       const s = fp.status;
       const col = C[s] || { bg:'FFFFFFFF', fg:'FF374151' };
