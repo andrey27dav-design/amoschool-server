@@ -429,14 +429,16 @@ function findCrossLangMatch(amoField, availableKommoFields) {
 
     // Штраф если AMO-поле длинное (>2 токенов), но только один из них попал в кластер.
     // Применяем ТОЛЬКО если тип не совпадает точно (чтобы не штрафовать верные пары)
+    // -25 (не -20) чтобы итоговый score 75 < 80 отсекал ложные совпадения вида
+    // "Комментарий" (1 токен) → "Комментарий для отложенных" (3 токена, 1 в кластере)
     const amoMatchCount = amoTokens.filter(t => amoCluster.includes(t)).length;
     const amoFullMatch  = amoCluster.includes(amoFull);
-    if (!amoFullMatch && amoTokens.length > 2 && amoMatchCount < 2 && kf.type !== amoField.type) score -= 20;
+    if (!amoFullMatch && amoTokens.length > 2 && amoMatchCount < 2 && kf.type !== amoField.type) score -= 25;
 
     // Аналогично для Kommo
     const kMatchCount = kTokens.filter(t => kCluster.includes(t)).length;
     const kFullMatch  = kCluster.includes(kFull);
-    if (!kFullMatch && kTokens.length > 2 && kMatchCount < 2 && kf.type !== amoField.type) score -= 20;
+    if (!kFullMatch && kTokens.length > 2 && kMatchCount < 2 && kf.type !== amoField.type) score -= 25;
 
     if (score >= 80 && score > (best?.score || 0)) {
       best = { field: kf, via: 'translation', score };
