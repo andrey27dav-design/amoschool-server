@@ -946,10 +946,26 @@ router.post('/create-field', async (req, res) => {
             return res.status(500).json({ ok: false, error: 'Не удалось обновить варианты поля: ' + patchErr.message });
           }
         }
-        // Все AMO-значения уже есть — ничего не делаем
+        // Все AMO-значения уже есть — сохраняем маппинг и возвращаем
+        {
+          const mapping = loadFieldMapping() || {};
+          if (!mapping[entityType]) mapping[entityType] = {};
+          if (!mapping[entityType][amoField.id]) {
+            mapping[entityType][amoField.id] = { kommoFieldId: kf.id, fieldType: amoField.type, enumMap: {} };
+            saveFieldMapping(mapping);
+          }
+        }
         return res.json({ ok: true, kommoField: kf, alreadyExisted: true });
       } else {
-        // Типы совпадают, не enum — просто фиксируем маппинг
+        // Типы совпадают, не enum — сохраняем маппинг
+        {
+          const mapping = loadFieldMapping() || {};
+          if (!mapping[entityType]) mapping[entityType] = {};
+          if (!mapping[entityType][amoField.id]) {
+            mapping[entityType][amoField.id] = { kommoFieldId: kf.id, fieldType: amoField.type, enumMap: {} };
+            saveFieldMapping(mapping);
+          }
+        }
         return res.json({ ok: true, kommoField: kf, alreadyExisted: true });
       }
     }

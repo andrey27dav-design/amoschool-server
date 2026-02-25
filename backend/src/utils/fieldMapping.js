@@ -29,6 +29,9 @@ function buildCreatePayload(amoField, stageMapping, kommoPipelineId) {
     is_api_only: amoField.is_api_only || false,
   };
 
+  // Include code when present — required for tracking_data type, helps dedup for all types
+  if (amoField.code) payload.code = amoField.code;
+
   // Enums: copy value + sort only (Kommo assigns new IDs)
   if (amoField.enums && amoField.enums.length > 0) {
     payload.enums = amoField.enums.map((e, i) => ({
