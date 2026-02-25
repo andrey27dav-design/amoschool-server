@@ -449,7 +449,8 @@ router.get('/status', (req, res) => {
 });
 
 // POST /api/migration/start
-const createdGroupCache = {}; // key: entityType:groupNameLc => groupId
+const createdGroupCache = {};    // key: entityType:groupNameLc => groupId (settled)
+const groupCreationPending = {}; // key: entityType:groupNameLc => Promise<string|null> (in-flight)
 
 router.post('/start', async (req, res) => {
   try {
@@ -968,36 +969,48 @@ router.post('/create-field', async (req, res) => {
         const mappedName  = AMO_KOMMO_GROUP_NAME_MAP[groupNameLc] || groupNameLc;
         const cacheKey    = entityType + ':' + groupNameLc;
 
-        // 1. Проверяем локальный кэш (другое поле этой же группы уже создало группу)
+        // 1. Проверяем заполненный кэш (предыдущий запрос уже завершил создание)
         if (createdGroupCache[cacheKey]) {
           targetGroupId = createdGroupCache[cacheKey];
           logger.info(`[create-field] Reusing cached group "${amoGroup.name}" id=${targetGroupId}`);
+        } else if (groupCreationPending[cacheKey]) {
+          // 2. Race condition guard: другой параллельный запрос уже создаёт эту группу — ждём его
+          logger.info(`[create-field] Waiting for in-flight group creation "${amoGroup.name}"...`);
+          targetGroupId = await groupCreationPending[cacheKey];
         } else {
-          // 2. Запрашиваем актуальный список групп Kommo
-          const kommoGroups = await kommoApi.getCustomFieldGroups(entityType);
-          const kGroupByName = {};
-          kommoGroups.forEach(g => { kGroupByName[(g.name || '').toLowerCase().trim()] = g; });
-          let kommoGroup = kGroupByName[mappedName] || kGroupByName[groupNameLc] || null;
+          // 3. Мы первые — создаём группу и регистрируем Promise, чтобы параллельные запросы ждали нас
+          const creationPromise = (async () => {
+            try {
+              const kommoGroups = await kommoApi.getCustomFieldGroups(entityType);
+              const kGroupByName = {};
+              kommoGroups.forEach(g => { kGroupByName[(g.name || '').toLowerCase().trim()] = g; });
+              let kommoGroup = kGroupByName[mappedName] || kGroupByName[groupNameLc] || null;
 
-          if (!kommoGroup) {
-            // 3. Группа не найдена — создаём
-            const newGroup = await kommoApi.createCustomFieldGroup(entityType, {
-              name: amoGroup.name,
-              sort: amoGroup.sort || 100,
-            });
-            if (newGroup) {
-              kommoGroup = newGroup;
-              groupCreated = { name: amoGroup.name, id: newGroup.id };
-              // Сохраняем в кэш — следующие поля этой группы не будут создавать дубли
-              createdGroupCache[cacheKey] = newGroup.id;
-              logger.info(`[create-field] Created Kommo group "${amoGroup.name}" for ${entityType}, id=${newGroup.id}`);
+              if (!kommoGroup) {
+                const newGroup = await kommoApi.createCustomFieldGroup(entityType, {
+                  name: amoGroup.name,
+                  sort: amoGroup.sort || 100,
+                });
+                if (newGroup) {
+                  kommoGroup = newGroup;
+                  groupCreated = { name: amoGroup.name, id: newGroup.id };
+                  logger.info(`[create-field] Created Kommo group "${amoGroup.name}" for ${entityType}, id=${newGroup.id}`);
+                }
+              } else {
+                logger.info(`[create-field] Found existing Kommo group "${amoGroup.name}" id=${kommoGroup.id}`);
+              }
+
+              const resolvedId = kommoGroup ? kommoGroup.id : null;
+              if (resolvedId) createdGroupCache[cacheKey] = resolvedId;
+              return resolvedId;
+            } finally {
+              // Убираем из pending в любом случае (успех или ошибка)
+              delete groupCreationPending[cacheKey];
             }
-          } else {
-            // Группа найдена — кэшируем, чтобы следующий вызов API не понадобился
-            createdGroupCache[cacheKey] = kommoGroup.id;
-          }
+          })();
 
-          if (kommoGroup) targetGroupId = kommoGroup.id;
+          groupCreationPending[cacheKey] = creationPromise;
+          targetGroupId = await creationPromise;
         }
       }
     } catch (groupErr) {
