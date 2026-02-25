@@ -16,23 +16,96 @@ const http    = require('http');
 const TARGET_GROUPS = ['основное', 'main', 'general', 'без группы', 'основная'];
 
 // ── Переводы для сопоставления значений (рус ↔ eng) ──────────────────────────
+// Все пары добавлены в обе стороны для надёжного поиска
 const TRANSLATIONS = {
-  'телефон':'phone','phone':'телефон','почта':'email','email':'почта',
-  'да':'yes','yes':'да','нет':'no','no':'нет',
-  'мужской':'male','male':'мужской','женский':'female','female':'женский',
-  'активный':'active','active':'активный','неактивный':'inactive','inactive':'неактивный',
-  'новый':'new','new':'новый','в работе':'in progress','in progress':'в работе',
-  'завершён':'completed','completed':'завершён','закрыт':'closed','closed':'закрыт',
-  'менеджер':'manager','manager':'менеджер','директор':'director','director':'директор',
+  // Общие
+  'телефон':'phone','phone':'телефон',
+  'почта':'email','email':'почта',
+  'да':'yes','yes':'да',
+  'нет':'no','no':'нет',
+  'другое':'other','другая':'other','other':'другое',
+  'активный':'active','active':'активный',
+  'неактивный':'inactive','inactive':'неактивный',
+  'новый':'new','new':'новый',
+  'в работе':'in progress','in progress':'в работе',
+  'завершён':'completed','completed':'завершён',
+  'закрыт':'closed','closed':'закрыт',
+  'менеджер':'manager','manager':'менеджер',
+  'директор':'director','director':'директор',
   'корпоративный':'corporate','corporate':'корпоративный',
   'физическое лицо':'individual','individual':'физическое лицо',
   'юридическое лицо':'legal entity','legal entity':'юридическое лицо',
-  'рубли':'rub','rub':'рубли','доллары':'usd','usd':'доллары','евро':'eur','eur':'евро',
-  'сайт':'website','website':'сайт','сайт компании':'company website',
+  'рубли':'rub','rub':'рубли',
+  'доллары':'usd','usd':'доллары',
+  'евро':'eur','eur':'евро',
+  'сайт':'website','website':'сайт',
   'telegram':'telegram','whatsapp':'whatsapp','instagram':'instagram',
   'facebook':'facebook','вконтакте':'vkontakte','vkontakte':'вконтакте',
-  'сезон':'season','season':'сезон','лето':'summer','summer':'лето',
-  'зима':'winter','winter':'зима','весна':'spring','spring':'весна','осень':'autumn','autumn':'осень',
+  'сезон':'season','season':'сезон',
+  'лето':'summer','summer':'лето',
+  'зима':'winter','winter':'зима',
+  'весна':'spring','spring':'весна',
+  'осень':'autumn','autumn':'осень',
+
+  // Пол (контакты)
+  'м':'male','ж':'female',
+  'мужской':'male','male':'мужской',
+  'женский':'female','female':'женский',
+
+  // Роль контакта
+  'мама':'mother','mother':'мама',
+  'папа':'father','father':'папа',
+  'бабушка':'grandmother','grandmother':'бабушка',
+  'дедушка':'grandfather','grandfather':'дедушка',
+  'няня':'nanny','nanny':'няня',
+  // "ребенок" в контексте роли = "student himself" (подбирается через обратный перевод)
+  'student himself':'ребенок',
+
+  // Причина закрытия
+  'слишком дорого':'too expensive','too expensive':'слишком дорого',
+  'не устроили условия':'the terms were not acceptable',
+  'the terms were not acceptable':'не устроили условия',
+  'выбрали других':'chose others','chose others':'выбрали других',
+  'нет подходящей услуги':'there is no suitable product',
+  'there is no suitable product':'нет подходящей услуги',
+  'нет ответа':'no answer','no answer':'нет ответа',
+  'негатив, не звонить':'negative feedback, do not call',
+  'negative feedback, do not call':'негатив, не звонить',
+  'работа, сотрудничество, спам':'spam','spam':'работа, сотрудничество, спам',
+  'текущий ученик':'current student','current student':'текущий ученик',
+  'дубль':'duplicate','duplicate':'дубль',
+  // "ребенок" в контексте причины закрытия = "infant"
+  'ребенок':'infant','infant':'ребенок',
+  'не оставляли заявку':'did not submit an application',
+  'did not submit an application':'не оставляли заявку',
+  'это организация':'this is an organisation',
+  'this is an organisation':'это организация',
+  'пропала потребность':'the need disappeared',
+
+  // Источник
+  'с сайта':'landing','landing':'с сайта',
+  'рекомендация':'recommendation','recommendation':'рекомендация',
+  'текущий клиент':'recommendation',
+  'блогер':'blogger','blogger':'блогер',
+
+  // Продукт
+  'школа рф':'school','международная школа':'school',
+  'репетиторство рф':'tutoring','репетиторство мш':'tutoring',
+  'tutoring':'репетиторство','school':'школа',
+
+  // Связаться (месяцы рус→eng)
+  'январь':'january','january':'январь',
+  'февраль':'february','february':'февраль',
+  'март':'march','march':'март',
+  'апрель':'april','april':'апрель',
+  'май':'may','may':'май',
+  'июнь':'june','june':'июнь',
+  'июль':'july','july':'июль',
+  'август':'august','august':'август',
+  'сентябрь':'september','september':'сентябрь',
+  'октябрь':'october','october':'октябрь',
+  'ноябрь':'november','november':'ноябрь',
+  'декабрь':'december','december':'декабрь',
 };
 
 function norm(s) {
@@ -44,22 +117,29 @@ function norm(s) {
 // Попытки найти совпадение между AMO-значением и массивом Kommo-значений
 function findMatchingKommoEnum(amoVal, kommoEnums, usedKommoIds) {
   const an = norm(amoVal);
-  const trans = TRANSLATIONS[an];
+  const trans = TRANSLATIONS[an] ? norm(TRANSLATIONS[an]) : null;
 
+  // Проход 1: точное совпадение (рус↔рус или eng↔eng) или точное совпадение перевода
   for (const ke of kommoEnums) {
     if (usedKommoIds.has(ke.id)) continue;
     const kn = norm(ke.value);
-    if (kn === an) return ke;
-    if (trans && kn === norm(trans)) return ke;
-    if (trans && norm(trans) === kn) return ke;
+    if (kn === an) return ke;                    // точное
+    if (trans && kn === trans) return ke;         // перевод совпадает
+    // также проверяем, вдруг Kommo на русском, а AMO на английском (или наоборот)
+    const transK = TRANSLATIONS[kn] ? norm(TRANSLATIONS[kn]) : null;
+    if (transK && transK === an) return ke;
   }
-  // Нечёткое: содержит
+  // Проход 2: нечёткое (substring) — оригинал или перевод
   for (const ke of kommoEnums) {
     if (usedKommoIds.has(ke.id)) continue;
     const kn = norm(ke.value);
-    if (an.length > 3 && (kn.includes(an) || an.includes(kn))) return ke;
-    const t = TRANSLATIONS[an];
-    if (t && norm(t).length > 3 && (kn.includes(norm(t)) || norm(t).includes(kn))) return ke;
+    // Оригинал содержит / является частью
+    if (an.length > 2 && (kn.includes(an) || an.includes(kn))) return ke;
+    // Перевод содержит / является частью
+    if (trans && trans.length > 2 && (kn.includes(trans) || trans.includes(kn))) return ke;
+    // Обратный перевод Kommo-значения
+    const transK = TRANSLATIONS[kn] ? norm(TRANSLATIONS[kn]) : null;
+    if (transK && transK.length > 2 && (an.includes(transK) || transK.includes(an))) return ke;
   }
   return null;
 }
