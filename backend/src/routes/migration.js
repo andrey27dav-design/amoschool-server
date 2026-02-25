@@ -307,8 +307,10 @@ const FIELD_ALIASES = [
   ['ученик','student','учащийся','pupil'],
   // Роль / Relationship (кем является контакт по отношению к ученику)
   ['роль','role','relationship','роль в семье','relationship to student','relationship to the student'],
+  // Пробное занятие — дата и время
+  ['дата и время пробного урока','date and time of demo','дата пробного урока','trial lesson datetime','demo datetime','date and time of the demo','дата время пробный'],
   // Пробное занятие — запись
-  ['записан на пробное','registered for demo','registered demo','записан пробный','запись на пробный урок'],
+  ['записан на пробное','registered for demo','registered for the demo','registered demo','записан пробный','запись на пробный урок'],
   // Пробное занятие — посещение
   ['был на пробном','attended demo','attended the demo','посещение пробного','был на пробном занятии'],
   // Оценка после пробного урока
@@ -1038,7 +1040,8 @@ router.post('/create-field', async (req, res) => {
     if (targetGroupId) payload.group_id = targetGroupId;
 
     // Системные group_id Kommo (только для tracking_data). Нельзя помещать туда другие типы.
-    const KOMMO_SYSTEM_GROUPS = new Set(['statistic', 'main']);
+    // 'statistic' = Statistics, 'default' = Main (реальный system group_id в Kommo = 'default')
+    const KOMMO_SYSTEM_GROUPS = new Set(['statistic', 'default', 'main']);
 
     let created = null;
     try {
