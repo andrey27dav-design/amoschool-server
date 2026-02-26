@@ -48,10 +48,21 @@ export default function App() {
   const [batchSize, setBatchSize] = useState(10);
   const [batchLoading, setBatchLoading] = useState(false);
 
-  // Pipeline selector state
-  const [selectedAmoPipeline, setSelectedAmoPipeline] = useState(null);
-  const [selectedKommoPipeline, setSelectedKommoPipeline] = useState(null);
-  const [syncResult, setSyncResult] = useState(null);
+  // Pipeline selector state — persist across tab-switches and page reloads
+  const [selectedAmoPipeline, setSelectedAmoPipeline] = useState(() => {
+    const s = localStorage.getItem('pipeline_amo');
+    return s ? parseInt(s) : null;
+  });
+  const [selectedKommoPipeline, setSelectedKommoPipeline] = useState(() => {
+    const s = localStorage.getItem('pipeline_kommo');
+    return s ? parseInt(s) : null;
+  });
+  const [syncResult, setSyncResult] = useState(() => {
+    try {
+      const s = sessionStorage.getItem('syncResult');
+      return s ? JSON.parse(s) : null;
+    } catch { return null; }
+  });
   const [syncLoading, setSyncLoading] = useState(false);
   const [savedStageMapping, setSavedStageMapping] = useState([]);
 
@@ -78,8 +89,16 @@ export default function App() {
     try {
       const [amo, kommo] = await Promise.all([api.getAmoPipelines(), api.getKommoPipelines()]);
       setPipelines({ amo, kommo });
-      setSelectedAmoPipeline(prev => prev ?? (amo[0]?.id ?? null));
-      setSelectedKommoPipeline(prev => prev ?? (kommo[0]?.id ?? null));
+      setSelectedAmoPipeline(prev => {
+        const id = prev ?? (amo[0]?.id ?? null);
+        if (id) localStorage.setItem('pipeline_amo', id);
+        return id;
+      });
+      setSelectedKommoPipeline(prev => {
+        const id = prev ?? (kommo[0]?.id ?? null);
+        if (id) localStorage.setItem('pipeline_kommo', id);
+        return id;
+      });
     } catch (e) {
       console.error('Pipelines fetch error:', e);
     }
@@ -250,6 +269,7 @@ export default function App() {
     try {
       const result = await api.syncStages(amoPipelineId, kommoPipelineId);
       setSyncResult(result);
+      try { sessionStorage.setItem('syncResult', JSON.stringify(result)); } catch {}
       const created = result.created?.length ?? 0;
       const skipped = result.skipped?.length ?? 0;
       setMessage(`✅ Синхронизация завершена: создано ${created} этапов, ${skipped} уже существовали`);
@@ -908,7 +928,15 @@ export default function App() {
                     className={`pipeline-radio-item${selectedAmoPipeline === p.id ? ' selected' : ''}`}>
                     <input type="radio" name="amo-pipeline" value={p.id}
                       checked={selectedAmoPipeline === p.id}
-                      onChange={() => { setSelectedAmoPipeline(p.id); setSyncResult(null); setSavedStageMapping([]); }} />
+                      onChange={() => {
+                        if (selectedAmoPipeline !== p.id) {
+                          setSelectedAmoPipeline(p.id);
+                          localStorage.setItem('pipeline_amo', p.id);
+                          setSyncResult(null);
+                          sessionStorage.removeItem('syncResult');
+                          setSavedStageMapping([]);
+                        }
+                      }} />
                     <div className="pipeline-radio-info">
                       <div className="pipeline-radio-name">{p.name}</div>
                       <div className="pipeline-radio-meta">
@@ -940,7 +968,15 @@ export default function App() {
                     className={`pipeline-radio-item${selectedKommoPipeline === p.id ? ' selected' : ''}`}>
                     <input type="radio" name="kommo-pipeline" value={p.id}
                       checked={selectedKommoPipeline === p.id}
-                      onChange={() => { setSelectedKommoPipeline(p.id); setSyncResult(null); setSavedStageMapping([]); }} />
+                      onChange={() => {
+                        if (selectedKommoPipeline !== p.id) {
+                          setSelectedKommoPipeline(p.id);
+                          localStorage.setItem('pipeline_kommo', p.id);
+                          setSyncResult(null);
+                          sessionStorage.removeItem('syncResult');
+                          setSavedStageMapping([]);
+                        }
+                      }} />
                     <div className="pipeline-radio-info">
                       <div className="pipeline-radio-name">{p.name}</div>
                       <div className="pipeline-radio-meta">
