@@ -1,6 +1,6 @@
 /**
  * SQLite database for session management and ID mapping.
- * Stores: sessions, id_mapping, amo_cache, session_log
+ * Stores: sessions, id_mapping, amo_cache, session_log, stage_mapping, user_mapping
  */
 const Database = require('better-sqlite3');
 const path = require('path');
@@ -25,7 +25,7 @@ db.exec(`
     amo_pipeline_id   INTEGER NOT NULL,
     kommo_pipeline_id INTEGER NOT NULL,
     status        TEXT NOT NULL DEFAULT 'pending',
-    -- pending | fetching | fetched | copying | completed | error | rolled_back
+    -- pending | fetching | fetched | copying | completed | error | rolled_back 
     total_deals   INTEGER DEFAULT 0,
     copied_deals  INTEGER DEFAULT 0,
     rolled_back   INTEGER DEFAULT 0,
@@ -38,11 +38,10 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS id_mapping (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     session_id  INTEGER NOT NULL REFERENCES sessions(id),
-    entity_type TEXT NOT NULL,  -- contact | company | lead | task | note | call
+    entity_type TEXT NOT NULL,
     amo_id      INTEGER NOT NULL,
     kommo_id    INTEGER,
     status      TEXT NOT NULL DEFAULT 'pending',
-    -- pending | created | skipped | error | rolled_back
     error_msg   TEXT,
     created_at  TEXT NOT NULL DEFAULT (datetime('now')),
     UNIQUE(session_id, entity_type, amo_id)
@@ -53,7 +52,7 @@ db.exec(`
     session_id  INTEGER NOT NULL REFERENCES sessions(id),
     entity_type TEXT NOT NULL,
     amo_id      INTEGER NOT NULL,
-    data        TEXT NOT NULL,  -- JSON
+    data        TEXT NOT NULL,
     created_at  TEXT NOT NULL DEFAULT (datetime('now')),
     UNIQUE(session_id, entity_type, amo_id)
   );
@@ -67,16 +66,41 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
-  CREATE INDEX IF NOT EXISTS idx_id_mapping_session ON id_mapping(session_id);
+  CREATE TABLE IF NOT EXISTS stage_mapping (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    amo_pipeline_id   INTEGER NOT NULL,
+    kommo_pipeline_id INTEGER NOT NULL,
+    amo_stage_id      INTEGER NOT NULL,
+    kommo_stage_id    INTEGER,
+    amo_stage_name    TEXT,
+    kommo_stage_name  TEXT,
+    created_at        TEXT DEFAULT (datetime('now')),
+    UNIQUE(amo_pipeline_id, kommo_pipeline_id, amo_stage_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS user_mapping (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    amo_user_id     INTEGER NOT NULL,
+    amo_user_name   TEXT,
+    amo_email       TEXT,
+    kommo_user_id   INTEGER NOT NULL,
+    kommo_user_name TEXT,
+    kommo_email     TEXT,
+    created_at      TEXT DEFAULT (datetime('now')),
+    UNIQUE(amo_user_id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_id_mapping_session ON id_mapping(session_id);  
   CREATE INDEX IF NOT EXISTS idx_id_mapping_amo ON id_mapping(session_id, entity_type, amo_id);
   CREATE INDEX IF NOT EXISTS idx_amo_cache_session ON amo_cache(session_id, entity_type);
   CREATE INDEX IF NOT EXISTS idx_session_log ON session_log(session_id);
+  CREATE INDEX IF NOT EXISTS idx_stage_mapping ON stage_mapping(amo_pipeline_id, kommo_pipeline_id);
 `);
 
-// ─── Sessions ─────────────────────────────────────────────────────────────────
+// ─── Sessions ────────────────────────────────────────────────────────────────
 const createSession = db.prepare(`
   INSERT INTO sessions (amo_user_id, amo_user_name, amo_user_email,
-    kommo_user_id, kommo_user_name, amo_pipeline_id, kommo_pipeline_id, status)
+    kommo_user_id, kommo_user_name, amo_pipeline_id, kommo_pipeline_id, status) 
   VALUES (@amo_user_id, @amo_user_name, @amo_user_email,
     @kommo_user_id, @kommo_user_name, @amo_pipeline_id, @kommo_pipeline_id, @status)
 `);
@@ -91,7 +115,7 @@ const updateSession   = db.prepare(`
 `);
 const patchSessionStatus = db.prepare(`UPDATE sessions SET status=? WHERE id=?`);
 
-// ─── ID Mapping ───────────────────────────────────────────────────────────────
+// ─── ID Mapping ──────────────────────────────────────────────────────────────
 const upsertMapping = db.prepare(`
   INSERT INTO id_mapping (session_id, entity_type, amo_id, kommo_id, status, error_msg)
   VALUES (@session_id, @entity_type, @amo_id, @kommo_id, @status, @error_msg)
@@ -131,7 +155,7 @@ const getMappingsCreatedAfterStmt = db.prepare(
   `SELECT * FROM id_mapping WHERE session_id=? AND entity_type=? AND id > ? AND status='created'`
 );
 
-// ─── AMO Cache ────────────────────────────────────────────────────────────────
+// ─── AMO Cache ───────────────────────────────────────────────────────────────
 const insertCache = db.prepare(`
   INSERT OR REPLACE INTO amo_cache (session_id, entity_type, amo_id, data)
   VALUES (@session_id, @entity_type, @amo_id, @data)
@@ -149,7 +173,7 @@ const countCacheByType = db.prepare(
   'SELECT COUNT(*) as cnt FROM amo_cache WHERE session_id=? AND entity_type=?'
 );
 
-// ─── Session Log ──────────────────────────────────────────────────────────────
+// ─── Session Log ─────────────────────────────────────────────────────────────
 const insertLog = db.prepare(`
   INSERT INTO session_log (session_id, level, message, details)
   VALUES (@session_id, @level, @message, @details)
@@ -159,7 +183,43 @@ const getSessionLog = db.prepare(
   'SELECT * FROM session_log WHERE session_id=? ORDER BY id DESC LIMIT ?'
 );
 
-// ─── Exported helpers ─────────────────────────────────────────────────────────
+// ─── Stage Mapping ───────────────────────────────────────────────────────────
+const upsertStageMapping = db.prepare(`
+  INSERT INTO stage_mapping (amo_pipeline_id, kommo_pipeline_id, amo_stage_id, kommo_stage_id, amo_stage_name, kommo_stage_name)
+  VALUES (@amo_pipeline_id, @kommo_pipeline_id, @amo_stage_id, @kommo_stage_id, @amo_stage_name, @kommo_stage_name)
+  ON CONFLICT(amo_pipeline_id, kommo_pipeline_id, amo_stage_id) DO UPDATE SET
+    kommo_stage_id=excluded.kommo_stage_id,
+    amo_stage_name=excluded.amo_stage_name,
+    kommo_stage_name=excluded.kommo_stage_name,
+    created_at=datetime('now')
+`);
+
+const getStageMappingStmt = db.prepare(
+  'SELECT * FROM stage_mapping WHERE amo_pipeline_id=? AND kommo_pipeline_id=? ORDER BY id'
+);
+
+const deleteStageMapping = db.prepare(
+  'DELETE FROM stage_mapping WHERE amo_pipeline_id=? AND kommo_pipeline_id=?'
+);
+
+// ─── User Mapping ────────────────────────────────────────────────────────────
+const upsertUserMapping = db.prepare(`
+  INSERT INTO user_mapping (amo_user_id, amo_user_name, amo_email, kommo_user_id, kommo_user_name, kommo_email)
+  VALUES (@amo_user_id, @amo_user_name, @amo_email, @kommo_user_id, @kommo_user_name, @kommo_email)
+  ON CONFLICT(amo_user_id) DO UPDATE SET
+    amo_user_name=excluded.amo_user_name,
+    amo_email=excluded.amo_email,
+    kommo_user_id=excluded.kommo_user_id,
+    kommo_user_name=excluded.kommo_user_name,
+    kommo_email=excluded.kommo_email,
+    created_at=datetime('now')
+`);
+
+const getAllUserMappings = db.prepare('SELECT * FROM user_mapping ORDER BY id');
+const getUserMappingByAmo = db.prepare('SELECT * FROM user_mapping WHERE amo_user_id=?');
+const deleteUserMapping = db.prepare('DELETE FROM user_mapping WHERE amo_user_id=?');
+
+// ─── Exported helpers ────────────────────────────────────────────────────────
 function log(sessionId, level, message, details = null) {
   insertLog.run({
     session_id: sessionId,
@@ -200,6 +260,46 @@ function resolveKommoId(sessionId, entityType, amoId) {
   return row?.kommo_id || null;
 }
 
+function saveStageMapping(amoPipelineId, kommoPipelineId, stages) {
+  const upsert = db.transaction((list) => {
+    for (const s of list) {
+      upsertStageMapping.run({
+        amo_pipeline_id: amoPipelineId,
+        kommo_pipeline_id: kommoPipelineId,
+        amo_stage_id: s.amo_stage_id,
+        kommo_stage_id: s.kommo_stage_id || null,
+        amo_stage_name: s.amo_stage_name || null,
+        kommo_stage_name: s.kommo_stage_name || null,
+      });
+    }
+  });
+  upsert(stages);
+}
+
+function getStageMapping(amoPipelineId, kommoPipelineId) {
+  return getStageMappingStmt.all(amoPipelineId, kommoPipelineId);
+}
+
+function saveUserMapping(data) {
+  upsertUserMapping.run({
+    amo_user_id: data.amo_user_id,
+    amo_user_name: data.amo_user_name || null,
+    amo_email: data.amo_email || null,
+    kommo_user_id: data.kommo_user_id,
+    kommo_user_name: data.kommo_user_name || null,
+    kommo_email: data.kommo_email || null,
+  });
+}
+
+function getUserMappings() {
+  return getAllUserMappings.all();
+}
+
+function resolveKommoUserId(amoUserId) {
+  const row = getUserMappingByAmo.get(amoUserId);
+  return row?.kommo_user_id || null;
+}
+
 module.exports = {
   db,
   // sessions
@@ -233,4 +333,12 @@ module.exports = {
   // log
   log,
   getSessionLog: (sid, limit = 100) => getSessionLog.all(sid, limit),
+  // stage mapping
+  saveStageMapping,
+  getStageMapping,
+  // user mapping
+  saveUserMapping,
+  getUserMappings,
+  resolveKommoUserId,
+  deleteUserMapping: (amoUserId) => deleteUserMapping.run(amoUserId),
 };

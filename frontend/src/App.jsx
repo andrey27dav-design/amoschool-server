@@ -21,12 +21,12 @@ const STATUS_COLORS = {
 };
 
 const MIGRATION_PLAN = [
-  { step: 1, title: 'Синхронизация этапов воронки', desc: 'Вкладка «Воронки» → выберите воронку из amo CRM и воронку в Kommo → нажмите «Синхронизировать этапы». Система создаст в Kommo CRM (воронка RUSSIANLANGUADGE DEPARTMENT) все этапы из воронки Школа/Репетиторство. Новые этапы отмечаются бейджем NEW.' },
-  { step: 2, title: 'Синхронизация кастомных полей', desc: 'Вкладка «Поля» → загрузите анализ полей → выберите поля со статусом «Нет в Kommo» или «Частично» → нажмите «Создать выбранные». Поля с полным совпадением (синхронизированные) не требуют действий.' },
-  { step: 3, title: 'Загрузка данных из amo CRM', desc: 'Вкладка «Данные amo» → нажмите «Загрузить данные». Все сделки, контакты, компании и задачи будут загружены в кэш. После можно просматривать данные и фильтровать по менеджерам.' },
-  { step: 4, title: 'Анализ менеджеров', desc: 'Дашборд → нажмите «Анализировать менеджеров». Выберите менеджеров международного ОП, сделки которых нужно перенести. Счётчик «Доступно для переноса» покажет количество отфильтрованных сделок.' },
-  { step: 5, title: 'Пакетный перенос сделок', desc: 'Выберите размер пакета (10–200). Нажмите «Перенести N сделок». Система переносит сделки пакетами — компании → контакты → сделки → задачи → комментарии. Счётчик «Перенесено» обновляется после каждого пакета.' },
-  { step: 6, title: 'Резервная копия', desc: 'Создаётся автоматически перед каждой миграцией (вкладка «Бэкапы»). Все данные amo CRM сохраняются в JSON-файл. Исходные данные в amo CRM НЕ удаляются автоматически.' },
+  { step: 1, title: 'Синхронизация этапов воронки', desc: 'Вкладка «Воронки» → выберите воронку из amo CRM и воронку в Kommo → нажмите «Синхронизировать этапы». Система создаст в Kommo CRM все этапы из воронки Школа/Репетиторство. ID этапов сохраняются в базу для корректного переноса сделок.' },
+  { step: 2, title: 'Сопоставление менеджеров', desc: 'Вкладка «Менеджеры» → выберите менеджера из amo CRM слева и соответствующего менеджера Kommo справа → нажмите «Сопоставить». Повторите для каждого менеджера.' },
+  { step: 3, title: 'Синхронизация кастомных полей', desc: 'Вкладка «Поля» → загрузите анализ полей → выберите поля со статусом «Нет в Kommo» или «Частично» → нажмите «Создать выбранные».' },
+  { step: 4, title: 'Загрузка данных из amo CRM', desc: 'Дашборд → нажмите «Загрузить данные». Все сделки, контакты, компании и задачи будут загружены в кэш. Счётчик «Для переноса» покажет количество доступных записей.' },
+  { step: 5, title: 'Пакетный перенос сделок', desc: 'Выберите размер пакета (10–200 или ВСЕ). Нажмите «Перенести». Система переносит сделки пакетами — компании → контакты → сделки → задачи → комментарии. Счётчик «Перенесено» обновляется после каждого пакета.' },
+  { step: 6, title: 'Резервная копия', desc: 'Создаётся автоматически перед каждой миграцией (вкладка «Бэкапы»). Исходные данные в amo CRM НЕ удаляются автоматически.' },
 ];
 
 export default function App() {
@@ -38,22 +38,14 @@ export default function App() {
   const [tab, setTab] = useState('dashboard');
   const [helpOpen, setHelpOpen] = useState(false);
 
-  // AMO data browser state
+  // AMO data fetch state (dashboard)
   const [fetchSt, setFetchSt] = useState(null);
-  const [amoEntities, setAmoEntities] = useState(null);
-  const [entityType, setEntityType] = useState('leads');
-  const [entityPage, setEntityPage] = useState(1);
-  const [entitySearch, setEntitySearch] = useState('');
-  const [entityLoading, setEntityLoading] = useState(false);
-  const [showOnlyManagerLeads, setShowOnlyManagerLeads] = useState(false);
 
   // Batch migration state
   const [batchStats, setBatchStats] = useState(null);
   const [batchStatus, setBatchStatusData] = useState(null);
-  const [managers, setManagers] = useState([]);
   const [selectedManagers, setSelectedManagers] = useState([]);
   const [batchSize, setBatchSize] = useState(10);
-  const [analyzeLoading, setAnalyzeLoading] = useState(false);
   const [batchLoading, setBatchLoading] = useState(false);
 
   // Pipeline selector state
@@ -61,6 +53,15 @@ export default function App() {
   const [selectedKommoPipeline, setSelectedKommoPipeline] = useState(null);
   const [syncResult, setSyncResult] = useState(null);
   const [syncLoading, setSyncLoading] = useState(false);
+
+  // Managers tab state
+  const [amoManagersList, setAmoManagersList] = useState([]);
+  const [kommoUsers, setKommoUsers] = useState([]);
+  const [managerMapping, setManagerMapping] = useState([]);
+  const [selectedAmoUser, setSelectedAmoUser] = useState(null);
+  const [selectedKommoUser, setSelectedKommoUser] = useState(null);
+  const [matchLoading, setMatchLoading] = useState(false);
+  const [managersLoaded, setManagersLoaded] = useState(false);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -75,7 +76,6 @@ export default function App() {
     try {
       const [amo, kommo] = await Promise.all([api.getAmoPipelines(), api.getKommoPipelines()]);
       setPipelines({ amo, kommo });
-      // Auto-select first pipelines if nothing chosen yet
       setSelectedAmoPipeline(prev => prev ?? (amo[0]?.id ?? null));
       setSelectedKommoPipeline(prev => prev ?? (kommo[0]?.id ?? null));
     } catch (e) {
@@ -96,8 +96,6 @@ export default function App() {
     fetchStatus();
     fetchPipelines();
     fetchBackups();
-    // NOTE: бэтч-статистика, статус загрузки amo и конфиг НЕ загружаются автоматически.
-    // Данные появляются только по явному действию пользователя (F5 = чистый старт).
   }, []);
 
   // Auto-poll while amo data is loading
@@ -106,10 +104,7 @@ export default function App() {
     const iv = setInterval(() => {
       api.getAmoFetchStatus().then(s => {
         setFetchSt(s);
-        if (s.status !== 'loading') {
-          clearInterval(iv);
-          if (s.status === 'done') loadEntities(entityType, 1, entitySearch, showOnlyManagerLeads && entityType === 'leads', selectedManagers);
-        }
+        if (s.status !== 'loading') clearInterval(iv);
       }).catch(() => {});
     }, 1500);
     return () => clearInterval(iv);
@@ -155,7 +150,7 @@ export default function App() {
   };
 
   const handleRollback = async (steps = null) => {
-    const label = steps ? steps.join(', ') : t === 'copy' ? '🚀 Копирование' : 'все данные';
+    const label = steps ? steps.join(', ') : 'все данные';
     if (!confirm(`Откатить: ${label}?`)) return;
     setLoading(true);
     setMessage('');
@@ -168,17 +163,6 @@ export default function App() {
     }
     setLoading(false);
   };
-
-  const loadEntities = useCallback(async (type, page, search, onlyManagers, managerIds) => {
-    setEntityLoading(true);
-    try {
-      const data = await api.getAmoEntities(type, page, 50, search || '', onlyManagers, managerIds || []);
-      setAmoEntities(data);
-    } catch (e) {
-      console.error('Entities error:', e);
-    }
-    setEntityLoading(false);
-  }, []);
 
   const handleAmoFetch = async () => {
     if (!confirm('Загрузить все данные из amo CRM? Это может занять несколько минут.')) return;
@@ -195,36 +179,6 @@ export default function App() {
     setLoading(false);
   };
 
-  const handleEntityTypeChange = (type) => {
-    setEntityType(type);
-    setEntityPage(1);
-    setEntitySearch('');
-    loadEntities(type, 1, '', showOnlyManagerLeads && type === 'leads', selectedManagers);
-  };
-
-  const handleEntitySearch = (e) => {
-    const val = e.target.value;
-    setEntitySearch(val);
-    setEntityPage(1);
-    loadEntities(entityType, 1, val, showOnlyManagerLeads && entityType === 'leads', selectedManagers);
-  };
-
-  const handleEntityPage = (p) => {
-    setEntityPage(p);
-    loadEntities(entityType, p, entitySearch, showOnlyManagerLeads && entityType === 'leads', selectedManagers);
-  };
-
-  const handleManagerLeadsToggle = (onlyManagers) => {
-    setShowOnlyManagerLeads(onlyManagers);
-    setEntityPage(1);
-    loadEntities(entityType, 1, entitySearch, onlyManagers && entityType === 'leads', selectedManagers);
-  };
-
-  const handleOpenDataTab = () => {
-    setTab('data');
-    if (!amoEntities) loadEntities(entityType, 1, '', false, []);
-  };
-
   const handleSyncStages = async (amoPipelineId, kommoPipelineId) => {
     setSyncLoading(true);
     setMessage('');
@@ -234,6 +188,28 @@ export default function App() {
       const created = result.created?.length ?? 0;
       const skipped = result.skipped?.length ?? 0;
       setMessage(`✅ Синхронизация завершена: создано ${created} этапов, ${skipped} уже существовали`);
+
+      // Persist stage mapping to DB
+      if (result.stageMapping && amoPipelineId && kommoPipelineId) {
+        const amoPipeline = pipelines.amo.find(p => p.id === amoPipelineId);
+        const kommoPipeline = result.kommoPipeline;
+        const stages = Object.entries(result.stageMapping).map(([amoStageId, kommoStageId]) => {
+          const amoStage = amoPipeline?._embedded?.statuses?.find(s => s.id === parseInt(amoStageId));
+          const kommoStage = (kommoPipeline?.statuses || result.kommoPipeline?._embedded?.statuses || [])
+            .find(s => s.id === kommoStageId);
+          return {
+            amo_stage_id: parseInt(amoStageId),
+            kommo_stage_id: kommoStageId,
+            amo_stage_name: amoStage?.name || null,
+            kommo_stage_name: kommoStage?.name || null,
+          };
+        });
+        if (stages.length > 0) {
+          await api.saveStageMappingDB(amoPipelineId, kommoPipelineId, stages).catch(err =>
+            console.warn('Stage mapping DB save error:', err)
+          );
+        }
+      }
     } catch (e) {
       setMessage(`❌ Ошибка: ${e.response?.data?.error || e.message}`);
     }
@@ -241,22 +217,65 @@ export default function App() {
     setLoading(false);
   };
 
-  // ─── Batch migration handlers ──────────────────────────────────────────────
-  const handleAnalyzeManagers = async () => {
-    setAnalyzeLoading(true);
-    setMessage('');
+  // ─── Managers tab handlers ─────────────────────────────────────────────────
+  const loadManagersTab = useCallback(async () => {
+    if (managersLoaded) return;
     try {
-      const data = await api.analyzeManagers();
-      setManagers(data.managers || []);
-      setSelectedManagers(data.currentManagerIds || []);
-      setBatchStats(prev => ({ ...prev, totalEligible: data.eligibleCount, totalLeads: data.totalLeads }));
-      setMessage(`✅ Найдено ${data.managers.length} менеджеров, всего сделок: ${data.totalLeads}`);
+      const [amoRes, kommoRes, mappingRes] = await Promise.all([
+        api.getAmoManagers().catch(() => ({ managers: [] })),
+        api.getKommoUsers().catch(() => ({ users: [] })),
+        api.getManagerMapping().catch(() => ({ mappings: [] })),
+      ]);
+      setAmoManagersList(amoRes.managers || []);
+      setKommoUsers(kommoRes.users || []);
+      setManagerMapping(mappingRes.mappings || []);
+      setManagersLoaded(true);
     } catch (e) {
-      setMessage(`❌ Анализ не выполнен: ${e.response?.data?.error || e.message}`);
+      console.error('loadManagersTab error:', e);
     }
-    setAnalyzeLoading(false);
+  }, [managersLoaded]);
+
+  useEffect(() => {
+    if (tab === 'managers') loadManagersTab();
+  }, [tab]);
+
+  const handleMatchManager = async () => {
+    if (!selectedAmoUser || !selectedKommoUser) {
+      setMessage('❌ Выберите менеджера из amo CRM и менеджера Kommo');
+      return;
+    }
+    setMatchLoading(true);
+    try {
+      await api.matchManager({
+        amo_user_id: selectedAmoUser.amo_id,
+        amo_user_name: selectedAmoUser.amo_name,
+        amo_email: selectedAmoUser.amo_email,
+        kommo_user_id: selectedKommoUser.id,
+        kommo_user_name: selectedKommoUser.name,
+        kommo_email: selectedKommoUser.email,
+      });
+      const res = await api.getManagerMapping();
+      setManagerMapping(res.mappings || []);
+      setSelectedAmoUser(null);
+      setSelectedKommoUser(null);
+      setMessage(`✅ Сопоставлено: ${selectedAmoUser.amo_name} → ${selectedKommoUser.name}`);
+    } catch (e) {
+      setMessage(`❌ Ошибка сопоставления: ${e.response?.data?.error || e.message}`);
+    }
+    setMatchLoading(false);
   };
 
+  const handleDeleteMatch = async (amoUserId) => {
+    if (!confirm('Удалить сопоставление?')) return;
+    try {
+      await api.deleteManagerMatch(amoUserId);
+      setManagerMapping(prev => prev.filter(m => m.amo_user_id !== amoUserId));
+    } catch (e) {
+      setMessage(`❌ ${e.response?.data?.error || e.message}`);
+    }
+  };
+
+  // ─── Batch migration handlers ──────────────────────────────────────────────
   const toggleManager = async (id) => {
     const newIds = selectedManagers.includes(id)
       ? selectedManagers.filter(m => m !== id)
@@ -328,6 +347,18 @@ export default function App() {
     ? Math.round((status.progress.current / status.progress.total) * 100)
     : 0;
 
+  const tabLabel = (t) => {
+    switch (t) {
+      case 'dashboard': return '📊 Дашборд';
+      case 'pipelines': return '🔀 Воронки';
+      case 'managers':  return '👥 Менеджеры';
+      case 'fields':    return '🔧 Поля';
+      case 'copy':      return '🚀 Копирование';
+      case 'backups':   return '💾 Бэкапы';
+      default: return t;
+    }
+  };
+
   return (
     <div className="app">
       <header className="header">
@@ -355,7 +386,7 @@ export default function App() {
                 Исходные данные сохраняются — ничего не удаляется автоматически.
               </div>
               <div className="plan-warning">
-                ⚠️ Рекомендуемый порядок: Воронки → Поля → Данные amo → Дашборд (пакетный перенос)
+                ⚠️ Рекомендуемый порядок: Воронки → Менеджеры → Поля → Дашборд (загрузить данные → пакетный перенос)
               </div>
               <ol className="plan-steps">
                 {MIGRATION_PLAN.map(({ step, title, desc }) => (
@@ -367,14 +398,14 @@ export default function App() {
               </ol>
               <div className="plan-section">
                 <h3>🔙 Откат данных</h3>
-                <p>Кнопка «↩ Откатить пакет» отменяет последний перенесённый пакет сделок (удаляет из Kommo только то, что создано в этом пакете). Кнопка «Откатить всё» на дашборде откатывает всю одиночную миграцию.</p>
+                <p>Кнопка «↩ Откатить пакет» отменяет последний перенесённый пакет сделок. Кнопка «Откатить всё» откатывает всю одиночную миграцию.</p>
               </div>
               <div className="plan-section">
                 <h3>📦 Вкладки панели</h3>
                 <ul>
-                  <li><strong>📊 Дашборд</strong> — пакетный перенос, выбор менеджеров, счётчики, откат</li>
-                  <li><strong>📦 Данные amo</strong> — просмотр загруженных данных, фильтр по менеджерам ОП</li>
+                  <li><strong>📊 Дашборд</strong> — загрузка данных, пакетный перенос, счётчики, откат</li>
                   <li><strong>🔀 Воронки</strong> — синхронизация этапов воронок (amo ↔ Kommo)</li>
+                  <li><strong>👥 Менеджеры</strong> — сопоставление менеджеров amo CRM и Kommo CRM</li>
                   <li><strong>🔧 Поля</strong> — синхронизация кастомных полей (создание в Kommo)</li>
                   <li><strong>💾 Бэкапы</strong> — список созданных резервных копий данных</li>
                 </ul>
@@ -394,16 +425,16 @@ export default function App() {
       )}
 
       <nav className="tabs">
-        {['dashboard', 'data', 'pipelines', 'fields', 'copy', 'backups'].map(t => (
-          <button key={t} className={`tab${tab === t ? ' active' : ''}`}
-            onClick={() => t === 'data' ? handleOpenDataTab() : setTab(t)}>
-            {t === 'dashboard' ? '📊 Дашборд' : t === 'data' ? '📦 Данные amo' : t === 'pipelines' ? '🔀 Воронки' : t === 'fields' ? '🔧 Поля' : '💾 Бэкапы'}
+        {['dashboard', 'pipelines', 'managers', 'fields', 'copy', 'backups'].map(t => (
+          <button key={t} className={`tab${tab === t ? ' active' : ''}`} onClick={() => setTab(t)}>
+            {tabLabel(t)}
           </button>
         ))}
       </nav>
 
       {message && <div className="message">{message}</div>}
 
+      {/* ═══════════════════════════ DASHBOARD ═══════════════════════════════ */}
       {tab === 'dashboard' && (
         <div className="dashboard">
           {/* Status Card */}
@@ -431,37 +462,42 @@ export default function App() {
             ) : <div className="loading">Загрузка...</div>}
           </div>
 
-          {/* ──────────────────── СДЕЛКИ ДЛЯ ПЕРЕНОСА ──────────────────── */}
+          {/* ──────────────────── BATCH CARD ──────────────────── */}
           <div className="card batch-card">
-            <h2>🎯 Сделки для переноса (международный ОП)</h2>
+            <h2>🎯 Пакетный перенос</h2>
 
-            {/* Manager analysis */}
+            {/* Load data button */}
             <div className="batch-row">
-              <button className="btn btn-secondary" onClick={handleAnalyzeManagers}
-                disabled={analyzeLoading || batchLoading}>
-                {analyzeLoading ? '⏳ Анализ...' : '🔍 Анализировать менеджеров'}
+              <button className="btn btn-secondary" onClick={handleAmoFetch}
+                disabled={loading || fetchSt?.status === 'loading'}>
+                {fetchSt?.status === 'loading'
+                  ? `⏳ ${fetchSt.progress?.step || 'Загрузка...'}`
+                  : '⬇️ Загрузить данные'}
               </button>
+              {fetchSt?.status === 'done' && (
+                <span style={{ color: '#10b981', fontSize: 13 }}>
+                  ✅ Данные загружены: {new Date(fetchSt.updatedAt).toLocaleString('ru-RU')}
+                </span>
+              )}
+              {fetchSt?.status === 'error' && (
+                <span style={{ color: '#ef4444', fontSize: 13 }}>❌ {fetchSt.error}</span>
+              )}
               {batchStats && (
                 <span className="batch-meta">
-                  Всего сделок в кеше: <b>{batchStats.totalLeads ?? batchStats.totalEligible + (batchStats.totalTransferred ?? 0)}</b>
+                  Всего сделок в кеше: <b>{batchStats.totalLeads ?? ((batchStats.totalEligible || 0) + (batchStats.totalTransferred || 0))}</b>
                 </span>
               )}
             </div>
 
-            {managers.length > 0 && (
-              <div className="managers-section">
-                <div className="managers-label">Выберите менеджеров международного ОП:</div>
-                <div className="managers-list">
-                  {managers.map(m => (
-                    <label key={m.id} className={`manager-item${selectedManagers.includes(m.id) ? ' selected' : ''}`}>
-                      <input type="checkbox" checked={selectedManagers.includes(m.id)}
-                        onChange={() => toggleManager(m.id)} />
-                      <span className="manager-name">{m.name}</span>
-                      {m.email && <span className="manager-email">{m.email}</span>}
-                      <span className="manager-count">{m.leadCount} сделок</span>
-                    </label>
-                  ))}
-                </div>
+            {/* Loading progress */}
+            {fetchSt?.status === 'loading' && (
+              <div style={{ marginTop: 12, display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+                {Object.entries(fetchSt.progress?.loaded || {}).map(([k, v]) => (
+                  <div key={k} className="counter" style={{ minWidth: 80 }}>
+                    <div className="counter-value">{v}</div>
+                    <div className="counter-label">{k}</div>
+                  </div>
+                ))}
               </div>
             )}
 
@@ -495,12 +531,20 @@ export default function App() {
                     {sz}
                   </button>
                 ))}
+                <button
+                  className={`batch-size-btn${batchSize === 0 ? ' active' : ''}`}
+                  onClick={() => handleBatchSizeChange(0)}
+                  disabled={batchStatus?.status === 'running'}>
+                  ВСЕ
+                </button>
               </div>
               <button className="btn btn-primary" onClick={handleStartBatch}
                 disabled={batchLoading || batchStatus?.status === 'running' || !batchStats?.remainingLeads}>
                 {batchStatus?.status === 'running'
                   ? `⏳ ${batchStatus.step || 'Выполняется...'}`
-                  : `🚀 Перенести ${batchSize} сделок`}
+                  : batchSize === 0
+                    ? '🚀 Перенести ВСЕ сделки'
+                    : `🚀 Перенести ${batchSize} сделок`}
               </button>
               <button className="btn btn-warn" onClick={handleBatchRollback}
                 disabled={batchLoading || batchStatus?.status === 'running'}>
@@ -523,16 +567,14 @@ export default function App() {
               </div>
             )}
 
-            {/* Batch warnings with recommendations */}
+            {/* Batch warnings */}
             {batchStatus?.warnings?.length > 0 && (
               <div className="batch-warnings">
                 <div className="batch-section-title">⚠️ Предупреждения ({batchStatus.warnings.length})</div>
                 {batchStatus.warnings.slice(0, 8).map((w, i) => (
                   <div key={i} className="warning-rec-item">
                     <div className="warning-rec-msg">⚠ {w.message}</div>
-                    {w.recommendation && (
-                      <div className="warning-rec-tip">💡 {w.recommendation}</div>
-                    )}
+                    {w.recommendation && <div className="warning-rec-tip">💡 {w.recommendation}</div>}
                   </div>
                 ))}
                 {batchStatus.warnings.length > 8 && (
@@ -541,32 +583,51 @@ export default function App() {
               </div>
             )}
 
-            {/* Batch errors with recommendations */}
+            {/* Batch errors */}
             {batchStatus?.errors?.length > 0 && (
               <div className="batch-errors">
                 <div className="batch-section-title">❌ Ошибки ({batchStatus.errors.length})</div>
                 {batchStatus.errors.map((e, i) => (
                   <div key={i} className="error-rec-item">
                     <div className="error-rec-msg">✕ {e.message}</div>
-                    {e.recommendation && (
-                      <div className="error-rec-tip">🔧 {e.recommendation}</div>
-                    )}
+                    {e.recommendation && <div className="error-rec-tip">🔧 {e.recommendation}</div>}
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Counters — always visible, shows batch + single migration totals */}
+          {/* ──────────────────── ДЛЯ ПЕРЕНОСА ──────────────────── */}
+          {fetchSt?.status === 'done' && fetchSt.progress?.loaded && (
+            <div className="card counters-card">
+              <h2>📦 Для переноса (загружено из amo CRM)</h2>
+              <div className="counters">
+                {[
+                  { label: 'Сделки',   key: 'leads',     icon: '📋' },
+                  { label: 'Контакты', key: 'contacts',  icon: '👤' },
+                  { label: 'Компании', key: 'companies', icon: '🏢' },
+                  { label: 'Задачи',   key: 'tasks',     icon: '✅' },
+                ].map(({ label, key, icon }) => (
+                  <div className="counter" key={key}>
+                    <div className="counter-icon">{icon}</div>
+                    <div className="counter-value">{fetchSt.progress.loaded[key] ?? 0}</div>
+                    <div className="counter-label">{label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ──────────────────── ПЕРЕНЕСЕНО ──────────────────── */}
           <div className="card counters-card">
-            <h2>Перенесено</h2>
+            <h2>✅ Перенесено</h2>
             <div className="counters">
               {[
-                { label: 'Сделки', key: 'leads', icon: '📋' },
-                { label: 'Контакты', key: 'contacts', icon: '👤' },
+                { label: 'Сделки',   key: 'leads',     icon: '📋' },
+                { label: 'Контакты', key: 'contacts',  icon: '👤' },
                 { label: 'Компании', key: 'companies', icon: '🏢' },
-                { label: 'Задачи', key: 'tasks', icon: '✅' },
-                { label: 'Заметки', key: 'notes', icon: '💬' },
+                { label: 'Задачи',   key: 'tasks',     icon: '✅' },
+                { label: 'Заметки',  key: 'notes',     icon: '💬' },
               ].map(({ label, key, icon }) => (
                 <div className="counter" key={key}>
                   <div className="counter-icon">{icon}</div>
@@ -585,9 +646,6 @@ export default function App() {
             <div className="controls">
               <button className="btn btn-primary" onClick={handleStart} disabled={loading || isRunning}>
                 {isRunning ? '⏳ Выполняется...' : '🚀 Запустить миграцию'}
-              </button>
-              <button className="btn btn-secondary" onClick={() => handleSyncStages()} disabled={loading || isRunning || syncLoading}>
-                🔄 Синхронизировать этапы
               </button>
               <button className="btn btn-refresh" onClick={fetchStatus} disabled={loading}>
                 ↻ Обновить статус
@@ -650,10 +708,10 @@ export default function App() {
         </div>
       )}
 
+      {/* ═══════════════════════════ ВОРОНКИ ═══════════════════════════════ */}
       {tab === 'pipelines' && (
         <div className="pipelines-tab">
 
-          {/* ── Sync result comparison (shown at top after sync) ── */}
           {syncResult && (
             <div className="sync-result-section">
               <div className="sync-result-header">
@@ -662,10 +720,10 @@ export default function App() {
                   <span className="sync-badge created">+{syncResult.created?.length ?? 0} создано</span>
                   <span className="sync-badge skipped">{syncResult.skipped?.length ?? 0} уже были</span>
                   <span className="sync-badge mapped">{Object.keys(syncResult.stageMapping || {}).length} связей</span>
+                  <span className="sync-badge mapped" style={{ background: '#1d4ed8' }}>💾 ID сохранены в БД</span>
                 </div>
               </div>
               <div className="sync-comparison">
-                {/* AMO pipeline */}
                 <div className="sync-pipeline-col">
                   <div className="sync-pipeline-header amo-header">
                     📥 amo CRM
@@ -687,10 +745,8 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Arrow divider */}
                 <div className="sync-divider">⇔</div>
 
-                {/* Kommo pipeline */}
                 <div className="sync-pipeline-col">
                   <div className="sync-pipeline-header kommo-header">
                     📤 Kommo CRM
@@ -718,10 +774,8 @@ export default function App() {
             </div>
           )}
 
-          {/* ── Pipeline selector + sync button ── */}
           <div className="pipeline-selector-section">
             <div className="pipeline-selector-grid">
-              {/* AMO pipelines */}
               <div className="card pipeline-selector-card">
                 <h2>📥 amo CRM — выберите воронку</h2>
                 {pipelines.amo.length === 0 && <div className="loading">Загрузка...</div>}
@@ -754,7 +808,6 @@ export default function App() {
                 ))}
               </div>
 
-              {/* Kommo pipelines */}
               <div className="card pipeline-selector-card">
                 <h2>📤 Kommo CRM — выберите воронку</h2>
                 {pipelines.kommo.length === 0 && <div className="loading">Загрузка...</div>}
@@ -788,7 +841,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Sync button */}
             <div className="sync-action-row">
               <button
                 className="btn btn-primary btn-sync-big"
@@ -808,166 +860,136 @@ export default function App() {
         </div>
       )}
 
-      {tab === 'data' && (
-        <div className="data-tab">
-          {/* Fetch controls */}
-          <div className="card" style={{ marginBottom: 16 }}>
-            <h2>📥 Загрузка данных из amo CRM</h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginTop: 12 }}>
-              <button className="btn btn-primary" onClick={handleAmoFetch}
-                disabled={loading || fetchSt?.status === 'loading'}>
-                {fetchSt?.status === 'loading' ? `⏳ ${fetchSt.progress?.step || 'Загрузка...'}` : '⬇️ Загрузить данные'}
-              </button>
-              {fetchSt?.status === 'done' && (
-                <span style={{ color: '#10b981', fontSize: 13 }}>
-                  ✅ Данные загружены: {new Date(fetchSt.updatedAt).toLocaleString('ru-RU')}
-                </span>
+      {/* ═══════════════════════════ МЕНЕДЖЕРЫ ══════════════════════════════ */}
+      {tab === 'managers' && (
+        <div className="managers-tab">
+          <div className="pipeline-selector-grid">
+            {/* AMO managers */}
+            <div className="card pipeline-selector-card">
+              <h2>📥 amo CRM — Менеджеры ОП</h2>
+              {!managersLoaded && <div className="loading">Загрузка менеджеров...</div>}
+              {amoManagersList.length === 0 && managersLoaded && (
+                <div className="no-data">Менеджеры не найдены</div>
               )}
-              {fetchSt?.status === 'error' && (
-                <span style={{ color: '#ef4444', fontSize: 13 }}>❌ {fetchSt.error}</span>
-              )}
-            </div>
-            {fetchSt?.status === 'loading' && (
-              <div style={{ marginTop: 12, display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-                {Object.entries(fetchSt.progress?.loaded || {}).map(([k, v]) => (
-                  <div key={k} className="counter" style={{ minWidth: 80 }}>
-                    <div className="counter-value">{v}</div>
-                    <div className="counter-label">{k}</div>
+              {amoManagersList.map(m => {
+                const alreadyMapped = managerMapping.some(mp => mp.amo_user_id === m.amo_id);
+                return (
+                  <div key={m.amo_id}
+                    className={`pipeline-radio-item${selectedAmoUser?.amo_id === m.amo_id ? ' selected' : ''}${alreadyMapped ? ' mapped-item' : ''}`}
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => setSelectedAmoUser(selectedAmoUser?.amo_id === m.amo_id ? null : m)}>
+                    <div className="pipeline-radio-info">
+                      <div className="pipeline-radio-name">
+                        {m.amo_name}
+                        {alreadyMapped && <span className="sync-stage-badge" style={{ marginLeft: 8 }}>✓</span>}
+                      </div>
+                      <div className="pipeline-radio-meta">{m.amo_email || '—'}</div>
+                    </div>
                   </div>
-                ))}
-              </div>
+                );
+              })}
+            </div>
+
+            {/* Kommo users */}
+            <div className="card pipeline-selector-card">
+              <h2>📤 Kommo CRM — Пользователи</h2>
+              {!managersLoaded && <div className="loading">Загрузка пользователей...</div>}
+              {kommoUsers.length === 0 && managersLoaded && (
+                <div className="no-data">Пользователи не найдены</div>
+              )}
+              {kommoUsers.map(u => {
+                const alreadyMapped = managerMapping.some(mp => mp.kommo_user_id === u.id);
+                return (
+                  <div key={u.id}
+                    className={`pipeline-radio-item${selectedKommoUser?.id === u.id ? ' selected' : ''}${alreadyMapped ? ' mapped-item' : ''}`}
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => setSelectedKommoUser(selectedKommoUser?.id === u.id ? null : u)}>
+                    <div className="pipeline-radio-info">
+                      <div className="pipeline-radio-name">
+                        {u.name}
+                        {alreadyMapped && <span className="sync-stage-badge" style={{ marginLeft: 8 }}>✓</span>}
+                      </div>
+                      <div className="pipeline-radio-meta">{u.email || '—'}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Match action */}
+          <div className="sync-action-row" style={{ marginTop: 16 }}>
+            <button
+              className="btn btn-primary btn-sync-big"
+              onClick={handleMatchManager}
+              disabled={matchLoading || !selectedAmoUser || !selectedKommoUser}>
+              {matchLoading ? '⏳ Сохранение...' : '🔗 Сопоставить'}
+            </button>
+            {selectedAmoUser && selectedKommoUser && (
+              <span className="sync-selection-hint">
+                {selectedAmoUser.amo_name}
+                <span style={{ color: '#64748b', margin: '0 8px' }}>→</span>
+                {selectedKommoUser.name}
+              </span>
+            )}
+            {(!selectedAmoUser || !selectedKommoUser) && (
+              <span style={{ color: '#94a3b8', fontSize: 13 }}>
+                Выберите менеджера слева и пользователя справа
+              </span>
             )}
           </div>
 
-          {/* Entity browser */}
-          {fetchSt?.status === 'done' && (
-            <div className="card">
-              <div className="entity-tabs">
-                {['leads', 'contacts', 'companies', 'tasks'].map(et => (
-                  <button key={et} className={`entity-tab${entityType === et ? ' active' : ''}`}
-                    onClick={() => handleEntityTypeChange(et)}>
-                    {et === 'leads' ? '📋 Сделки' : et === 'contacts' ? '👤 Контакты' : et === 'companies' ? '🏢 Компании' : '✅ Задачи'}
-                    {fetchSt.progress?.loaded?.[et] != null && (
-                      <span className="entity-count">{fetchSt.progress.loaded[et]}</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-
-              <div style={{ display: 'flex', gap: 12, margin: '12px 0', alignItems: 'center', flexWrap: 'wrap' }}>
-                <input className="search-input" placeholder="🔍 Поиск по названию..."
-                  value={entitySearch} onChange={handleEntitySearch} />
-                {entityType === 'leads' && selectedManagers.length > 0 && (
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <button
-                      className={`btn btn-sm${!showOnlyManagerLeads ? ' btn-primary' : ' btn-secondary'}`}
-                      style={{ padding: '4px 12px', fontSize: 12 }}
-                      onClick={() => handleManagerLeadsToggle(false)}>
-                      Все сделки
-                    </button>
-                    <button
-                      className={`btn btn-sm${showOnlyManagerLeads ? ' btn-primary' : ' btn-secondary'}`}
-                      style={{ padding: '4px 12px', fontSize: 12 }}
-                      onClick={() => handleManagerLeadsToggle(true)}>
-                      Менеджеры ОП ({selectedManagers.length})
-                    </button>
-                  </div>
-                )}
-                {entityType === 'leads' && selectedManagers.length === 0 && (
-                  <span style={{ fontSize: 12, color: '#94a3b8' }}>
-                    💡 Выберите менеджеров на дашборде для фильтрации
-                  </span>
-                )}
-              </div>
-
-              {entityLoading ? (
-                <div className="loading" style={{ padding: '24px 0' }}>Загрузка...</div>
-              ) : amoEntities ? (
-                <>
-                  <div style={{ fontSize: 13, color: '#64748b', marginBottom: 8 }}>
-                    Итого: {amoEntities.total} · Страница {amoEntities.page} из {amoEntities.pages}
-                  </div>
-                  <div className="entity-table-wrap">
-                    <table className="backups-table">
-                      <thead>
-                        <tr>
-                          <th>#ID</th>
-                          <th>Название</th>
-                          {entityType === 'leads' && <><th>Этап</th><th>Сумма</th><th>Статус</th></>}
-                          {entityType === 'contacts' && <><th>Email/Телефон</th><th>Должность</th></>}
-                          {entityType === 'companies' && <><th>Телефон</th><th>Сайт</th></>}
-                          {entityType === 'tasks' && <><th>Тип</th><th>Срок</th><th>Выполнено</th></>}
-                          <th>Изменён</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {amoEntities.items.map((item) => (
-                          <tr key={item.id}>
-                            <td style={{ fontFamily: 'monospace', fontSize: 11, color: '#64748b' }}>{item.id}</td>
-                            <td>{item.name || '—'}</td>
-                            {entityType === 'leads' && (
-                              <><td style={{ fontSize: 12 }}>{item.status_id || '—'}</td>
-                              <td>{item.price ? `${item.price.toLocaleString('ru-RU')} ₽` : '—'}</td>
-                              <td><span style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4,
-                                background: item.is_deleted ? '#7f1d1d' : '#14532d', color: 'white' }}>
-                                {item.is_deleted ? 'удалён' : 'активен'}</span></td></>
-                            )}
-                            {entityType === 'contacts' && (
-                              <><td style={{ fontSize: 11 }}>{item.custom_fields_values?.find(f => f.field_code === 'EMAIL')?.values?.[0]?.value || item.custom_fields_values?.find(f => f.field_code === 'PHONE')?.values?.[0]?.value || '—'}</td>
-                              <td style={{ fontSize: 12 }}>{item.custom_fields_values?.find(f => f.field_name === 'Должность')?.values?.[0]?.value || '—'}</td></>
-                            )}
-                            {entityType === 'companies' && (
-                              <><td style={{ fontSize: 11 }}>{item.custom_fields_values?.find(f => f.field_code === 'PHONE')?.values?.[0]?.value || '—'}</td>
-                              <td style={{ fontSize: 11 }}>{item.custom_fields_values?.find(f => f.field_code === 'WEB')?.values?.[0]?.value || '—'}</td></>
-                            )}
-                            {entityType === 'tasks' && (
-                              <><td style={{ fontSize: 12 }}>{item.task_type_id === 1 ? 'Обратный звонок' : item.task_type_id === 2 ? 'Встреча' : `Тип ${item.task_type_id}`}</td>
-                              <td style={{ fontSize: 11 }}>{item.complete_till ? new Date(item.complete_till * 1000).toLocaleDateString('ru-RU') : '—'}</td>
-                              <td><span style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4,
-                                background: item.is_completed ? '#14532d' : '#1e3a5f', color: 'white' }}>
-                                {item.is_completed ? 'да' : 'нет'}</span></td></>
-                            )}
-                            <td style={{ fontSize: 11, color: '#64748b' }}>
-                              {item.updated_at ? new Date(item.updated_at * 1000).toLocaleDateString('ru-RU') : '—'}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  {amoEntities.pages > 1 && (
-                    <div className="pagination">
-                      <button className="btn btn-refresh" onClick={() => handleEntityPage(entityPage - 1)}
-                        disabled={entityPage <= 1}>← Назад</button>
-                      <span style={{ fontSize: 13, color: '#94a3b8' }}>{entityPage} / {amoEntities.pages}</span>
-                      <button className="btn btn-refresh" onClick={() => handleEntityPage(entityPage + 1)}
-                        disabled={entityPage >= amoEntities.pages}>Вперёд →</button>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="no-data">Нажмите «Загрузить данные» для получения сущностей из amo CRM.</div>
-              )}
+          {/* Existing mappings */}
+          {managerMapping.length > 0 && (
+            <div className="card" style={{ marginTop: 16 }}>
+              <h2>✅ Сохранённые сопоставления ({managerMapping.length})</h2>
+              <table className="backups-table">
+                <thead>
+                  <tr>
+                    <th>amo CRM менеджер</th>
+                    <th>Email (amo)</th>
+                    <th>Kommo пользователь</th>
+                    <th>Email (Kommo)</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {managerMapping.map(m => (
+                    <tr key={m.amo_user_id}>
+                      <td>{m.amo_user_name || m.amo_user_id}</td>
+                      <td style={{ fontSize: 12, color: '#94a3b8' }}>{m.amo_email || '—'}</td>
+                      <td>{m.kommo_user_name || m.kommo_user_id}</td>
+                      <td style={{ fontSize: 12, color: '#94a3b8' }}>{m.kommo_email || '—'}</td>
+                      <td>
+                        <button className="btn btn-danger" style={{ padding: '2px 10px', fontSize: 12 }}
+                          onClick={() => handleDeleteMatch(m.amo_user_id)}>
+                          ✕
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
 
-          {(!fetchSt || fetchSt.status === 'idle') && (
-            <div className="card">
-              <div className="no-data">Данные ещё не загружены. Нажмите «Загрузить данные» выше.</div>
+          {managersLoaded && managerMapping.length === 0 && (
+            <div className="card" style={{ marginTop: 16 }}>
+              <div className="no-data">Сопоставлений пока нет. Выберите менеджера и пользователя выше и нажмите «Сопоставить».</div>
             </div>
           )}
         </div>
       )}
 
-      {/* FieldSync всегда смонтирован, скрывается через CSS — данные сохраняются между вкладками */}
+      {/* FieldSync — always mounted, shown/hidden via CSS to keep state */}
       <div style={{ display: tab === 'fields' ? '' : 'none' }}>
         <FieldSync isActive={tab === 'fields'} />
       </div>
 
-
       {tab === 'copy' && (
         <CopyDeals />
       )}
+
       {tab === 'backups' && (
         <div className="card">
           <h2>💾 Резервные копии</h2>

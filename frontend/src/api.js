@@ -14,6 +14,12 @@ export const getAmoPipelines = () => api.get('/pipelines/amo').then(r => r.data)
 export const getKommoPipelines = () => api.get('/pipelines/kommo').then(r => r.data);
 export const getHealth = () => api.get('/health').then(r => r.data);
 
+// Stage mapping persistence
+export const getStageMappingDB = (amoPipelineId, kommoPipelineId) =>
+  api.get('/pipelines/stage-mapping', { params: { amoPipelineId, kommoPipelineId } }).then(r => r.data);
+export const saveStageMappingDB = (amoPipelineId, kommoPipelineId, stages) =>
+  api.post('/pipelines/stage-mapping', { amoPipelineId, kommoPipelineId, stages }).then(r => r.data);
+
 // AMO data loading
 export const getAmoFetchStatus = () => api.get('/amo/fetch-status').then(r => r.data);
 export const triggerAmoFetch = () => api.post('/amo/fetch').then(r => r.data);
@@ -37,6 +43,13 @@ export const getBatchStats = () => api.get('/migration/batch-stats').then(r => r
 export const startBatch = () => api.post('/migration/batch-start').then(r => r.data);
 export const rollbackBatch = () => api.post('/migration/batch-rollback').then(r => r.data);
 export const resetBatchOffset = () => api.post('/migration/batch-reset').then(r => r.data);
+
+// ── Manager matching ─────────────────────────────────────────────────────────
+export const getAmoManagers = () => api.get('/managers').then(r => r.data);
+export const getKommoUsers = () => api.get('/managers/kommo-users').then(r => r.data);
+export const getManagerMapping = () => api.get('/managers/mapping').then(r => r.data);
+export const matchManager = (data) => api.post('/managers/match', data).then(r => r.data);
+export const deleteManagerMatch = (amoUserId) => api.delete(`/managers/match/${amoUserId}`).then(r => r.data);
 
 // ── Copy engine API ──────────────────────────────────────────────────────────
 export const getManagers = () => api.get('/managers').then(r => r.data);
