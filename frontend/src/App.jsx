@@ -63,6 +63,7 @@ export default function App() {
   const [selectedKommoUser, setSelectedKommoUser] = useState(null);
   const [matchLoading, setMatchLoading] = useState(false);
   const [managersLoaded, setManagersLoaded] = useState(false);
+  const [recentMatch, setRecentMatch] = useState(null);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -143,6 +144,21 @@ export default function App() {
     const a = document.createElement('a');
     a.href = url;
     a.download = `stage_mapping_${amoPipeName}_${kommoPipeName}_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadManagerMappingCSV = (mappings) => {
+    const header = '#,AMO менеджер,AMO ID,AMO Email,Kommo пользователь,Kommo ID,Kommo Email';
+    const rows = mappings.map((m, i) =>
+      `${i + 1},"${m.amo_user_name}",${m.amo_user_id},"${m.amo_email || ''}","${m.kommo_user_name}",${m.kommo_user_id},"${m.kommo_email || ''}"`
+    );
+    const csv = [header, ...rows].join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `manager_mapping_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -305,10 +321,13 @@ export default function App() {
         kommo_user_name: selectedKommoUser.name,
         kommo_email: selectedKommoUser.email,
       });
+      const savedAmoId = selectedAmoUser.amo_id;
       const res = await api.getManagerMapping();
       setManagerMapping(res.mappings || []);
       setSelectedAmoUser(null);
       setSelectedKommoUser(null);
+      setRecentMatch(savedAmoId);
+      setTimeout(() => setRecentMatch(null), 5000);
       setMessage(`✅ Сопоставлено: ${selectedAmoUser.amo_name} → ${selectedKommoUser.name}`);
     } catch (e) {
       setMessage(`❌ Ошибка сопоставления: ${e.response?.data?.error || e.message}`);
@@ -1034,43 +1053,61 @@ export default function App() {
             )}
           </div>
 
-          {/* Existing mappings */}
-          {managerMapping.length > 0 && (
+          {/* Manager mappings table */}
+          {managersLoaded && (
             <div className="card" style={{ marginTop: 16 }}>
-              <h2>✅ Сохранённые сопоставления ({managerMapping.length})</h2>
-              <table className="backups-table">
-                <thead>
-                  <tr>
-                    <th>amo CRM менеджер</th>
-                    <th>Email (amo)</th>
-                    <th>Kommo пользователь</th>
-                    <th>Email (Kommo)</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {managerMapping.map(m => (
-                    <tr key={m.amo_user_id}>
-                      <td>{m.amo_user_name || m.amo_user_id}</td>
-                      <td style={{ fontSize: 12, color: '#94a3b8' }}>{m.amo_email || '—'}</td>
-                      <td>{m.kommo_user_name || m.kommo_user_id}</td>
-                      <td style={{ fontSize: 12, color: '#94a3b8' }}>{m.kommo_email || '—'}</td>
-                      <td>
-                        <button className="btn btn-danger" style={{ padding: '2px 10px', fontSize: 12 }}
-                          onClick={() => handleDeleteMatch(m.amo_user_id)}>
-                          ✕
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {managersLoaded && managerMapping.length === 0 && (
-            <div className="card" style={{ marginTop: 16 }}>
-              <div className="no-data">Сопоставлений пока нет. Выберите менеджера и пользователя выше и нажмите «Сопоставить».</div>
+              <h2>✅ Сопоставления менеджеров</h2>
+              {managerMapping.length === 0 ? (
+                <div className="no-data">Сопоставлений пока нет. Выберите менеджера и пользователя выше и нажмите «Сопоставить».</div>
+              ) : (
+                <div className="stage-mapping-table-wrap">
+                  <table className="stage-mapping-table">
+                    <thead>
+                      <tr>
+                        <th className="stage-num">#</th>
+                        <th className="stage-cell">amo CRM менеджер</th>
+                        <th className="stage-arrow-cell"></th>
+                        <th className="stage-cell">Kommo пользователь</th>
+                        <th className="stage-status-cell">Статус</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {managerMapping.map((m, i) => (
+                        <tr key={m.amo_user_id}
+                          className={recentMatch === m.amo_user_id ? 'stage-row-system' : ''}>
+                          <td className="stage-num">{i + 1}</td>
+                          <td className="stage-cell">
+                            <span className="stage-name-text">{m.amo_user_name || m.amo_user_id}</span>
+                            <span className="stage-id-badge"> #{m.amo_user_id}</span>
+                            {m.amo_email && <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{m.amo_email}</div>}
+                          </td>
+                          <td className="stage-arrow-cell">→</td>
+                          <td className="stage-cell">
+                            <span className="stage-name-text">{m.kommo_user_name || m.kommo_user_id}</span>
+                            <span className="stage-id-badge kommo"> #{m.kommo_user_id}</span>
+                            {m.kommo_email && <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{m.kommo_email}</div>}
+                          </td>
+                          <td className="stage-status-cell">
+                            ✅
+                            <button className="btn btn-danger"
+                              style={{ padding: '1px 8px', fontSize: 11, marginLeft: 6 }}
+                              onClick={() => handleDeleteMatch(m.amo_user_id)}>✕</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div className="stage-mapping-footnote">
+                    <span className="stage-mapping-footnote-text">
+                      Итого: {managerMapping.length} {managerMapping.length === 1 ? 'сопоставление' : managerMapping.length < 5 ? 'сопоставления' : 'сопоставлений'}
+                    </span>
+                    <button className="btn btn-sm stage-mapping-download"
+                      onClick={() => downloadManagerMappingCSV(managerMapping)}>
+                      ⬇ Скачать (.csv)
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

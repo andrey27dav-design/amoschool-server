@@ -68,6 +68,12 @@ const MEZHDUNARODNY_EMAILS = [
   'admdir@houch-school.ru',
   'Manager20@houch-school.ru',
   'Manager15@houch-school.ru',
+  'manager16@houch-school.ru',   // Виллер Яна
+  'manager5@houch-school.ru',    // Вертюхина Александра
+  'manager8@houch-school.ru',    // РОП Лиана
+  'Manager11@houch-school.ru',   // 1
+  'Manager19@houch-school.ru',   // 2
+  'manager10@houch-school.ru',   // 3
 ];
 
 /**
