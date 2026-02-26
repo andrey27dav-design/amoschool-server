@@ -610,3 +610,113 @@ header h1 {
 .error-rec-tip   { color: #6ee7b7; font-size: 12px; margin-top: 3px; padding-left: 12px; }
 
 .more { font-size: 12px; color: #64748b; padding-top: 6px; text-align: center; }
+
+/* ─── Stage Mapping Table ─────────────────────────────────────────────────── */
+.stage-mapping-table-wrap {
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid #1e293b;
+  margin-top: 4px;
+}
+.stage-mapping-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.stage-mapping-table thead tr {
+  background: #1e293b;
+}
+.stage-mapping-table thead th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.stage-mapping-table tbody tr {
+  border-bottom: 1px solid #1e293b;
+  transition: background .12s;
+}
+.stage-mapping-table tbody tr:last-child { border-bottom: none; }
+.stage-mapping-table tbody tr:hover { background: rgba(59,130,246,.06); }
+.stage-mapping-table tbody tr.stage-row-system {
+  background: rgba(139,92,246,.07);
+}
+.stage-mapping-table tbody tr.stage-row-system:hover {
+  background: rgba(139,92,246,.12);
+}
+.stage-num {
+  padding: 9px 10px;
+  text-align: center;
+  color: #475569;
+  font-size: 11px;
+  font-family: monospace;
+}
+.stage-cell {
+  padding: 9px 14px;
+  vertical-align: middle;
+}
+.stage-cell.amo-cell   { border-right: none; }
+.stage-cell.kommo-cell { }
+.stage-arrow-cell {
+  padding: 9px 6px;
+  text-align: center;
+  color: #475569;
+  font-size: 15px;
+}
+.stage-status-cell {
+  padding: 9px 10px;
+  text-align: center;
+  font-size: 15px;
+}
+.stage-name-text {
+  color: #e2e8f0;
+  font-size: 13px;
+}
+.stage-id-badge {
+  display: inline-block;
+  margin-left: 8px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-family: monospace;
+  color: #64748b;
+}
+.stage-id-badge.kommo {
+  background: #0f2337;
+  border-color: #1e4a6b;
+  color: #38bdf8;
+}
+
+/* ─── Stage Mapping Footnote ─────────────────────────────────────────────── */
+.stage-mapping-footnote {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #0f172a;
+  border-top: 1px solid #1e293b;
+  border-radius: 0 0 10px 10px;
+  flex-wrap: wrap;
+}
+.stage-mapping-footnote-text {
+  font-size: 11px;
+  color: #64748b;
+}
+.stage-mapping-download {
+  font-size: 12px !important;
+  padding: 4px 14px !important;
+  white-space: nowrap;
+}
+.btn-sm { font-size: 12px; padding: 4px 12px; }
+
+/* ─── Managers Tab ────────────────────────────────────────────────────────── */
+.managers-tab { display: flex; flex-direction: column; gap: 0; }
+.mapped-item { opacity: .7; }
+.mapped-item .pipeline-radio-name { color: #86efac !important; }
