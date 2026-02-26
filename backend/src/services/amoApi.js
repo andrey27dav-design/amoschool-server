@@ -11,6 +11,18 @@ const amoClient = axios.create({
   timeout: 30000,
 });
 
+// ⛔ SAFETY: Block any DELETE/PUT/PATCH requests to AMO CRM API
+// AMO is a READ-ONLY source — data is deleted manually by operator after verification
+amoClient.interceptors.request.use((cfg) => {
+  const method = (cfg.method || '').toLowerCase();
+  if (method === 'delete' || method === 'put' || method === 'patch') {
+    const msg = `[amoApi] SAFETY BLOCK: ${method.toUpperCase()} request to AMO CRM is FORBIDDEN. AMO is read-only source data.`;
+    logger.error(msg, cfg.url);
+    throw new Error(msg);
+  }
+  return cfg;
+});
+
 // Rate limiter: max 7 requests/sec for amo CRM API
 let lastRequestTime = 0;
 const MIN_INTERVAL = 150; // ms

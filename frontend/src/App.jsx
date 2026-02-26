@@ -117,6 +117,8 @@ export default function App() {
     fetchStatus();
     fetchPipelines();
     fetchBackups();
+    api.getBatchStats().then(setBatchStats).catch(() => {});
+    api.getBatchStatus().then(setBatchStatusData).catch(() => {});
   }, []);
 
   // Load saved stage mapping from DB whenever pipeline pair changes
