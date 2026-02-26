@@ -1055,127 +1055,252 @@
   "contacts": {
     "55561": {
       "kommoFieldId": 200296,
-      "fieldType": "text",
+      "amoFieldName": "Должность",
+      "kommoFieldName": "Position",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "Доп.",
+      "transferMode": "direct",
       "enumMap": {}
     },
     "704035": {
       "kommoFieldId": 918673,
-      "fieldType": "checkbox",
+      "amoFieldName": "Пользовательское соглашение",
+      "kommoFieldName": "Пользовательское соглашение",
+      "amoFieldType": "checkbox",
+      "kommoFieldType": "checkbox",
+      "amoGroup": "Доп.",
+      "transferMode": "direct",
       "enumMap": {}
     },
     "706039": {
       "kommoFieldId": 918679,
-      "fieldType": "text",
+      "amoFieldName": "TelegramUsername_WZ",
+      "kommoFieldName": "TelegramUsername_WZ",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "Доп.",
+      "transferMode": "direct",
       "enumMap": {}
     },
     "706041": {
       "kommoFieldId": 918677,
-      "fieldType": "text",
+      "amoFieldName": "TelegramId_WZ",
+      "kommoFieldName": "TelegramId_WZ",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "Доп.",
+      "transferMode": "direct",
       "enumMap": {}
     },
     "710287": {
       "kommoFieldId": 918669,
-      "fieldType": "url",
+      "amoFieldName": "Реферальная ссылка",
+      "kommoFieldName": "Реферальная ссылка",
+      "amoFieldType": "url",
+      "kommoFieldType": "url",
+      "amoGroup": "Реф. ссылки",
+      "transferMode": "direct",
       "enumMap": {}
     },
     "710289": {
       "kommoFieldId": 918667,
-      "fieldType": "url",
+      "amoFieldName": "Ссылка на рефералов",
+      "kommoFieldName": "Ссылка на рефералов",
+      "amoFieldType": "url",
+      "kommoFieldType": "url",
+      "amoGroup": "Реф. ссылки",
+      "transferMode": "direct",
       "enumMap": {}
     },
     "710291": {
       "kommoFieldId": 918665,
-      "fieldType": "url",
+      "amoFieldName": "Ссылка на рефера",
+      "kommoFieldName": "Ссылка на рефера",
+      "amoFieldType": "url",
+      "kommoFieldType": "url",
+      "amoGroup": "Реф. ссылки",
+      "transferMode": "direct",
       "enumMap": {}
     },
     "720125": {
       "kommoFieldId": 918681,
-      "fieldType": "text",
+      "amoFieldName": "TelegroupId_WZ",
+      "kommoFieldName": "TelegroupId_WZ",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "Доп.",
+      "transferMode": "direct",
       "enumMap": {}
     },
     "724181": {
       "kommoFieldId": 918683,
-      "fieldType": "textarea",
+      "amoFieldName": "EmfyPusherSub",
+      "kommoFieldName": "EmfyPusherSub",
+      "amoFieldType": "textarea",
+      "kommoFieldType": "textarea",
+      "amoGroup": "Доп.",
+      "transferMode": "direct",
       "enumMap": {}
     },
     "725117": {
       "kommoFieldId": 918707,
-      "fieldType": "url",
+      "amoFieldName": "Ссылка на alfaCRM",
+      "kommoFieldName": "Ссылка на alfaCRM",
+      "amoFieldType": "url",
+      "kommoFieldType": "url",
+      "amoGroup": "Основное",
+      "transferMode": "direct",
       "enumMap": {}
     },
     "725649": {
       "kommoFieldId": 918671,
-      "fieldType": "text",
+      "amoFieldName": "Имя",
+      "kommoFieldName": "Имя",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "Доп.",
+      "transferMode": "direct",
       "enumMap": {}
     },
     "728971": {
       "kommoFieldId": 918675,
-      "fieldType": "text",
+      "amoFieldName": "ИНФО О ПРОДЛЕНИИ",
+      "kommoFieldName": "ИНФО О ПРОДЛЕНИИ",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "Доп.",
+      "transferMode": "direct",
       "enumMap": {}
     },
     "730797": {
       "kommoFieldId": 918709,
-      "fieldType": "checkbox",
+      "amoFieldName": "ОТПИСАЛАСЬ",
+      "kommoFieldName": "ОТПИСАЛАСЬ",
+      "amoFieldType": "checkbox",
+      "kommoFieldType": "checkbox",
+      "amoGroup": "Основное",
+      "transferMode": "direct",
       "enumMap": {}
     },
     "733429": {
       "kommoFieldId": 918711,
-      "fieldType": "birthday",
+      "amoFieldName": "День рождения ребёнка",
+      "kommoFieldName": "День рождения ребёнка",
+      "amoFieldType": "birthday",
+      "kommoFieldType": "birthday",
+      "amoGroup": "Основное",
+      "transferMode": "direct",
       "enumMap": {}
     },
     "733981": {
       "kommoFieldId": 918687,
-      "fieldType": "textarea",
+      "amoFieldName": "Venyoo вопрос",
+      "kommoFieldName": "Venyoo вопрос",
+      "amoFieldType": "textarea",
+      "kommoFieldType": "textarea",
+      "amoGroup": "Основное",
+      "transferMode": "direct",
       "enumMap": {}
     },
     "733983": {
       "kommoFieldId": 918689,
-      "fieldType": "text",
+      "amoFieldName": "Venyoo имя",
+      "kommoFieldName": "Venyoo имя",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "Основное",
+      "transferMode": "direct",
       "enumMap": {}
     },
     "733985": {
       "kommoFieldId": 918691,
-      "fieldType": "url",
+      "amoFieldName": "Venyoo сайт",
+      "kommoFieldName": "Venyoo сайт",
+      "amoFieldType": "url",
+      "kommoFieldType": "url",
+      "amoGroup": "Основное",
+      "transferMode": "direct",
       "enumMap": {}
     },
     "733987": {
       "kommoFieldId": 918693,
-      "fieldType": "url",
+      "amoFieldName": "Venyoo страница отправки",
+      "kommoFieldName": "Venyoo страница отправки",
+      "amoFieldType": "url",
+      "kommoFieldType": "url",
+      "amoGroup": "Основное",
+      "transferMode": "direct",
       "enumMap": {}
     },
     "733991": {
       "kommoFieldId": 918697,
-      "fieldType": "text",
+      "amoFieldName": "utm_medium",
+      "kommoFieldName": "utm_medium",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "Основное",
+      "transferMode": "direct",
       "enumMap": {}
     },
     "733993": {
       "kommoFieldId": 918699,
-      "fieldType": "text",
+      "amoFieldName": "utm_campaign",
+      "kommoFieldName": "utm_campaign",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "Основное",
+      "transferMode": "direct",
       "enumMap": {}
     },
     "733995": {
       "kommoFieldId": 918701,
-      "fieldType": "text",
+      "amoFieldName": "utm_content",
+      "kommoFieldName": "utm_content",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "Основное",
+      "transferMode": "direct",
       "enumMap": {}
     },
     "733997": {
       "kommoFieldId": 918703,
-      "fieldType": "text",
+      "amoFieldName": "utm_term",
+      "kommoFieldName": "utm_term",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "Основное",
+      "transferMode": "direct",
       "enumMap": {}
     },
     "733999": {
       "kommoFieldId": 918695,
-      "fieldType": "text",
+      "amoFieldName": "utm_source",
+      "kommoFieldName": "utm_source",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "Основное",
+      "transferMode": "direct",
       "enumMap": {}
     },
     "734001": {
       "kommoFieldId": 918705,
-      "fieldType": "text",
+      "amoFieldName": "Venyoo GA_id",
+      "kommoFieldName": "Venyoo GA_id",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "Основное",
+      "transferMode": "direct",
       "enumMap": {}
     },
     "734249": {
       "kommoFieldId": 918685,
-      "fieldType": "text",
+      "amoFieldName": "MaxId_WZ",
+      "kommoFieldName": "MaxId_WZ",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "Основное",
+      "transferMode": "direct",
       "enumMap": {}
     },
     "112229": {
@@ -1184,6 +1309,7 @@
       "kommoFieldName": "Male/Female",
       "amoFieldType": "radiobutton",
       "kommoFieldType": "radiobutton",
+      "amoGroup": "Основное",
       "transferMode": "direct",
       "enumMap": {
         "160295": 733146,
@@ -1196,6 +1322,7 @@
       "kommoFieldName": "Relationship to the student",
       "amoFieldType": "select",
       "kommoFieldType": "select",
+      "amoGroup": "Основное",
       "transferMode": "direct",
       "enumMap": {
         "400107": 733152,
@@ -1205,17 +1332,149 @@
         "404985": 733162,
         "404987": 733158
       }
+    },
+    "55563": {
+      "kommoFieldId": 200298,
+      "amoFieldName": "Телефон",
+      "kommoFieldName": "Phone",
+      "amoFieldType": "multitext",
+      "kommoFieldType": "multitext",
+      "amoGroup": "Основное",
+      "transferMode": "direct",
+      "enumMap": {
+        "80017": 166646,
+        "80019": 166648,
+        "80021": 166650,
+        "80023": 166652,
+        "80025": 166654,
+        "80027": 166656
+      }
+    },
+    "55565": {
+      "kommoFieldId": 200300,
+      "amoFieldName": "Email",
+      "kommoFieldName": "Email",
+      "amoFieldType": "multitext",
+      "kommoFieldType": "multitext",
+      "amoGroup": "Основное",
+      "transferMode": "direct",
+      "enumMap": {
+        "80029": 166658,
+        "80031": 166660,
+        "80033": 166662
+      }
+    },
+    "704129": {
+      "kommoFieldId": 871454,
+      "amoFieldName": "Город",
+      "kommoFieldName": "Town/City",
+      "amoFieldType": "textarea",
+      "kommoFieldType": "text",
+      "amoGroup": "Основное",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "723483": {
+      "kommoFieldId": 871464,
+      "amoFieldName": "Квалифицирован",
+      "kommoFieldName": "Qualified",
+      "amoFieldType": "checkbox",
+      "kommoFieldType": "checkbox",
+      "amoGroup": "Основное",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "725389": {
+      "kommoFieldId": 871462,
+      "amoFieldName": "Ученик",
+      "kommoFieldName": "Student",
+      "amoFieldType": "checkbox",
+      "kommoFieldType": "checkbox",
+      "amoGroup": "Основное",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "733989": {
+      "kommoFieldId": 918199,
+      "amoFieldName": "Venyoo город",
+      "kommoFieldName": "Venyoo город",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "Основное",
+      "transferMode": "direct",
+      "enumMap": {}
     }
   },
   "companies": {
     "724183": {
       "kommoFieldId": 918663,
-      "fieldType": "textarea",
+      "amoFieldName": "EmfyPusherSub",
+      "kommoFieldName": "EmfyPusherSub",
+      "amoFieldType": "textarea",
+      "kommoFieldType": "textarea",
+      "amoGroup": "Основное",
+      "transferMode": "direct",
       "enumMap": {}
     },
     "730795": {
       "kommoFieldId": 918661,
-      "fieldType": "checkbox",
+      "amoFieldName": "Отписалась от рассылки",
+      "kommoFieldName": "Отписалась от рассылки",
+      "amoFieldType": "checkbox",
+      "kommoFieldType": "checkbox",
+      "amoGroup": "Основное",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "55563": {
+      "kommoFieldId": 200298,
+      "amoFieldName": "Телефон",
+      "kommoFieldName": "Phone",
+      "amoFieldType": "multitext",
+      "kommoFieldType": "multitext",
+      "amoGroup": "Основное",
+      "transferMode": "direct",
+      "enumMap": {
+        "80017": 166646,
+        "80019": 166648,
+        "80021": 166650,
+        "80023": 166652,
+        "80025": 166654,
+        "80027": 166656
+      }
+    },
+    "55565": {
+      "kommoFieldId": 200300,
+      "amoFieldName": "Email",
+      "kommoFieldName": "Email",
+      "amoFieldType": "multitext",
+      "kommoFieldType": "multitext",
+      "amoGroup": "Основное",
+      "transferMode": "direct",
+      "enumMap": {
+        "80029": 166658,
+        "80031": 166660,
+        "80033": 166662
+      }
+    },
+    "55567": {
+      "kommoFieldId": 200302,
+      "amoFieldName": "Web",
+      "kommoFieldName": "Web",
+      "amoFieldType": "url",
+      "kommoFieldType": "url",
+      "amoGroup": "Основное",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "55569": {
+      "kommoFieldId": 200304,
+      "amoFieldName": "Адрес",
+      "kommoFieldName": "Address",
+      "amoFieldType": "textarea",
+      "kommoFieldType": "textarea",
+      "amoGroup": "Основное",
+      "transferMode": "direct",
       "enumMap": {}
     }
   }
