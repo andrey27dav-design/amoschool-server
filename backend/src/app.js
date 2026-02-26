@@ -7,14 +7,22 @@ const config = require('./config');
 const logger = require('./utils/logger');
 
 const migrationRoutes = require('./routes/migration');
-const pipelineRoutes = require('./routes/pipelines');
-const dataRoutes = require('./routes/data');
+const pipelineRoutes  = require('./routes/pipelines');
+const dataRoutes      = require('./routes/data');
+
+// New copy-engine routes
+const managersRoutes  = require('./routes/managers');
+const sessionsRoutes  = require('./routes/sessions');
+const copyRoutes      = require('./routes/copy');
 
 const app = express();
 
-// Ensure logs dir exists
+// Ensure directories exist
 fs.ensureDirSync('logs');
 fs.ensureDirSync(config.backupDir);
+
+// Initialize SQLite DB
+require('./db');
 
 app.use(cors({ origin: config.frontendUrl }));
 app.use(express.json());
@@ -25,10 +33,15 @@ app.use((req, res, next) => {
   next();
 });
 
-// Routes
+// ── Existing routes ──────────────────────────────────────────
 app.use('/api/migration', migrationRoutes);
 app.use('/api/pipelines', pipelineRoutes);
-app.use('/api/amo', dataRoutes);
+app.use('/api/amo',       dataRoutes);
+
+// ── New copy-engine routes ───────────────────────────────────
+app.use('/api/managers',  managersRoutes);
+app.use('/api/sessions',  sessionsRoutes);
+app.use('/api/copy',      copyRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

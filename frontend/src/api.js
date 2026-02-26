@@ -37,3 +37,14 @@ export const getBatchStats = () => api.get('/migration/batch-stats').then(r => r
 export const startBatch = () => api.post('/migration/batch-start').then(r => r.data);
 export const rollbackBatch = () => api.post('/migration/batch-rollback').then(r => r.data);
 export const resetBatchOffset = () => api.post('/migration/batch-reset').then(r => r.data);
+
+// ── Copy engine API ──────────────────────────────────────────────────────────
+export const getManagers = () => api.get('/managers').then(r => r.data);
+export const getSessions = () => api.get('/sessions').then(r => r.data);
+export const getSession  = (id) => api.get(`/sessions/${id}`).then(r => r.data);
+export const getSessionPreview = (id) => api.get(`/sessions/${id}/preview`).then(r => r.data);
+export const getSessionLog = (id, limit = 100) => api.get(`/sessions/${id}/log`, { params: { limit } }).then(r => r.data);
+export const fetchSessionDeals = (params) => api.post('/sessions/fetch', params).then(r => r.data);
+export const startCopySession  = (id, userMap = null) => api.post(`/copy/${id}/start`, { user_map: userMap }).then(r => r.data);
+export const rollbackLastDeal  = (id) => api.post(`/sessions/${id}/rollback-last`).then(r => r.data);
+export const rollbackSession   = (id) => api.post(`/sessions/${id}/rollback-session`).then(r => r.data);
