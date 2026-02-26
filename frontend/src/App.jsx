@@ -560,16 +560,23 @@ export default function App() {
             </div>
 
             {/* Loading progress */}
-            {fetchSt?.status === 'loading' && (
-              <div style={{ marginTop: 12, display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-                {Object.entries(fetchSt.progress?.loaded || {}).map(([k, v]) => (
-                  <div key={k} className="counter" style={{ minWidth: 80 }}>
-                    <div className="counter-value">{v}</div>
-                    <div className="counter-label">{k}</div>
-                  </div>
-                ))}
-              </div>
-            )}
+            {fetchSt?.status === 'loading' && (() => {
+              const LABELS = {
+                leads: 'Сделки', contacts: 'Контакты', companies: 'Компании',
+                leadTasks: 'Задачи (сделки)', contactTasks: 'Задачи (контакты)',
+                leadNotes: 'Комм. (сделки)', contactNotes: 'Комм. (контакты)',
+              };
+              return (
+                <div style={{ marginTop: 12, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                  {Object.entries(fetchSt.progress?.loaded || {}).map(([k, v]) => (
+                    <div key={k} className="counter" style={{ minWidth: 80 }}>
+                      <div className="counter-value">{v}</div>
+                      <div className="counter-label">{LABELS[k] || k}</div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
 
             {/* Stats row */}
             {batchStats && (
@@ -673,10 +680,13 @@ export default function App() {
               <h2>📦 Для переноса (загружено из amo CRM)</h2>
               <div className="counters">
                 {[
-                  { label: 'Сделки',   key: 'leads',     icon: '📋' },
-                  { label: 'Контакты', key: 'contacts',  icon: '👤' },
-                  { label: 'Компании', key: 'companies', icon: '🏢' },
-                  { label: 'Задачи',   key: 'tasks',     icon: '✅' },
+                  { label: 'Сделки',              key: 'leads',        icon: '📋' },
+                  { label: 'Контакты',            key: 'contacts',     icon: '👤' },
+                  { label: 'Компании',            key: 'companies',    icon: '🏢' },
+                  { label: 'Задачи (сделки)',     key: 'leadTasks',    icon: '✅' },
+                  { label: 'Задачи (контакты)',   key: 'contactTasks', icon: '✅' },
+                  { label: 'Комментарии (сделки)',    key: 'leadNotes',    icon: '💬' },
+                  { label: 'Комментарии (контакты)', key: 'contactNotes', icon: '💬' },
                 ].map(({ label, key, icon }) => (
                   <div className="counter" key={key}>
                     <div className="counter-icon">{icon}</div>

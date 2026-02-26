@@ -9,9 +9,14 @@ const logger = require('../utils/logger');
 const CACHE_FILE = path.resolve(config.backupDir, 'amo_data_cache.json');
 
 // fetchState: idle | loading | done | error
+const EMPTY_LOADED = () => ({
+  leads: 0, contacts: 0, companies: 0,
+  leadTasks: 0, contactTasks: 0,
+  leadNotes: 0, contactNotes: 0,
+});
 let fetchState = {
   status: 'idle',
-  progress: { step: '', loaded: { leads: 0, contacts: 0, companies: 0, tasks: 0 } },
+  progress: { step: '', loaded: EMPTY_LOADED() },
   error: null,
   updatedAt: null,
 };
@@ -37,7 +42,7 @@ async function fetchAllData() {
 
   fetchState = {
     status: 'loading',
-    progress: { step: 'Инициализация...', loaded: { leads: 0, contacts: 0, companies: 0, tasks: 0 } },
+    progress: { step: 'Инициализация...', loaded: EMPTY_LOADED() },
     error: null,
     updatedAt: null,
   };
@@ -59,10 +64,25 @@ async function fetchAllData() {
     fetchState.progress.loaded.companies = companies.length;
     logger.info(`Data fetch: loaded ${companies.length} companies`);
 
-    fetchState.progress.step = 'Загрузка задач...';
-    const tasks = await amoApi.getAllTasks();
-    fetchState.progress.loaded.tasks = tasks.length;
-    logger.info(`Data fetch: loaded ${tasks.length} tasks`);
+    fetchState.progress.step = 'Загрузка задач (deals)...';
+    const leadTasks = await amoApi.getAllLeadTasks();
+    fetchState.progress.loaded.leadTasks = leadTasks.length;
+    logger.info(`Data fetch: loaded ${leadTasks.length} lead tasks`);
+
+    fetchState.progress.step = 'Загрузка задач (contacts)...';
+    const contactTasks = await amoApi.getAllContactTasks();
+    fetchState.progress.loaded.contactTasks = contactTasks.length;
+    logger.info(`Data fetch: loaded ${contactTasks.length} contact tasks`);
+
+    fetchState.progress.step = 'Загрузка комментариев (deals)...';
+    const leadNotes = await amoApi.getAllLeadNotes();
+    fetchState.progress.loaded.leadNotes = leadNotes.length;
+    logger.info(`Data fetch: loaded ${leadNotes.length} lead notes`);
+
+    fetchState.progress.step = 'Загрузка комментариев (contacts)...';
+    const contactNotes = await amoApi.getAllContactNotes();
+    fetchState.progress.loaded.contactNotes = contactNotes.length;
+    logger.info(`Data fetch: loaded ${contactNotes.length} contact notes`);
 
     const data = {
       fetchedAt: new Date().toISOString(),
@@ -70,12 +90,18 @@ async function fetchAllData() {
         leads: leads.length,
         contacts: contacts.length,
         companies: companies.length,
-        tasks: tasks.length,
+        leadTasks: leadTasks.length,
+        contactTasks: contactTasks.length,
+        leadNotes: leadNotes.length,
+        contactNotes: contactNotes.length,
       },
       leads,
       contacts,
       companies,
-      tasks,
+      leadTasks,
+      contactTasks,
+      leadNotes,
+      contactNotes,
     };
 
     await fs.writeJson(CACHE_FILE, data, { spaces: 2 });
@@ -101,7 +127,17 @@ router.get('/fetch-status', (req, res) => {
     if (memCache) {
       fetchState.status = 'done';
       fetchState.updatedAt = memCache.fetchedAt;
-      fetchState.progress.loaded = memCache.counts;
+      // Normalize: handle old cache format that used 'tasks' instead of leadTasks/contactTasks
+      const c = memCache.counts || {};
+      fetchState.progress.loaded = {
+        leads: c.leads || 0,
+        contacts: c.contacts || 0,
+        companies: c.companies || 0,
+        leadTasks: c.leadTasks ?? c.tasks ?? 0,
+        contactTasks: c.contactTasks ?? 0,
+        leadNotes: c.leadNotes ?? 0,
+        contactNotes: c.contactNotes ?? 0,
+      };
     }
   }
   res.json(fetchState);
@@ -122,8 +158,8 @@ router.get('/entities', (req, res) => {
   if (!memCache) return res.status(404).json({ error: 'Данные не загружены. Запустите загрузку.' });
 
   const { type = 'leads', page = 1, limit = 50, search = '', managersOnly = '0', managerIds = '' } = req.query;
-  const validTypes = ['leads', 'contacts', 'companies', 'tasks'];
-  if (!validTypes.includes(type)) return res.status(400).json({ error: 'Неверный тип сущности' });
+  const validTypes = ['leads', 'contacts', 'companies', 'tasks', 'leadTasks', 'contactTasks', 'leadNotes', 'contactNotes'];
+  if (!validTypes.includes(type)) return res.status(400).json({ error: 'Invalid type' });
 
   let items = memCache[type] || [];
 

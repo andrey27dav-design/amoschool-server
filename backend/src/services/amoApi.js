@@ -156,6 +156,66 @@ async function getAllTasks() {
   return all;
 }
 
+async function getAllLeadTasks() {
+  const all = [];
+  let page = 1;
+  while (true) {
+    const { tasks, pages } = await getTasks('leads', null, page);
+    all.push(...tasks);
+    logger.info(`AMO: fetched lead tasks page ${page}/${pages}`);
+    if (page >= pages) break;
+    page++;
+  }
+  return all;
+}
+
+async function getAllContactTasks() {
+  const all = [];
+  let page = 1;
+  while (true) {
+    const { tasks, pages } = await getTasks('contacts', null, page);
+    all.push(...tasks);
+    logger.info(`AMO: fetched contact tasks page ${page}/${pages}`);
+    if (page >= pages) break;
+    page++;
+  }
+  return all;
+}
+
+async function getAllLeadNotes() {
+  const all = [];
+  let page = 1;
+  while (true) {
+    await rateLimit();
+    const res = await amoClient.get('/api/v4/leads/notes', { params: { page, limit: 250 } });
+    const notes = res.data._embedded?.notes || [];
+    const total = res.data._total_items || 0;
+    const pages = Math.ceil(total / 250) || 1;
+    all.push(...notes);
+    logger.info(`AMO: fetched lead notes page ${page}/${pages}, count=${notes.length}`);
+    if (page >= pages || notes.length < 250) break;
+    page++;
+  }
+  return all;
+}
+
+async function getAllContactNotes() {
+  const all = [];
+  let page = 1;
+  while (true) {
+    await rateLimit();
+    const res = await amoClient.get('/api/v4/contacts/notes', { params: { page, limit: 250 } });
+    const notes = res.data._embedded?.notes || [];
+    const total = res.data._total_items || 0;
+    const pages = Math.ceil(total / 250) || 1;
+    all.push(...notes);
+    logger.info(`AMO: fetched contact notes page ${page}/${pages}, count=${notes.length}`);
+    if (page >= pages || notes.length < 250) break;
+    page++;
+  }
+  return all;
+}
+
 async function getNotes(entityType, entityId, page = 1, limit = 50) {
   await rateLimit();
   const res = await amoClient.get(`/api/v4/${entityType}/${entityId}/notes`, {
@@ -218,8 +278,12 @@ module.exports = {
   getAllCompanies,
   getTasks,
   getAllTasks,
+  getAllLeadTasks,
+  getAllContactTasks,
   getNotes,
   getLeadNotes,
+  getAllLeadNotes,
+  getAllContactNotes,
   getCustomFields,
   getCustomFieldGroups,
   getUsers,
