@@ -86,17 +86,29 @@ function buildEnumMap(amoField, kommoField) {
 
 /**
  * Build mapping for one entity. Creates missing fields in Kommo.
+ * Merges with existingMapping — preserves all existing entries (do not overwrite).
  * Returns: { mapping: {[amoFieldId]: {kommoFieldId, fieldType, enumMap}}, stats }
  */
-async function buildEntityFieldMapping(entityType, amoFields, kommoFields, kommoApi, stageMapping, kommoPipelineId) {
+async function buildEntityFieldMapping(entityType, amoFields, kommoFields, kommoApi, stageMapping, kommoPipelineId, existingEntityMapping) {
   const kByCode = {};
   const kByName = {};
+  const kById  = {};
   kommoFields.forEach(f => {
     if (f.code) kByCode[f.code.toUpperCase()] = f;
     kByName[(f.name || '').toLowerCase().trim()] = f;
+    kById[f.id] = f;
   });
 
+  // Start from existing mapping — preserve all manually-set entries (kommoFieldType, amoFieldType, enumMap, etc.)
+  const existing = existingEntityMapping || {};
   const mapping = {};
+  // Copy existing entries that still point to a valid Kommo field
+  for (const [amoId, entry] of Object.entries(existing)) {
+    if (entry && entry.kommoFieldId && kById[entry.kommoFieldId]) {
+      mapping[amoId] = entry;
+    }
+  }
+
   const stats = { matched: 0, created: 0, skipped: 0 };
   const toCreate = []; // { amoField, payload }
 
@@ -106,12 +118,15 @@ async function buildEntityFieldMapping(entityType, amoFields, kommoFields, kommo
     // Skip unsupported types
     if (!CREATABLE_TYPES.has(af.type)) { stats.skipped++; continue; }
 
+    // If already in mapping (preserved from existing), skip — don't overwrite
+    if (mapping[af.id]) { stats.matched++; continue; }
+
     // Try to match existing Kommo field by code then by name
     let kf = af.code ? kByCode[af.code.toUpperCase()] : null;
     if (!kf) kf = kByName[(af.name || '').toLowerCase().trim()];
 
     if (kf) {
-      mapping[af.id] = { kommoFieldId: kf.id, fieldType: af.type, enumMap: buildEnumMap(af, kf) };
+      mapping[af.id] = { kommoFieldId: kf.id, fieldType: af.type, amoFieldType: af.type, kommoFieldType: kf.type, enumMap: buildEnumMap(af, kf) };
       stats.matched++;
     } else {
       toCreate.push({ amoField: af, payload: buildCreatePayload(af, stageMapping, kommoPipelineId) });
@@ -143,7 +158,7 @@ async function buildEntityFieldMapping(entityType, amoFields, kommoFields, kommo
             if (kf.enums[idx]) enumMap[ae.id] = kf.enums[idx].id;
           });
         }
-        mapping[af.id] = { kommoFieldId: kf.id, fieldType: af.type, enumMap };
+        mapping[af.id] = { kommoFieldId: kf.id, fieldType: af.type, amoFieldType: af.type, kommoFieldType: kf.type, enumMap };
         stats.created++;
         logger.info(`[fieldMapping] Created ${entityType} field "${af.name}" (is_api_only=${af.is_api_only}) → Kommo ID ${kf.id}`);
       }
@@ -162,13 +177,17 @@ async function buildAllFieldMappings(amoApi, kommoApi, stageMapping, kommoPipeli
   const result = {};
   const totalStats = { matched: 0, created: 0, skipped: 0 };
 
+  // Load existing mapping to preserve manual entries (enum overrides, type overrides, etc.)
+  const existingMapping = loadFieldMapping() || {};
+
   for (const entity of entities) {
     const [amoFields, kommoFields] = await Promise.all([
       amoApi.getCustomFields(entity),
       kommoApi.getCustomFields(entity),
     ]);
     const { mapping, stats } = await buildEntityFieldMapping(
-      entity, amoFields, kommoFields, kommoApi, stageMapping, kommoPipelineId
+      entity, amoFields, kommoFields, kommoApi, stageMapping, kommoPipelineId,
+      existingMapping[entity] || {}
     );
     result[entity] = mapping;
     totalStats.matched += stats.matched;

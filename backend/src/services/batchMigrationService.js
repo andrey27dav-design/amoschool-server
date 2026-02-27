@@ -642,6 +642,8 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
   // Для уже перенесённых сделок — PATCH полей + повторная привязка
   for (const { item: aLead, amoId, kommoId } of leadsSkipped) {
     result.skipped.leads++;
+    // Populate leadIdMap so notes section can find this lead
+    leadIdMap[String(amoId)] = kommoId;
     // PATCH custom fields
     const { transformLead: _tl } = require('../utils/dataTransformer');
     const tl = _tl(aLead, stageMapping || {}, fieldMappings.leads);
@@ -740,7 +742,6 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
           entity_id:  kId,
           note_type:  n.note_type || 'common',
           params:     n.params    || {},
-          created_at: n.created_at,
         }));
         const created = await kommoApi.createNotesBatch('leads', notesData);
         created.forEach(n => { if (n) { result.createdIds.notes.push(n.id); result.transferred.notes++; } });
@@ -764,7 +765,6 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
             entity_id:  kContactId,
             note_type:  n.note_type || 'common',
             params:     n.params    || {},
-            created_at: n.created_at,
           }));
           const created = await kommoApi.createNotesBatch('contacts', notesData);
           created.forEach(n => { if (n) { result.createdIds.notes.push(n.id); result.transferred.notes++; } });
