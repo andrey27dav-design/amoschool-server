@@ -71,33 +71,57 @@ async function fetchAllData(pipelineId, managerIds) {
     fetchState.progress.loaded.leads = leads.length;
     logger.info(`Data fetch: loaded ${leads.length} leads`);
 
+    // Collect contact IDs and company IDs referenced by the filtered leads
+    const linkedContactIds = new Set();
+    const linkedCompanyIds = new Set();
+    const leadIds = new Set(leads.map(l => l.id));
+    for (const lead of leads) {
+      const embedded = lead._embedded;
+      if (embedded?.contacts) embedded.contacts.forEach(c => linkedContactIds.add(c.id));
+      if (embedded?.companies) embedded.companies.forEach(c => linkedCompanyIds.add(c.id));
+    }
+
     fetchState.progress.step = 'Загрузка контактов...';
-    const contacts = await amoApi.getAllContacts();
+    let contacts = await amoApi.getAllContacts();
+    if (leadIds.size > 0 && linkedContactIds.size > 0) {
+      contacts = contacts.filter(c => linkedContactIds.has(c.id));
+      logger.info(`Data fetch: contact filter applied — keeping ${contacts.length} contacts linked to leads`);
+    }
     fetchState.progress.loaded.contacts = contacts.length;
     logger.info(`Data fetch: loaded ${contacts.length} contacts`);
 
     fetchState.progress.step = 'Загрузка компаний...';
-    const companies = await amoApi.getAllCompanies();
+    let companies = await amoApi.getAllCompanies();
+    if (leadIds.size > 0 && linkedCompanyIds.size > 0) {
+      companies = companies.filter(c => linkedCompanyIds.has(c.id));
+      logger.info(`Data fetch: company filter applied — keeping ${companies.length} companies linked to leads`);
+    }
     fetchState.progress.loaded.companies = companies.length;
     logger.info(`Data fetch: loaded ${companies.length} companies`);
 
+    const contactIds = new Set(contacts.map(c => c.id));
+
     fetchState.progress.step = 'Загрузка задач (deals)...';
-    const leadTasks = await amoApi.getAllLeadTasks();
+    let leadTasks = await amoApi.getAllLeadTasks();
+    if (leadIds.size > 0) leadTasks = leadTasks.filter(t => leadIds.has(t.entity_id));
     fetchState.progress.loaded.leadTasks = leadTasks.length;
     logger.info(`Data fetch: loaded ${leadTasks.length} lead tasks`);
 
     fetchState.progress.step = 'Загрузка задач (contacts)...';
-    const contactTasks = await amoApi.getAllContactTasks();
+    let contactTasks = await amoApi.getAllContactTasks();
+    if (contactIds.size > 0) contactTasks = contactTasks.filter(t => contactIds.has(t.entity_id));
     fetchState.progress.loaded.contactTasks = contactTasks.length;
     logger.info(`Data fetch: loaded ${contactTasks.length} contact tasks`);
 
     fetchState.progress.step = 'Загрузка комментариев (deals)...';
-    const leadNotes = await amoApi.getAllLeadNotes();
+    let leadNotes = await amoApi.getAllLeadNotes();
+    if (leadIds.size > 0) leadNotes = leadNotes.filter(n => leadIds.has(n.entity_id));
     fetchState.progress.loaded.leadNotes = leadNotes.length;
     logger.info(`Data fetch: loaded ${leadNotes.length} lead notes`);
 
     fetchState.progress.step = 'Загрузка комментариев (contacts)...';
-    const contactNotes = await amoApi.getAllContactNotes();
+    let contactNotes = await amoApi.getAllContactNotes();
+    if (contactIds.size > 0) contactNotes = contactNotes.filter(n => contactIds.has(n.entity_id));
     fetchState.progress.loaded.contactNotes = contactNotes.length;
     logger.info(`Data fetch: loaded ${contactNotes.length} contact notes`);
 
