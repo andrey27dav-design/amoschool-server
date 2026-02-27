@@ -1024,6 +1024,7 @@ export default function App() {
                             <div style={{ marginLeft: 12, fontSize: 13, color: '#374151', lineHeight: 1.7 }}>
                               <div>🔹 Сделки: найдено {singleTransferResult.tasksDetail.leads?.found ?? '—'}, перенесено <strong>{singleTransferResult.tasksDetail.leads?.created ?? '—'}</strong></div>
                               <div>🔹 Контакты: найдено {singleTransferResult.tasksDetail.contacts?.found ?? '—'}, перенесено <strong>{singleTransferResult.tasksDetail.contacts?.created ?? '—'}</strong></div>
+                              <div>🔹 Компании: найдено {singleTransferResult.tasksDetail.companies?.found ?? '—'}, перенесено <strong>{singleTransferResult.tasksDetail.companies?.created ?? '—'}</strong></div>
                             </div>
                           ) : (
                             <div style={{ fontSize: 12, color: '#6b7280' }}>(задачи сделок из кэша)</div>

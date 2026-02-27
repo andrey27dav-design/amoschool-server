@@ -11,7 +11,7 @@ const CACHE_FILE = path.resolve(config.backupDir, 'amo_data_cache.json');
 // fetchState: idle | loading | done | error
 const EMPTY_LOADED = () => ({
   leads: 0, contacts: 0, companies: 0,
-  leadTasks: 0, contactTasks: 0,
+  leadTasks: 0, contactTasks: 0, companyTasks: 0,
   leadNotes: 0, contactNotes: 0,
 });
 let fetchState = {
@@ -100,6 +100,12 @@ async function fetchAllData(pipelineId, managerIds) {
     fetchState.progress.loaded.contactTasks = contactTasks.length;
     logger.info(`Data fetch: loaded ${contactTasks.length} contact tasks`);
 
+    fetchState.progress.step = 'Загрузка задач (companies)...';
+    const companyIds = new Set(companies.map(c => c.id));
+    const companyTasks = await amoApi.getCompanyTasksByEntityIds([...companyIds]);
+    fetchState.progress.loaded.companyTasks = companyTasks.length;
+    logger.info(`Data fetch: loaded ${companyTasks.length} company tasks`);
+
     fetchState.progress.step = 'Загрузка комментариев (deals)...';
     // Fetch only notes for the loaded leads — by entity_id
     const leadNotes = await amoApi.getLeadNotesByEntityIds([...leadIds]);
@@ -122,6 +128,7 @@ async function fetchAllData(pipelineId, managerIds) {
         companies: companies.length,
         leadTasks: leadTasks.length,
         contactTasks: contactTasks.length,
+        companyTasks: companyTasks.length,
         leadNotes: leadNotes.length,
         contactNotes: contactNotes.length,
       },
@@ -130,6 +137,7 @@ async function fetchAllData(pipelineId, managerIds) {
       companies,
       leadTasks,
       contactTasks,
+      companyTasks,
       leadNotes,
       contactNotes,
     };

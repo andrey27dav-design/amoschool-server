@@ -538,6 +538,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
     ...(cache.tasks || []),
     ...(cache.leadTasks || []),
     ...(cache.contactTasks || []),
+    ...(cache.companyTasks || []),
   ];
 
   const selectedLeads = allLeads.filter(l => idSet.has(l.id));
@@ -560,8 +561,9 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
       companies: { fetched: 0, transferred: 0 },
     },
     tasksDetail: {
-      leads:    { found: 0, created: 0 },
-      contacts: { found: 0, created: 0 },
+      leads:     { found: 0, created: 0 },
+      contacts:  { found: 0, created: 0 },
+      companies: { found: 0, created: 0 },
     },
   };
 
@@ -794,6 +796,44 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
       } catch (e) {
         result.warnings.push('Задачи контактов: ' + e.message);
         logger.error('[transfer] ошибка задач контактов:', e.message);
+      }
+    }
+
+    // ── Tasks: company tasks (from cache) ──────────────────────────────────────────
+    const neededCompanyIdsForTasks = new Set(
+      selectedLeads.flatMap(l => ((l._embedded && l._embedded.companies) || []).map(c => Number(c.id)))
+    );
+    const companyTasksToTransfer = allTasks.filter(
+      t => t.entity_type === 'companies' && neededCompanyIdsForTasks.has(Number(t.entity_id))
+    );
+    logger.info(`[transfer] задач компаний в кэше: ${companyTasksToTransfer.length}`);
+    result.tasksDetail.companies.found = companyTasksToTransfer.length;
+    if (companyTasksToTransfer.length > 0) {
+      try {
+        const { transformTask } = require('../utils/dataTransformer');
+        const tasksToCreate = companyTasksToTransfer
+          .map(t => {
+            const kCompanyId = companyIdMap[String(t.entity_id)];
+            if (!kCompanyId) return null;
+            const tt = transformTask(t);
+            tt.entity_id   = Number(kCompanyId);
+            tt.entity_type = 'companies';
+            return tt;
+          })
+          .filter(Boolean);
+        if (tasksToCreate.length < companyTasksToTransfer.length) {
+          const lost = companyTasksToTransfer.length - tasksToCreate.length;
+          result.warnings.push(lost + ' задач компаний потеряли привязку (компания не найдена в companyIdMap).');
+        }
+        if (tasksToCreate.length > 0) {
+          logger.info(`[transfer] создаём ${tasksToCreate.length} задач компаний в Kommo`);
+          const created = await kommoApi.createTasksBatch(tasksToCreate);
+          logger.info(`[transfer] createTasksBatch(companies) вернул ${created.length} объектов`);
+          created.forEach(k => { if (k) { result.createdIds.tasks.push(k.id); result.transferred.tasks++; result.tasksDetail.companies.created++; } });
+        }
+      } catch (e) {
+        result.warnings.push('Задачи компаний: ' + e.message);
+        logger.error('[transfer] ошибка задач компаний:', e.message);
       }
     }
 
