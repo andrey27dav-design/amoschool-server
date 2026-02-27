@@ -82,16 +82,29 @@ async function createLeadsBatch(leads) {
       logger.info(`Kommo: created ${created.length} leads so far`);
     } catch (e) {
       if (e.response?.status === 400) {
-        logger.error('Kommo leads 400, retrying without custom fields. Response:', JSON.stringify(e.response?.data));
-        // Fallback: retry without custom_fields_values but keep tags, pipeline_id, status_id
+        logger.error('Kommo leads 400 details:', JSON.stringify(e.response?.data));
+        // Fallback: create without custom_fields_values, then PATCH separately
         const stripped = chunk.map(l => {
           const { custom_fields_values, ...rest } = l;
           return rest;
         });
         await rateLimit();
         const res2 = await kommoClient.post('/api/v4/leads', stripped);
-        created.push(...(res2.data._embedded?.leads || []));
-        logger.info(`Kommo: created ${created.length} leads (without custom fields fallback)`);
+        const fallbackLeads = res2.data._embedded?.leads || [];
+        logger.info(`Kommo: created ${fallbackLeads.length} leads (fallback, now patching custom fields)`);
+        for (let i = 0; i < fallbackLeads.length; i++) {
+          const cfv = chunk[i]?.custom_fields_values;
+          if (cfv && cfv.length > 0) {
+            try {
+              await rateLimit();
+              await kommoClient.patch(`/api/v4/leads/${fallbackLeads[i].id}`, { custom_fields_values: cfv });
+              logger.info(`Kommo: patched custom fields for lead ${fallbackLeads[i].id}`);
+            } catch (patchErr) {
+              logger.error(`Kommo: PATCH lead ${fallbackLeads[i].id} custom fields failed:`, JSON.stringify(patchErr.response?.data));
+            }
+          }
+        }
+        created.push(...fallbackLeads);
       } else {
         throw e;
       }
@@ -103,6 +116,18 @@ async function createLeadsBatch(leads) {
 async function updateLead(leadId, data) {
   await rateLimit();
   const res = await kommoClient.patch(`/api/v4/leads/${leadId}`, data);
+  return res.data;
+}
+
+async function updateContact(contactId, data) {
+  await rateLimit();
+  const res = await kommoClient.patch(`/api/v4/contacts/${contactId}`, data);
+  return res.data;
+}
+
+async function updateCompany(companyId, data) {
+  await rateLimit();
+  const res = await kommoClient.patch(`/api/v4/companies/${companyId}`, data);
   return res.data;
 }
 
@@ -124,13 +149,28 @@ async function createContactsBatch(contacts) {
       logger.info(`Kommo: created ${created.length} contacts so far`);
     } catch (e) {
       if (e.response?.status === 400) {
-        logger.error('Kommo contacts 400, retrying without custom fields. Response:', JSON.stringify(e.response?.data));
-        // Fallback: retry without custom_fields_values
+        const errData = e.response?.data;
+        logger.error('Kommo contacts 400 details:', JSON.stringify(errData));
+        // Fallback: create WITHOUT custom_fields_values, then PATCH them separately
         const stripped = chunk.map(c => ({ name: c.name }));
         await rateLimit();
         const res2 = await kommoClient.post('/api/v4/contacts', stripped);
-        created.push(...(res2.data._embedded?.contacts || []));
-        logger.info(`Kommo: created ${created.length} contacts (without custom fields fallback)`);
+        const fallbackContacts = res2.data._embedded?.contacts || [];
+        logger.info(`Kommo: created ${fallbackContacts.length} contacts (fallback, now patching custom fields)`);
+        // PATCH each contact individually with its custom_fields_values
+        for (let i = 0; i < fallbackContacts.length; i++) {
+          const cfv = chunk[i]?.custom_fields_values;
+          if (cfv && cfv.length > 0) {
+            try {
+              await rateLimit();
+              await kommoClient.patch(`/api/v4/contacts/${fallbackContacts[i].id}`, { custom_fields_values: cfv });
+              logger.info(`Kommo: patched custom fields for contact ${fallbackContacts[i].id}`);
+            } catch (patchErr) {
+              logger.error(`Kommo: PATCH contact ${fallbackContacts[i].id} custom fields failed:`, JSON.stringify(patchErr.response?.data));
+            }
+          }
+        }
+        created.push(...fallbackContacts);
       } else {
         throw e;
       }
@@ -157,12 +197,24 @@ async function createCompaniesBatch(companies) {
       logger.info(`Kommo: created ${created.length} companies so far`);
     } catch (e) {
       if (e.response?.status === 400) {
-        logger.error('Kommo companies 400, retrying without custom fields. Response:', JSON.stringify(e.response?.data));
+        logger.error('Kommo companies 400 details:', JSON.stringify(e.response?.data));
         const stripped = chunk.map(c => ({ name: c.name }));
         await rateLimit();
         const res2 = await kommoClient.post('/api/v4/companies', stripped);
-        created.push(...(res2.data._embedded?.companies || []));
-        logger.info(`Kommo: created ${created.length} companies (without custom fields fallback)`);
+        const fallbackCompanies = res2.data._embedded?.companies || [];
+        for (let i = 0; i < fallbackCompanies.length; i++) {
+          const cfv = chunk[i]?.custom_fields_values;
+          if (cfv && cfv.length > 0) {
+            try {
+              await rateLimit();
+              await kommoClient.patch(`/api/v4/companies/${fallbackCompanies[i].id}`, { custom_fields_values: cfv });
+            } catch (patchErr) {
+              logger.error(`Kommo: PATCH company ${fallbackCompanies[i].id} failed:`, JSON.stringify(patchErr.response?.data));
+            }
+          }
+        }
+        created.push(...fallbackCompanies);
+        logger.info(`Kommo: created ${created.length} companies (fallback)`);
       } else {
         throw e;
       }
@@ -210,17 +262,19 @@ async function createNotesBatch(entityType, notes) {
 }
 
 async function linkContactToLead(leadId, contactId) {
+  // Kommo requires linking FROM the contact side: POST /contacts/{id}/links
   await rateLimit();
-  const res = await kommoClient.post(`/api/v4/leads/${leadId}/links`, [
-    { to_entity_id: contactId, to_entity_type: 'contacts' },
+  const res = await kommoClient.post(`/api/v4/contacts/${contactId}/links`, [
+    { to_entity_id: leadId, to_entity_type: 'leads' },
   ]);
   return res.data;
 }
 
 async function linkCompanyToLead(leadId, companyId) {
+  // Kommo requires linking FROM the company side: POST /companies/{id}/links
   await rateLimit();
-  const res = await kommoClient.post(`/api/v4/leads/${leadId}/links`, [
-    { to_entity_id: companyId, to_entity_type: 'companies' },
+  const res = await kommoClient.post(`/api/v4/companies/${companyId}/links`, [
+    { to_entity_id: leadId, to_entity_type: 'leads' },
   ]);
   return res.data;
 }
@@ -348,6 +402,8 @@ module.exports = {
   createTasksBatch,
   createNote,
   createNotesBatch,
+  updateContact,
+  updateCompany,
   linkContactToLead,
   linkCompanyToLead,
   getCustomFields,

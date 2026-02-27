@@ -565,7 +565,17 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
   if (neededCompanyIds.size > 0) {
     const companies = allCompanies.filter(c => neededCompanyIds.has(c.id));
     const { toCreate, skipped } = safety.filterNotMigrated('companies', companies, c => c.id);
-    skipped.forEach(({ amoId, kommoId }) => { companyIdMap[String(amoId)] = kommoId; result.skipped.companies++; });
+    for (const { item, amoId, kommoId } of skipped) {
+      companyIdMap[String(amoId)] = kommoId;
+      result.skipped.companies++;
+      // PATCH custom fields — может быть пропустили при первом переносе
+      const { transformCompany: _tc } = require('../utils/dataTransformer');
+      const cfv = _tc(item, fieldMappings.companies)?.custom_fields_values;
+      if (cfv && cfv.length > 0) {
+        try { await kommoApi.updateCompany(kommoId, { custom_fields_values: cfv }); }
+        catch (e) { result.warnings.push(`Обновление полей компании AMO#${amoId}: ${e.message}`); }
+      }
+    }
     if (toCreate.length > 0) {
       try {
         const { transformCompany } = require('../utils/dataTransformer');
@@ -594,7 +604,17 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
   if (neededContactIds.size > 0) {
     const contacts = allContacts.filter(c => neededContactIds.has(c.id));
     const { toCreate, skipped } = safety.filterNotMigrated('contacts', contacts, c => c.id);
-    skipped.forEach(({ amoId, kommoId }) => { contactIdMap[String(amoId)] = kommoId; result.skipped.contacts++; });
+    for (const { item, amoId, kommoId } of skipped) {
+      contactIdMap[String(amoId)] = kommoId;
+      result.skipped.contacts++;
+      // PATCH custom fields — может быть пропустили при первом переносе
+      const { transformContact: _tct } = require('../utils/dataTransformer');
+      const cfv = _tct(item, fieldMappings.contacts)?.custom_fields_values;
+      if (cfv && cfv.length > 0) {
+        try { await kommoApi.updateContact(kommoId, { custom_fields_values: cfv }); }
+        catch (e) { result.warnings.push(`Обновление полей контакта AMO#${amoId}: ${e.message}`); }
+      }
+    }
     if (toCreate.length > 0) {
       try {
         const { transformContact } = require('../utils/dataTransformer');
@@ -618,11 +638,33 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
   // ── Leads ──────────────────────────────────────────────────────────────────
   const { toCreate: leadsToCreate, skipped: leadsSkipped } =
     safety.filterNotMigrated('leads', selectedLeads, l => l.id);
-  leadsSkipped.forEach(({ amoId, kommoId }) => {
-    result.skipped.leads++;
-    result.warnings.push('Сделка AMO#' + amoId + ' уже перенесена → Kommo#' + kommoId);
-  });
   const leadIdMap = {};
+  // Для уже перенесённых сделок — PATCH полей + повторная привязка
+  for (const { item: aLead, amoId, kommoId } of leadsSkipped) {
+    result.skipped.leads++;
+    // PATCH custom fields
+    const { transformLead: _tl } = require('../utils/dataTransformer');
+    const tl = _tl(aLead, stageMapping || {}, fieldMappings.leads);
+    if (tl.custom_fields_values && tl.custom_fields_values.length > 0) {
+      try { await kommoApi.updateLead(kommoId, { custom_fields_values: tl.custom_fields_values }); }
+      catch (e) { result.warnings.push(`Обновление полей сделки AMO#${amoId}: ${e.message}`); }
+    }
+    // Re-link contacts/companies (идемпотентно)
+    for (const c of ((aLead._embedded && aLead._embedded.contacts) || [])) {
+      const kId = contactIdMap[String(c.id)];
+      if (kId) {
+        try { await kommoApi.linkContactToLead(kommoId, kId); }
+        catch (e) { result.warnings.push(`Привязка контакта #${c.id} к сделке AMO#${amoId}: ${e.message}`); }
+      }
+    }
+    for (const c of ((aLead._embedded && aLead._embedded.companies) || [])) {
+      const kId = companyIdMap[String(c.id)];
+      if (kId) {
+        try { await kommoApi.linkCompanyToLead(kommoId, kId); }
+        catch (e) { result.warnings.push(`Привязка компании #${c.id} к сделке AMO#${amoId}: ${e.message}`); }
+      }
+    }
+  }
   if (leadsToCreate.length > 0) {
     try {
       const { transformLead } = require('../utils/dataTransformer');
