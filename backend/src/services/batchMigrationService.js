@@ -728,7 +728,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
         const tasksToCreate = dealTasks
           .map(t => {
             const tt = transformTask(t);
-            tt.entity_id   = leadIdMap[String(t.entity_id)];
+            tt.entity_id   = Number(leadIdMap[String(t.entity_id)]);
             tt.entity_type = 'leads';
             return tt;
           })
@@ -757,7 +757,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
         logger.info(`[transfer] AMO lead #${aLead.id}: ${notes.length} заметок`);
         if (notes.length > 0) {
           const notesData = notes.map(n => ({
-            entity_id:  kId,
+            entity_id:  Number(kId),
             note_type:  n.note_type || 'common',
             params:     n.params    || {},
           }));
@@ -784,7 +784,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
         const notes = await amoApi.getContactNotes(aContactId);
         if (notes.length > 0) {
           const notesData = notes.map(n => ({
-            entity_id:  kContactId,
+            entity_id:  Number(kContactId),
             note_type:  n.note_type || 'common',
             params:     n.params    || {},
           }));
