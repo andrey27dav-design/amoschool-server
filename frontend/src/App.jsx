@@ -1018,13 +1018,15 @@ export default function App() {
                         <div>Сделок перенесено: <strong>{singleTransferResult.transferred?.leads}</strong> / запрошено {singleTransferResult.requested}</div>
                         <div>Контактов: {singleTransferResult.transferred?.contacts}</div>
                         <div>Компаний: {singleTransferResult.transferred?.companies}</div>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                          <span>Задач:</span>
-                          <strong>{singleTransferResult.transferred?.tasks}</strong>
-                          {singleTransferResult.tasksDetail && (
-                            <span style={{ fontSize: 12, color: '#6b7280' }}>
-                              (найдено в кэше: {singleTransferResult.tasksDetail.found}, создано: {singleTransferResult.tasksDetail.created})
-                            </span>
+                        <div>
+                          <div style={{ marginBottom: 2 }}><strong>Задачи:</strong> {singleTransferResult.transferred?.tasks} перенесено</div>
+                          {singleTransferResult.tasksDetail ? (
+                            <div style={{ marginLeft: 12, fontSize: 13, color: '#374151', lineHeight: 1.7 }}>
+                              <div>🔹 Сделки: найдено {singleTransferResult.tasksDetail.leads?.found ?? '—'}, перенесено <strong>{singleTransferResult.tasksDetail.leads?.created ?? '—'}</strong></div>
+                              <div>🔹 Контакты: найдено {singleTransferResult.tasksDetail.contacts?.found ?? '—'}, перенесено <strong>{singleTransferResult.tasksDetail.contacts?.created ?? '—'}</strong></div>
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: 12, color: '#6b7280' }}>(задачи сделок из кэша)</div>
                           )}
                         </div>
                         <div style={{ marginTop: 4 }}>

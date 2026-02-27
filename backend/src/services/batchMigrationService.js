@@ -559,7 +559,10 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
       contacts:  { fetched: 0, transferred: 0 },
       companies: { fetched: 0, transferred: 0 },
     },
-    tasksDetail: { found: 0, created: 0 },
+    tasksDetail: {
+      leads:    { found: 0, created: 0 },
+      contacts: { found: 0, created: 0 },
+    },
   };
 
   const fieldMappings = loadFieldMapping() || { leads: null, contacts: null, companies: null };
@@ -729,7 +732,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
       t => t.entity_type === 'leads' && selectedIds.has(Number(t.entity_id))
     );
     logger.info(`[transfer] задач в кэше: ${dealTasks.length} (selectedLeads: ${selectedLeads.length}, leadIdMap keys: ${Object.keys(leadIdMap).length})`);
-    result.tasksDetail.found = dealTasks.length;
+    result.tasksDetail.leads.found = dealTasks.length;
     if (dealTasks.length > 0) {
       try {
         const { transformTask } = require('../utils/dataTransformer');
@@ -743,16 +746,54 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
           .filter(t => t.entity_id);
         if (tasksToCreate.length < dealTasks.length) {
           const lost = dealTasks.length - tasksToCreate.length;
-          result.warnings.push(lost + ' задач потеряли привязку (сделка не создана в этом переносе).');
+          result.warnings.push(lost + ' задач сделок потеряли привязку (сделка не создана в этом переносе).');
           logger.warn(`[transfer] ${lost} задач без entity_id в leadIdMap`);
         }
-        logger.info(`[transfer] создаём ${tasksToCreate.length} задач в Kommo`);
+        logger.info(`[transfer] создаём ${tasksToCreate.length} задач сделок в Kommo`);
         const created = await kommoApi.createTasksBatch(tasksToCreate);
-        logger.info(`[transfer] createTasksBatch вернул ${created.length} объектов`);
-        created.forEach(k => { if (k) { result.createdIds.tasks.push(k.id); result.transferred.tasks++; result.tasksDetail.created++; } });
+        logger.info(`[transfer] createTasksBatch(leads) вернул ${created.length} объектов`);
+        created.forEach(k => { if (k) { result.createdIds.tasks.push(k.id); result.transferred.tasks++; result.tasksDetail.leads.created++; } });
       } catch (e) {
-        result.warnings.push('Задачи: ' + e.message);
-        logger.error('[transfer] ошибка задач:', e.message);
+        result.warnings.push('Задачи сделок: ' + e.message);
+        logger.error('[transfer] ошибка задач сделок:', e.message);
+      }
+    }
+
+    // ── Tasks: contact tasks (from cache) ────────────────────────────────────
+    const neededContactIdsForTasks = new Set(
+      selectedLeads.flatMap(l => ((l._embedded && l._embedded.contacts) || []).map(c => Number(c.id)))
+    );
+    const contactTasks = allTasks.filter(
+      t => t.entity_type === 'contacts' && neededContactIdsForTasks.has(Number(t.entity_id))
+    );
+    logger.info(`[transfer] задач контактов в кэше: ${contactTasks.length}`);
+    result.tasksDetail.contacts.found = contactTasks.length;
+    if (contactTasks.length > 0) {
+      try {
+        const { transformTask } = require('../utils/dataTransformer');
+        const tasksToCreate = contactTasks
+          .map(t => {
+            const kContactId = contactIdMap[String(t.entity_id)];
+            if (!kContactId) return null;
+            const tt = transformTask(t);
+            tt.entity_id   = Number(kContactId);
+            tt.entity_type = 'contacts';
+            return tt;
+          })
+          .filter(Boolean);
+        if (tasksToCreate.length < contactTasks.length) {
+          const lost = contactTasks.length - tasksToCreate.length;
+          result.warnings.push(lost + ' задач контактов потеряли привязку (контакт не найден в contactIdMap).');
+        }
+        if (tasksToCreate.length > 0) {
+          logger.info(`[transfer] создаём ${tasksToCreate.length} задач контактов в Kommo`);
+          const created = await kommoApi.createTasksBatch(tasksToCreate);
+          logger.info(`[transfer] createTasksBatch(contacts) вернул ${created.length} объектов`);
+          created.forEach(k => { if (k) { result.createdIds.tasks.push(k.id); result.transferred.tasks++; result.tasksDetail.contacts.created++; } });
+        }
+      } catch (e) {
+        result.warnings.push('Задачи контактов: ' + e.message);
+        logger.error('[transfer] ошибка задач контактов:', e.message);
       }
     }
 
