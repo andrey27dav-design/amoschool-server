@@ -37,12 +37,22 @@ function loadCacheFromDisk() {
 }
 
 // Background fetch all amo CRM data
-async function fetchAllData() {
+async function fetchAllData(pipelineId, managerIds) {
   if (fetchState.status === 'loading') return;
+
+  const effectivePipelineId = pipelineId || config.amo.pipelineId;
+  const effectiveManagerIds = Array.isArray(managerIds) && managerIds.length > 0
+    ? managerIds.map(Number).filter(Boolean)
+    : [];
 
   fetchState = {
     status: 'loading',
-    progress: { step: 'Инициализация...', loaded: EMPTY_LOADED() },
+    progress: {
+      step: 'Инициализация...',
+      loaded: EMPTY_LOADED(),
+      pipelineId: effectivePipelineId,
+      managerIds: effectiveManagerIds,
+    },
     error: null,
     updatedAt: null,
   };
@@ -50,7 +60,14 @@ async function fetchAllData() {
 
   try {
     fetchState.progress.step = 'Загрузка сделок...';
-    const leads = await amoApi.getAllLeads(config.amo.pipelineId);
+    let leads = await amoApi.getAllLeads(effectivePipelineId);
+    // Filter by managers if specified
+    if (effectiveManagerIds.length > 0) {
+      const before = leads.length;
+      const idSet = new Set(effectiveManagerIds);
+      leads = leads.filter(l => idSet.has(l.responsible_user_id));
+      logger.info(`Data fetch: manager filter applied — ${before} → ${leads.length} leads (managers: [${effectiveManagerIds.join(',')}])`);
+    }
     fetchState.progress.loaded.leads = leads.length;
     logger.info(`Data fetch: loaded ${leads.length} leads`);
 
@@ -86,6 +103,8 @@ async function fetchAllData() {
 
     const data = {
       fetchedAt: new Date().toISOString(),
+      pipelineId: effectivePipelineId,
+      managerIds: effectiveManagerIds,
       counts: {
         leads: leads.length,
         contacts: contacts.length,
@@ -148,7 +167,8 @@ router.post('/fetch', (req, res) => {
   if (fetchState.status === 'loading') {
     return res.json({ message: 'Загрузка уже выполняется', state: fetchState });
   }
-  fetchAllData(); // fire and forget
+  const { pipelineId, managerIds } = req.body || {};
+  fetchAllData(pipelineId, managerIds); // fire and forget
   res.json({ message: 'Загрузка данных запущена', state: fetchState });
 });
 

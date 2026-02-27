@@ -257,11 +257,17 @@ export default function App() {
   };
 
   const handleAmoFetch = async () => {
-    if (!confirm('Загрузить все данные из amo CRM? Это может занять несколько минут.')) return;
+    const pipeLabel = selectedAmoPipeline
+      ? (pipelines.amo.find(p => p.id === selectedAmoPipeline)?.name || selectedAmoPipeline)
+      : 'все воронки';
+    const mgrLabel = selectedManagers.length > 0
+      ? `менеджеры: ${selectedManagers.length}`
+      : 'все менеджеры';
+    if (!confirm(`Загрузить данные из amo CRM?\nВоронка: ${pipeLabel}\nМенеджеры: ${mgrLabel}\n\nЭто может занять несколько минут.`)) return;
     setLoading(true);
     setMessage('');
     try {
-      await api.triggerAmoFetch();
+      await api.triggerAmoFetch(selectedAmoPipeline, selectedManagers);
       setMessage('⏳ Загрузка данных из amo CRM запущена...');
       const s = await api.getAmoFetchStatus();
       setFetchSt(s);

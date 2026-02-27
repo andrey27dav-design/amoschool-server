@@ -22,7 +22,8 @@ export const saveStageMappingDB = (amoPipelineId, kommoPipelineId, stages) =>
 
 // AMO data loading
 export const getAmoFetchStatus = () => api.get('/amo/fetch-status').then(r => r.data);
-export const triggerAmoFetch = () => api.post('/amo/fetch').then(r => r.data);
+export const triggerAmoFetch = (pipelineId, managerIds) =>
+  api.post('/amo/fetch', { pipelineId: pipelineId || null, managerIds: managerIds || [] }).then(r => r.data);
 export const getAmoEntities = (type, page = 1, limit = 50, search = '', managersOnly = false, managerIds = []) =>
   api.get('/amo/entities', { params: { type, page, limit, search, managersOnly: managersOnly ? '1' : '0', managerIds: managerIds.join(',') } }).then(r => r.data);
 export const getAmoStats = () => api.get('/amo/stats').then(r => r.data);
