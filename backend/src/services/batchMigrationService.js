@@ -401,8 +401,8 @@ async function runBatchMigration(stageMapping) {
       }
     }
 
-    /* ── 11. Migrate notes / timeline ───────────────────────────────── */
-    updateState({ step: 'Перенос комментариев...' });
+    /* ── 11. Migrate notes / timeline (leads + contacts) ────────────────────────── */
+    updateState({ step: 'Перенос комментариев сделок...' });
     for (const aLead of batchLeads) {
       const kId = leadIdMap[aLead.id];
       if (!kId) continue;
@@ -415,6 +415,27 @@ async function runBatchMigration(stageMapping) {
         }
       } catch (e) {
         addWarning(`Не удалось перенести заметки сделки #${aLead.id}.`, 'Добавьте заметки вручную в Kommo CRM.');
+      }
+    }
+
+    updateState({ step: 'Перенос комментариев контактов...' });
+    const batchTransferredContactIds = new Set();
+    for (const aLead of batchLeads) {
+      for (const c of (aLead._embedded?.contacts || [])) {
+        const aContactId = c.id;
+        const kContactId = contactIdMap[aContactId];
+        if (!kContactId || batchTransferredContactIds.has(aContactId)) continue;
+        batchTransferredContactIds.add(aContactId);
+        try {
+          const notes = await amoApi.getContactNotes(aContactId);
+          if (notes.length > 0) {
+            const n = notes.map(note => ({ entity_id: kContactId, note_type: note.note_type || 'common', params: note.params || {}, created_at: note.created_at }));
+            const created = await kommoApi.createNotesBatch('contacts', n);
+            created.forEach(n => { if (n) batchState.createdIds.notes.push(n.id); });
+          }
+        } catch (e) {
+          addWarning(`Не удалось перенести заметки контакта #${aContactId}.`, 'Добавьте заметки вручную в Kommo CRM.');
+        }
       }
     }
 
@@ -666,7 +687,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
     } catch (e) { result.warnings.push('Задачи: ' + e.message); }
   }
 
-  // ── Notes (live fetch from AMO for accuracy) ───────────────────────────────
+  // ── Notes: lead notes (live fetch from AMO) ───────────────────────────────────────────
   for (const aLead of selectedLeads) {
     const kId = leadIdMap[String(aLead.id)];
     if (!kId) continue;
@@ -674,15 +695,40 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
       const notes = await amoApi.getLeadNotes(aLead.id);
       if (notes.length > 0) {
         const notesData = notes.map(n => ({
-          entity_id: kId,
-          note_type: n.note_type || 'common',
-          params:    n.params    || {},
+          entity_id:  kId,
+          note_type:  n.note_type || 'common',
+          params:     n.params    || {},
           created_at: n.created_at,
         }));
         const created = await kommoApi.createNotesBatch('leads', notesData);
         created.forEach(n => { if (n) { result.createdIds.notes.push(n.id); result.transferred.notes++; } });
       }
     } catch (e) { result.warnings.push('Заметки сделки AMO#' + aLead.id + ': ' + e.message); }
+  }
+
+  // ── Notes: contact notes (live fetch from AMO — индивидуальные заметки по контакту) ───────
+  // Проходимся по всем контактам, связанным со сделками выборки
+  const transferredContactIds = new Set();
+  for (const aLead of selectedLeads) {
+    for (const c of ((aLead._embedded && aLead._embedded.contacts) || [])) {
+      const aContactId = c.id;
+      const kContactId = contactIdMap[String(aContactId)];
+      if (!kContactId || transferredContactIds.has(aContactId)) continue; // не дублируем
+      transferredContactIds.add(aContactId);
+      try {
+        const notes = await amoApi.getContactNotes(aContactId);
+        if (notes.length > 0) {
+          const notesData = notes.map(n => ({
+            entity_id:  kContactId,
+            note_type:  n.note_type || 'common',
+            params:     n.params    || {},
+            created_at: n.created_at,
+          }));
+          const created = await kommoApi.createNotesBatch('contacts', notesData);
+          created.forEach(n => { if (n) { result.createdIds.notes.push(n.id); result.transferred.notes++; } });
+        }
+      } catch (e) { result.warnings.push('Заметки контакта AMO#' + aContactId + ': ' + e.message); }
+    }
   }
 
   logger.info(

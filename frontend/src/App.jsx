@@ -957,7 +957,7 @@ export default function App() {
                         <div>Контактов: {singleTransferResult.transferred?.contacts}</div>
                         <div>Компаний: {singleTransferResult.transferred?.companies}</div>
                         <div>Задач: {singleTransferResult.transferred?.tasks}</div>
-                        <div>Заметок: {singleTransferResult.transferred?.notes}</div>
+                        <div>Заметок (сделки + контакты): {singleTransferResult.transferred?.notes}</div>
                         {singleTransferResult.skipped?.leads > 0 && (
                           <div style={{ marginTop: 4 }}>⚠️ Пропущено (уже перенесены): {singleTransferResult.skipped.leads}</div>
                         )}

@@ -244,14 +244,25 @@ async function getLeadNotes(leadId) {
   const all = [];
   let page = 1;
   let hasMore = true;
-
   while (hasMore) {
     const { notes, pages } = await getNotes('leads', leadId, page);
     all.push(...notes);
     hasMore = page < pages;
     page++;
   }
+  return all;
+}
 
+async function getContactNotes(contactId) {
+  const all = [];
+  let page = 1;
+  let hasMore = true;
+  while (hasMore) {
+    const { notes, pages } = await getNotes('contacts', contactId, page);
+    all.push(...notes);
+    hasMore = page < pages;
+    page++;
+  }
   return all;
 }
 
@@ -294,6 +305,7 @@ module.exports = {
   getAllContactTasks,
   getNotes,
   getLeadNotes,
+  getContactNotes,
   getAllLeadNotes,
   getAllContactNotes,
   getCustomFields,
