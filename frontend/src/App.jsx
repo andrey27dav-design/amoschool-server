@@ -55,6 +55,7 @@ export default function App() {
   const [singleTransferLoading, setSingleTransferLoading] = useState(false);
   const [singleTransferResult, setSingleTransferResult] = useState(null);
   const [dealsManagersMap, setDealsManagersMap] = useState({});
+  const [dealsSearch, setDealsSearch] = useState('');
 
   // Pipeline selector state — persist across tab-switches and page reloads
   const [selectedAmoPipeline, setSelectedAmoPipeline] = useState(() => {
@@ -850,15 +851,10 @@ export default function App() {
                 onClick={async () => {
                   setDealsLoading(true);
                   setSingleTransferResult(null);
+                  setDealsSearch('');
                   try {
-                    const [dl, mgrs] = await Promise.all([
-                      api.getDealsList(),
-                      api.analyzeManagers().catch(() => ({ managers: [] })),
-                    ]);
+                    const dl = await api.getDealsList();
                     setDealsList(dl.leads || []);
-                    const m = {};
-                    (mgrs.managers || []).forEach(u => { m[u.id] = u.name; });
-                    setDealsManagersMap(m);
                     setSelectedDealIds(new Set());
                   } catch (e) {
                     alert('Ошибка загрузки: ' + (e.response?.data?.error || e.message));
@@ -872,7 +868,14 @@ export default function App() {
               </button>
               {dealsList.length > 0 && (
                 <>
-                  <button className="btn" style={{ fontSize: 12 }} onClick={() => setSelectedDealIds(new Set(dealsList.map(d => d.id)))}>
+                  <button className="btn" style={{ fontSize: 12 }} onClick={() => {
+                    const q = dealsSearch.trim().toLowerCase();
+                    const visible = q ? dealsList.filter(d =>
+                      (d.name||'').toLowerCase().includes(q) || String(d.id).includes(q) ||
+                      (d.contact_name||'').toLowerCase().includes(q) || (d.company_name||'').toLowerCase().includes(q)
+                    ) : dealsList;
+                    setSelectedDealIds(new Set(visible.map(d => d.id)));
+                  }}>
                     ✅ Все
                   </button>
                   <button className="btn" style={{ fontSize: 12 }} onClick={() => setSelectedDealIds(new Set())}>
@@ -882,6 +885,21 @@ export default function App() {
               )}
             </div>
 
+            {/* Поиск */}
+            {dealsList.length > 0 && (
+              <input
+                type="text"
+                placeholder="🔍 Поиск по названию, ID, контакту, компании..."
+                value={dealsSearch}
+                onChange={e => setDealsSearch(e.target.value)}
+                style={{
+                  width: '100%', boxSizing: 'border-box', marginBottom: 8,
+                  padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border)',
+                  fontSize: 13, background: 'var(--bg)', color: 'var(--text)',
+                }}
+              />
+            )}
+
             {dealsList.length === 0 && !dealsLoading && (
               <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '8px 0 16px' }}>
                 Нажмите «Загрузить список» для отображения сделок из кэша AMO.<br />
@@ -889,19 +907,31 @@ export default function App() {
               </div>
             )}
 
-            {dealsList.length > 0 && (
-              <div style={{ maxHeight: 380, overflowY: 'auto', marginBottom: 12, border: '1px solid var(--border)', borderRadius: 6 }}>
+            {dealsList.length > 0 && (() => {
+              const q = dealsSearch.trim().toLowerCase();
+              const filteredDeals = q
+                ? dealsList.filter(d =>
+                    (d.name||'').toLowerCase().includes(q) || String(d.id).includes(q) ||
+                    (d.contact_name||'').toLowerCase().includes(q) || (d.company_name||'').toLowerCase().includes(q))
+                : dealsList;
+              return (
+              <>
+              <div style={{ marginBottom: 4, fontSize: 11, color: 'var(--text-muted)' }}>
+                {q ? `Найдено: ${filteredDeals.length} из ${dealsList.length}` : `Всего: ${dealsList.length}`}
+              </div>
+              <div style={{ maxHeight: 400, overflowY: 'auto', marginBottom: 12, border: '1px solid var(--border)', borderRadius: 6 }}>
                 <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
                   <thead>
-                    <tr style={{ background: 'var(--bg-secondary, #f3f4f6)', position: 'sticky', top: 0 }}>
-                      <th style={{ padding: '6px 8px', textAlign: 'left', width: 28 }}></th>
-                      <th style={{ padding: '6px 8px', textAlign: 'left' }}>Сделка / ID</th>
-                      <th style={{ padding: '6px 8px', textAlign: 'right' }}>Бюджет</th>
-                      <th style={{ padding: '6px 8px', textAlign: 'left' }}>Менеджер</th>
+                    <tr style={{ background: 'var(--bg-secondary, #f3f4f6)', position: 'sticky', top: 0, zIndex: 1 }}>
+                      <th style={{ padding: '6px 6px', width: 26 }}></th>
+                      <th style={{ padding: '6px 6px', textAlign: 'left' }}>Сделка</th>
+                      <th style={{ padding: '6px 6px', textAlign: 'left' }}>Контакт / Компания</th>
+                      <th style={{ padding: '6px 6px', textAlign: 'left' }}>Этап</th>
+                      <th style={{ padding: '6px 6px', textAlign: 'right' }}>₽</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {dealsList.map(d => (
+                    {filteredDeals.map(d => (
                       <tr
                         key={d.id}
                         style={{
@@ -915,26 +945,33 @@ export default function App() {
                           setSelectedDealIds(next);
                         }}
                       >
-                        <td style={{ padding: '4px 8px' }}>
+                        <td style={{ padding: '4px 6px' }}>
                           <input type="checkbox" checked={selectedDealIds.has(d.id)} onChange={() => {}} style={{ pointerEvents: 'none' }} />
                         </td>
-                        <td style={{ padding: '4px 8px' }}>
-                          <div style={{ fontWeight: 500 }}>{d.name}</div>
-                          <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>#{d.id}</div>
-                          {d.tags?.length > 0 && <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>{d.tags.join(', ')}</div>}
+                        <td style={{ padding: '4px 6px', maxWidth: 120 }}>
+                          <div style={{ fontWeight: 500, wordBreak: 'break-word', lineHeight: 1.3 }}>{d.name}</div>
+                          <div style={{ color: 'var(--text-muted)', fontSize: 10 }}>ID: {d.id}</div>
+                          <div style={{ color: 'var(--text-muted)', fontSize: 10 }}>👤 {d.responsible_name}</div>
                         </td>
-                        <td style={{ padding: '4px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                          {d.price > 0 ? d.price.toLocaleString('ru-RU') + ' ₽' : '—'}
+                        <td style={{ padding: '4px 6px', fontSize: 11, maxWidth: 110 }}>
+                          {d.contact_name && <div style={{ wordBreak: 'break-word' }}>👤 {d.contact_name}</div>}
+                          {d.company_name && <div style={{ color: 'var(--text-muted)', wordBreak: 'break-word' }}>🏢 {d.company_name}</div>}
+                          {!d.contact_name && !d.company_name && <span style={{ color: 'var(--text-muted)' }}>—</span>}
                         </td>
-                        <td style={{ padding: '4px 8px', fontSize: 11, maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {dealsManagersMap[d.responsible_user_id] || ('#' + d.responsible_user_id)}
+                        <td style={{ padding: '4px 6px', fontSize: 10, maxWidth: 80, wordBreak: 'break-word' }}>
+                          {d.stage_name}
+                        </td>
+                        <td style={{ padding: '4px 6px', textAlign: 'right', whiteSpace: 'nowrap', fontSize: 11 }}>
+                          {d.price > 0 ? d.price.toLocaleString('ru-RU') : '—'}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            )}
+              </>
+              );
+            })()}
 
             {dealsList.length > 0 && (
               <div style={{ borderTop: '1px solid var(--border, #e5e7eb)', paddingTop: 12 }}>

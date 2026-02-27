@@ -587,20 +587,67 @@ router.post('/batch-reset', (req, res) => {
   }
 });
 
+// In-memory stage names cache (pipeline_id → { statusId: stageName })
+let _stageNamesCache = {};
+
 // GET /api/migration/deals-list — список сделок из кэша AMO
-router.get('/deals-list', (req, res) => {
+router.get('/deals-list', async (req, res) => {
   try {
     const cache = batchService.loadAmoCache();
-    const leads = (cache.leads || []).map(l => ({
-      id:                  l.id,
-      name:                l.name || ('Сделка #' + l.id),
-      price:               l.price || 0,
-      status_id:           l.status_id,
-      pipeline_id:         l.pipeline_id,
-      responsible_user_id: l.responsible_user_id,
-      tags:                ((l._embedded && l._embedded.tags) || []).map(t => t.name),
-      created_at:          l.created_at,
-    }));
+
+    // Build contact id → name map from cached contacts
+    const contactMap = {};
+    (cache.contacts || []).forEach(c => { contactMap[c.id] = c.name || ''; });
+
+    // Build company id → name map from cached companies
+    const companyMap = {};
+    (cache.companies || []).forEach(c => { companyMap[c.id] = c.name || ''; });
+
+    // Build user id → name map from analyzeManagers (best-effort)
+    let userMap = {};
+    try {
+      const result = await batchService.analyzeManagers();
+      (result.managers || []).forEach(u => { userMap[u.id] = u.name; });
+    } catch (_) {}
+
+    // Load stage names for this pipeline (cached in memory)
+    const pipelineId = cache.pipelineId;
+    if (pipelineId && !_stageNamesCache[pipelineId]) {
+      try {
+        const pipeline = await amoApi.getPipeline(pipelineId);
+        const statuses = pipeline._embedded?.statuses || [];
+        _stageNamesCache[pipelineId] = {};
+        statuses.forEach(s => { _stageNamesCache[pipelineId][s.id] = s.name; });
+      } catch (_) {
+        _stageNamesCache[pipelineId] = {};
+      }
+    }
+    const stageNames = (pipelineId && _stageNamesCache[pipelineId]) || {};
+
+    const leads = (cache.leads || []).map(l => {
+      // First linked contact/company from _embedded
+      const embContacts = l._embedded?.contacts || [];
+      const embCompanies = l._embedded?.companies || [];
+      const contactId = embContacts[0]?.id;
+      const companyId = embCompanies[0]?.id;
+
+      return {
+        id:                  l.id,
+        name:                l.name || ('Сделка #' + l.id),
+        price:               l.price || 0,
+        status_id:           l.status_id,
+        stage_name:          stageNames[l.status_id] || ('Этап #' + l.status_id),
+        pipeline_id:         l.pipeline_id,
+        responsible_user_id: l.responsible_user_id,
+        responsible_name:    userMap[l.responsible_user_id] || ('#' + l.responsible_user_id),
+        contact_id:          contactId || null,
+        contact_name:        (contactId && contactMap[contactId]) || null,
+        company_id:          companyId || null,
+        company_name:        (companyId && companyMap[companyId]) || null,
+        tags:                ((l._embedded && l._embedded.tags) || []).map(t => t.name),
+        created_at:          l.created_at,
+      };
+    });
     res.json({ leads, total: leads.length, fetchedAt: cache.fetchedAt });
   } catch (e) {
     res.status(400).json({ error: e.message });
