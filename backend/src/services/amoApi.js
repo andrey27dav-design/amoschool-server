@@ -62,20 +62,19 @@ async function getLeads(pipelineId, page = 1, limit = 50) {
     leads: res.data._embedded?.leads || [],
     total: res.data._total_items || 0,
     page,
-    pages: Math.ceil((res.data._total_items || 0) / limit),
+    hasNext: !!res.data._links?.next,
   };
 }
 
 async function getAllLeads(pipelineId) {
   const allLeads = [];
   let page = 1;
-  let hasMore = true;
 
-  while (hasMore) {
-    const { leads, pages } = await getLeads(pipelineId, page);
+  while (true) {
+    const { leads, hasNext } = await getLeads(pipelineId, page);
     allLeads.push(...leads);
-    logger.info(`AMO: fetched leads page ${page}/${pages}, total so far: ${allLeads.length}`);
-    hasMore = page < pages;
+    logger.info(`AMO: fetched leads page ${page}, total so far: ${allLeads.length}`);
+    if (!hasNext || leads.length === 0) break;
     page++;
   }
 
@@ -90,20 +89,19 @@ async function getContacts(page = 1, limit = 50) {
   return {
     contacts: res.data._embedded?.contacts || [],
     total: res.data._total_items || 0,
-    pages: Math.ceil((res.data._total_items || 0) / limit),
+    hasNext: !!res.data._links?.next,
   };
 }
 
 async function getAllContacts() {
   const all = [];
   let page = 1;
-  let hasMore = true;
 
-  while (hasMore) {
-    const { contacts, pages } = await getContacts(page);
+  while (true) {
+    const { contacts, hasNext } = await getContacts(page);
     all.push(...contacts);
-    logger.info(`AMO: fetched contacts page ${page}/${pages}`);
-    hasMore = page < pages;
+    logger.info(`AMO: fetched contacts page ${page}`);
+    if (!hasNext || contacts.length === 0) break;
     page++;
   }
 
@@ -118,20 +116,19 @@ async function getCompanies(page = 1, limit = 50) {
   return {
     companies: res.data._embedded?.companies || [],
     total: res.data._total_items || 0,
-    pages: Math.ceil((res.data._total_items || 0) / limit),
+    hasNext: !!res.data._links?.next,
   };
 }
 
 async function getAllCompanies() {
   const all = [];
   let page = 1;
-  let hasMore = true;
 
-  while (hasMore) {
-    const { companies, pages } = await getCompanies(page);
+  while (true) {
+    const { companies, hasNext } = await getCompanies(page);
     all.push(...companies);
-    logger.info(`AMO: fetched companies page ${page}/${pages}`);
-    hasMore = page < pages;
+    logger.info(`AMO: fetched companies page ${page}`);
+    if (!hasNext || companies.length === 0) break;
     page++;
   }
 
@@ -148,20 +145,19 @@ async function getTasks(entityType = 'leads', entityId = null, page = 1, limit =
   return {
     tasks: res.data._embedded?.tasks || [],
     total: res.data._total_items || 0,
-    pages: Math.ceil((res.data._total_items || 0) / limit),
+    hasNext: !!res.data._links?.next,
   };
 }
 
 async function getAllTasks() {
   const all = [];
   let page = 1;
-  let hasMore = true;
 
-  while (hasMore) {
-    const { tasks, pages } = await getTasks(null, null, page);
+  while (true) {
+    const { tasks, hasNext } = await getTasks(null, null, page);
     all.push(...tasks);
-    logger.info(`AMO: fetched tasks page ${page}/${pages}`);
-    hasMore = page < pages;
+    logger.info(`AMO: fetched tasks page ${page}`);
+    if (!hasNext || tasks.length === 0) break;
     page++;
   }
 
@@ -172,10 +168,10 @@ async function getAllLeadTasks() {
   const all = [];
   let page = 1;
   while (true) {
-    const { tasks, pages } = await getTasks('leads', null, page);
+    const { tasks, hasNext } = await getTasks('leads', null, page);
     all.push(...tasks);
-    logger.info(`AMO: fetched lead tasks page ${page}/${pages}`);
-    if (page >= pages) break;
+    logger.info(`AMO: fetched lead tasks page ${page}`);
+    if (!hasNext || tasks.length === 0) break;
     page++;
   }
   return all;
@@ -185,10 +181,10 @@ async function getAllContactTasks() {
   const all = [];
   let page = 1;
   while (true) {
-    const { tasks, pages } = await getTasks('contacts', null, page);
+    const { tasks, hasNext } = await getTasks('contacts', null, page);
     all.push(...tasks);
-    logger.info(`AMO: fetched contact tasks page ${page}/${pages}`);
-    if (page >= pages) break;
+    logger.info(`AMO: fetched contact tasks page ${page}`);
+    if (!hasNext || tasks.length === 0) break;
     page++;
   }
   return all;
@@ -201,11 +197,10 @@ async function getAllLeadNotes() {
     await rateLimit();
     const res = await amoClient.get('/api/v4/leads/notes', { params: { page, limit: 250 } });
     const notes = res.data._embedded?.notes || [];
-    const total = res.data._total_items || 0;
-    const pages = Math.ceil(total / 250) || 1;
+    const hasNext = !!res.data._links?.next;
     all.push(...notes);
-    logger.info(`AMO: fetched lead notes page ${page}/${pages}, count=${notes.length}`);
-    if (page >= pages || notes.length < 250) break;
+    logger.info(`AMO: fetched lead notes page ${page}, count=${notes.length}`);
+    if (!hasNext || notes.length === 0) break;
     page++;
   }
   return all;
@@ -218,11 +213,10 @@ async function getAllContactNotes() {
     await rateLimit();
     const res = await amoClient.get('/api/v4/contacts/notes', { params: { page, limit: 250 } });
     const notes = res.data._embedded?.notes || [];
-    const total = res.data._total_items || 0;
-    const pages = Math.ceil(total / 250) || 1;
+    const hasNext = !!res.data._links?.next;
     all.push(...notes);
-    logger.info(`AMO: fetched contact notes page ${page}/${pages}, count=${notes.length}`);
-    if (page >= pages || notes.length < 250) break;
+    logger.info(`AMO: fetched contact notes page ${page}, count=${notes.length}`);
+    if (!hasNext || notes.length === 0) break;
     page++;
   }
   return all;
@@ -236,18 +230,17 @@ async function getNotes(entityType, entityId, page = 1, limit = 50) {
   return {
     notes: res.data._embedded?.notes || [],
     total: res.data._total_items || 0,
-    pages: Math.ceil((res.data._total_items || 0) / limit),
+    hasNext: !!res.data._links?.next,
   };
 }
 
 async function getLeadNotes(leadId) {
   const all = [];
   let page = 1;
-  let hasMore = true;
-  while (hasMore) {
-    const { notes, pages } = await getNotes('leads', leadId, page);
+  while (true) {
+    const { notes, hasNext } = await getNotes('leads', leadId, page);
     all.push(...notes);
-    hasMore = page < pages;
+    if (!hasNext || notes.length === 0) break;
     page++;
   }
   return all;
@@ -256,11 +249,10 @@ async function getLeadNotes(leadId) {
 async function getContactNotes(contactId) {
   const all = [];
   let page = 1;
-  let hasMore = true;
-  while (hasMore) {
-    const { notes, pages } = await getNotes('contacts', contactId, page);
+  while (true) {
+    const { notes, hasNext } = await getNotes('contacts', contactId, page);
     all.push(...notes);
-    hasMore = page < pages;
+    if (!hasNext || notes.length === 0) break;
     page++;
   }
   return all;
