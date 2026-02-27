@@ -4,6 +4,8 @@ import './App.css';
 import FieldSync from './FieldSync';
 import CopyDeals from './CopyDeals';
 
+const APP_VERSION = 'V1.0.0';
+
 const STATUS_LABELS = {
   idle: 'Ожидание',
   running: 'Выполняется',
@@ -482,6 +484,7 @@ export default function App() {
 
   return (
     <div className="app">
+      <div style={{ position: 'fixed', top: 8, left: 8, zIndex: 9999, background: 'rgba(30,30,40,0.78)', color: '#a5b4fc', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6, letterSpacing: '0.05em', pointerEvents: 'none', backdropFilter: 'blur(4px)', border: '1px solid rgba(165,180,252,0.2)' }}>{APP_VERSION}</div>
       <header className="header">
         <div className="header-logo">
           <span className="logo-amo">amo CRM</span>
