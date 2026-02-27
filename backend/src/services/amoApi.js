@@ -48,11 +48,15 @@ async function getPipeline(pipelineId) {
   return res.data;
 }
 
-async function getLeads(pipelineId, page = 1, limit = 50) {
+async function getLeads(pipelineId, page = 1, limit = 50, managerIds = []) {
   await rateLimit();
+  const filter = { pipeline_id: pipelineId };
+  if (Array.isArray(managerIds) && managerIds.length > 0) {
+    filter.responsible_user_id = managerIds;
+  }
   const res = await amoClient.get('/api/v4/leads', {
     params: {
-      filter: { pipeline_id: pipelineId },
+      filter,
       page,
       limit,
       with: 'contacts,companies,tags',
@@ -66,12 +70,12 @@ async function getLeads(pipelineId, page = 1, limit = 50) {
   };
 }
 
-async function getAllLeads(pipelineId) {
+async function getAllLeads(pipelineId, managerIds = []) {
   const allLeads = [];
   let page = 1;
 
   while (true) {
-    const { leads, hasNext } = await getLeads(pipelineId, page);
+    const { leads, hasNext } = await getLeads(pipelineId, page, 50, managerIds);
     allLeads.push(...leads);
     logger.info(`AMO: fetched leads page ${page}, total so far: ${allLeads.length}`);
     if (!hasNext || leads.length === 0) break;

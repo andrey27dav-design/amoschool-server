@@ -60,16 +60,9 @@ async function fetchAllData(pipelineId, managerIds) {
 
   try {
     fetchState.progress.step = 'Загрузка сделок...';
-    let leads = await amoApi.getAllLeads(effectivePipelineId);
-    // Filter by managers if specified
-    if (effectiveManagerIds.length > 0) {
-      const before = leads.length;
-      const idSet = new Set(effectiveManagerIds);
-      leads = leads.filter(l => idSet.has(l.responsible_user_id));
-      logger.info(`Data fetch: manager filter applied — ${before} → ${leads.length} leads (managers: [${effectiveManagerIds.join(',')}])`);
-    }
+    const leads = await amoApi.getAllLeads(effectivePipelineId, effectiveManagerIds);
+    logger.info(`Data fetch: loaded ${leads.length} leads (pipeline: ${effectivePipelineId}, managers: [${effectiveManagerIds.join(',')||'all'}])`);
     fetchState.progress.loaded.leads = leads.length;
-    logger.info(`Data fetch: loaded ${leads.length} leads`);
 
     // Collect contact IDs and company IDs referenced by the filtered leads
     const linkedContactIds = new Set();
