@@ -112,6 +112,25 @@ async function getAllContacts() {
   return all;
 }
 
+// Fetch contacts only by specific IDs (batch by 50) — avoids loading all 24k+ contacts
+async function getContactsByIds(ids) {
+  if (!ids || ids.length === 0) return [];
+  const allContacts = [];
+  const batchSize = 50;
+  const idArray = Array.from(ids);
+  for (let i = 0; i < idArray.length; i += batchSize) {
+    const batch = idArray.slice(i, i + batchSize);
+    await rateLimit();
+    const res = await amoClient.get('/api/v4/contacts', {
+      params: { filter: { id: batch }, limit: batchSize, with: 'leads' },
+    });
+    const contacts = res.data._embedded?.contacts || [];
+    allContacts.push(...contacts);
+    logger.info(`AMO: fetched ${contacts.length} contacts by ID (batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(idArray.length / batchSize)})`);
+  }
+  return allContacts;
+}
+
 async function getCompanies(page = 1, limit = 50) {
   await rateLimit();
   const res = await amoClient.get('/api/v4/companies', {
@@ -137,6 +156,25 @@ async function getAllCompanies() {
   }
 
   return all;
+}
+
+// Fetch companies only by specific IDs (batch by 50)
+async function getCompaniesByIds(ids) {
+  if (!ids || ids.length === 0) return [];
+  const allCompanies = [];
+  const batchSize = 50;
+  const idArray = Array.from(ids);
+  for (let i = 0; i < idArray.length; i += batchSize) {
+    const batch = idArray.slice(i, i + batchSize);
+    await rateLimit();
+    const res = await amoClient.get('/api/v4/companies', {
+      params: { filter: { id: batch }, limit: batchSize },
+    });
+    const companies = res.data._embedded?.companies || [];
+    allCompanies.push(...companies);
+    logger.info(`AMO: fetched ${companies.length} companies by ID (batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(idArray.length / batchSize)})`);
+  }
+  return allCompanies;
 }
 
 async function getTasks(entityType = 'leads', entityId = null, page = 1, limit = 50) {
@@ -194,6 +232,69 @@ async function getAllContactTasks() {
   return all;
 }
 
+// Fetch lead tasks only for specific entity IDs (batch by 50)
+async function getLeadTasksByEntityIds(entityIds) {
+  if (!entityIds || entityIds.length === 0) return [];
+  const allTasks = [];
+  const batchSize = 50;
+  const idArray = Array.from(entityIds);
+  for (let i = 0; i < idArray.length; i += batchSize) {
+    const batch = idArray.slice(i, i + batchSize);
+    await rateLimit();
+    const res = await amoClient.get('/api/v4/tasks', {
+      params: { filter: { entity_type: 'leads', entity_id: batch }, limit: 250 },
+    });
+    const tasks = res.data._embedded?.tasks || [];
+    allTasks.push(...tasks);
+    // handle pagination per batch
+    let hasNext = !!res.data._links?.next;
+    let page = 2;
+    while (hasNext) {
+      await rateLimit();
+      const r2 = await amoClient.get('/api/v4/tasks', {
+        params: { filter: { entity_type: 'leads', entity_id: batch }, limit: 250, page },
+      });
+      const more = r2.data._embedded?.tasks || [];
+      allTasks.push(...more);
+      hasNext = !!r2.data._links?.next;
+      page++;
+    }
+    logger.info(`AMO: fetched lead tasks batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(idArray.length / batchSize)}`);
+  }
+  return allTasks;
+}
+
+// Fetch contact tasks only for specific entity IDs (batch by 50)
+async function getContactTasksByEntityIds(entityIds) {
+  if (!entityIds || entityIds.length === 0) return [];
+  const allTasks = [];
+  const batchSize = 50;
+  const idArray = Array.from(entityIds);
+  for (let i = 0; i < idArray.length; i += batchSize) {
+    const batch = idArray.slice(i, i + batchSize);
+    await rateLimit();
+    const res = await amoClient.get('/api/v4/tasks', {
+      params: { filter: { entity_type: 'contacts', entity_id: batch }, limit: 250 },
+    });
+    const tasks = res.data._embedded?.tasks || [];
+    allTasks.push(...tasks);
+    let hasNext = !!res.data._links?.next;
+    let page = 2;
+    while (hasNext) {
+      await rateLimit();
+      const r2 = await amoClient.get('/api/v4/tasks', {
+        params: { filter: { entity_type: 'contacts', entity_id: batch }, limit: 250, page },
+      });
+      const more = r2.data._embedded?.tasks || [];
+      allTasks.push(...more);
+      hasNext = !!r2.data._links?.next;
+      page++;
+    }
+    logger.info(`AMO: fetched contact tasks batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(idArray.length / batchSize)}`);
+  }
+  return allTasks;
+}
+
 async function getAllLeadNotes() {
   const all = [];
   let page = 1;
@@ -224,6 +325,56 @@ async function getAllContactNotes() {
     page++;
   }
   return all;
+}
+
+// Fetch lead notes only for specific entity IDs (batch by 50)
+async function getLeadNotesByEntityIds(entityIds) {
+  if (!entityIds || entityIds.length === 0) return [];
+  const allNotes = [];
+  const batchSize = 50;
+  const idArray = Array.from(entityIds);
+  for (let i = 0; i < idArray.length; i += batchSize) {
+    const batch = idArray.slice(i, i + batchSize);
+    let page = 1;
+    while (true) {
+      await rateLimit();
+      const res = await amoClient.get('/api/v4/leads/notes', {
+        params: { filter: { entity_id: batch }, limit: 250, page },
+      });
+      const notes = res.data._embedded?.notes || [];
+      const hasNext = !!res.data._links?.next;
+      allNotes.push(...notes);
+      if (!hasNext || notes.length === 0) break;
+      page++;
+    }
+    logger.info(`AMO: fetched lead notes for batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(idArray.length / batchSize)}`);
+  }
+  return allNotes;
+}
+
+// Fetch contact notes only for specific entity IDs (batch by 50)
+async function getContactNotesByEntityIds(entityIds) {
+  if (!entityIds || entityIds.length === 0) return [];
+  const allNotes = [];
+  const batchSize = 50;
+  const idArray = Array.from(entityIds);
+  for (let i = 0; i < idArray.length; i += batchSize) {
+    const batch = idArray.slice(i, i + batchSize);
+    let page = 1;
+    while (true) {
+      await rateLimit();
+      const res = await amoClient.get('/api/v4/contacts/notes', {
+        params: { filter: { entity_id: batch }, limit: 250, page },
+      });
+      const notes = res.data._embedded?.notes || [];
+      const hasNext = !!res.data._links?.next;
+      allNotes.push(...notes);
+      if (!hasNext || notes.length === 0) break;
+      page++;
+    }
+    logger.info(`AMO: fetched contact notes for batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(idArray.length / batchSize)}`);
+  }
+  return allNotes;
 }
 
 async function getNotes(entityType, entityId, page = 1, limit = 50) {
@@ -293,17 +444,23 @@ module.exports = {
   getAllLeads,
   getContacts,
   getAllContacts,
+  getContactsByIds,
   getCompanies,
   getAllCompanies,
+  getCompaniesByIds,
   getTasks,
   getAllTasks,
   getAllLeadTasks,
   getAllContactTasks,
+  getLeadTasksByEntityIds,
+  getContactTasksByEntityIds,
   getNotes,
   getLeadNotes,
   getContactNotes,
   getAllLeadNotes,
   getAllContactNotes,
+  getLeadNotesByEntityIds,
+  getContactNotesByEntityIds,
   getCustomFields,
   getCustomFieldGroups,
   getUsers,
