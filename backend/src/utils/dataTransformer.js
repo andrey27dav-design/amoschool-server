@@ -54,62 +54,87 @@ function transformCustomFields(amoValues, fieldMapping) {
   for (const field of amoValues) {
     const mapped = fieldMapping[field.field_id];
     if (!mapped) continue;
-    const { kommoFieldId, fieldType, enumMap } = mapped;
+    const { kommoFieldId, enumMap, kommoFieldType, amoFieldType, fieldType, transferMode } = mapped;
+
+    // Priority: kommoFieldType → amoFieldType → fieldType (legacy mapping key) → 'text'
+    const kType = kommoFieldType || amoFieldType || fieldType || 'text';
+
     let values;
-    switch (fieldType) {
+    switch (kType) {
       case 'multitext': // phone, email — enum_code is category (WORK/HOME/MOB)
         values = (field.values || []).map(v => ({
           value: v.value,
           ...(v.enum_code ? { enum_code: v.enum_code } : {}),
         })).filter(v => v.value);
         break;
+
       case 'select':
       case 'radiobutton': {
+        // Kommo select/radiobutton requires enum_id — NEVER send text (NotSupportedChoice).
+        // If AMO field is multiselect mapped to Kommo select → take only FIRST valid enum_id.
         values = [];
         for (const v of (field.values || [])) {
           const kEnumId = enumMap && enumMap[v.enum_id];
           if (kEnumId) {
             values.push({ enum_id: kEnumId });
-          } else if (v.value) {
-            // fallback: pass as text value if no enum mapping found
-            values.push({ value: String(v.value) });
+            break; // select/radiobutton takes exactly 1 value
           }
         }
-        values = values.filter(Boolean);
         break;
       }
+
       case 'multiselect': {
+        // Kommo multiselect — collect all matched enum_ids.
         values = [];
         for (const v of (field.values || [])) {
           const kEnumId = enumMap && enumMap[v.enum_id];
           if (kEnumId) {
             values.push({ enum_id: kEnumId });
-          } else if (v.value) {
-            values.push({ value: String(v.value) });
           }
         }
-        values = values.filter(Boolean);
         break;
       }
+
       case 'checkbox':
-        // Kommo checkbox expects "1" or "0" string, not boolean
-        values = (field.values || []).map(v => ({
-          value: v.value ? '1' : '0',
-        }));
+        // Kommo checkbox expects boolean true/false (NOT string "1"/"0")
+        values = (field.values || []).map(v => ({ value: Boolean(v.value) }));
         break;
+
+      case 'birthday':
       case 'date':
       case 'date_time':
-        // Ensure unix timestamp is integer
+        // AMO can send either unix timestamp (number) or ISO string with ms.
+        // Kommo requires strict ISO 8601: "2026-02-24T06:46:00+00:00" (no milliseconds).
         values = (field.values || [])
           .filter(v => v.value != null && v.value !== '')
-          .map(v => ({ value: parseInt(v.value, 10) }));
+          .map(v => {
+            let iso;
+            const raw = v.value;
+            if (typeof raw === 'number' || /^\d+$/.test(String(raw))) {
+              // Unix timestamp (seconds) → ISO
+              iso = new Date(parseInt(raw, 10) * 1000).toISOString();
+            } else {
+              // Already ISO string — just parse and re-format
+              iso = new Date(raw).toISOString();
+            }
+            if (!iso || iso === 'Invalid Date') return null;
+            // Strip milliseconds: "2026-02-24T06:46:00.000Z" → "2026-02-24T06:46:00+00:00"
+            return { value: iso.replace(/\.\d{3}Z$/, '+00:00').replace(/Z$/, '+00:00') };
+          })
+          .filter(Boolean);
         break;
-      default: // text, numeric, url, textarea
+
+      default: // text, numeric, url, textarea — send value as plain string
         values = (field.values || [])
-          .map(v => ({ value: v.value }))
-          .filter(v => v.value != null && v.value !== '' && v.value !== false);
+          .map(v => {
+            // For select-type AMO fields mapped to text in Kommo — use text value
+            if (v.value == null || v.value === '' || v.value === false) return null;
+            return { value: String(v.value) };
+          })
+          .filter(Boolean);
         break;
     }
+
     if (values && values.length > 0) {
       result.push({ field_id: kommoFieldId, values });
     }
