@@ -667,87 +667,109 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
       }
     }
   }
-  if (leadsToCreate.length > 0) {
-    try {
-      const { transformLead } = require('../utils/dataTransformer');
-      const leadsForKommo = leadsToCreate.map(lead => {
-        const t = transformLead(lead, stageMapping || {}, fieldMappings.leads);
-        t.pipeline_id = config.kommo.pipelineId;
-        return t;
-      });
-      const created = await kommoApi.createLeadsBatch(leadsForKommo);
-      const pairs = [];
-      for (let i = 0; i < created.length; i++) {
-        const k = created[i], a = leadsToCreate[i];
-        if (!k || !a) continue;
-        leadIdMap[String(a.id)] = k.id;
-        result.createdIds.leads.push(k.id);
-        result.transferred.leads++;
-        pairs.push({ amoId: a.id, kommoId: k.id });
-        // Link contacts
-        for (const c of ((a._embedded && a._embedded.contacts) || [])) {
-          const kId = contactIdMap[String(c.id)];
-          if (kId) {
-            try { await kommoApi.linkContactToLead(k.id, kId); }
-            catch (e) { result.warnings.push('Привязка контакта #' + c.id + ': ' + e.message); }
+    if (leadsToCreate.length > 0) {
+      try {
+        const { transformLead } = require('../utils/dataTransformer');
+        const leadsForKommo = leadsToCreate.map(lead => {
+          const t = transformLead(lead, stageMapping || {}, fieldMappings.leads);
+          t.pipeline_id = config.kommo.pipelineId;
+          // ── Передаём contacts и companies в _embedded при СОЗДАНИИ сделки ──
+          // В Kommo API PATCH _embedded.contacts работает ненадёжно;
+          // единственный гарантированный способ — включить их в POST /api/v4/leads
+          const embContacts = [];
+          const embCompanies = [];
+          for (const c of ((lead._embedded && lead._embedded.contacts) || [])) {
+            const kId = contactIdMap[String(c.id)];
+            if (kId) {
+              embContacts.push({ id: kId });
+            } else {
+              logger.warn(`Lead AMO#${lead.id}: контакт AMO#${c.id} не найден в contactIdMap — привязка пропущена`);
+            }
           }
-        }
-        // Link companies
-        for (const c of ((a._embedded && a._embedded.companies) || [])) {
-          const kId = companyIdMap[String(c.id)];
-          if (kId) {
-            try { await kommoApi.linkCompanyToLead(k.id, kId); }
-            catch (e) { result.warnings.push('Привязка компании #' + c.id + ': ' + e.message); }
+          for (const c of ((lead._embedded && lead._embedded.companies) || [])) {
+            const kId = companyIdMap[String(c.id)];
+            if (kId) {
+              embCompanies.push({ id: kId });
+            } else {
+              logger.warn(`Lead AMO#${lead.id}: компания AMO#${c.id} не найдена в companyIdMap — привязка пропущена`);
+            }
           }
+          const emb = { ...(t._embedded || {}) };
+          if (embContacts.length > 0)  emb.contacts  = embContacts;
+          if (embCompanies.length > 0) emb.companies = embCompanies;
+          t._embedded = emb;
+          return t;
+        });
+        const created = await kommoApi.createLeadsBatch(leadsForKommo);
+        const pairs = [];
+        for (let i = 0; i < created.length; i++) {
+          const k = created[i], a = leadsToCreate[i];
+          if (!k || !a) continue;
+          leadIdMap[String(a.id)] = k.id;
+          result.createdIds.leads.push(k.id);
+          result.transferred.leads++;
+          pairs.push({ amoId: a.id, kommoId: k.id });
+          logger.info(`[transfer] Lead AMO#${a.id} → Kommo#${k.id}: contacts=${(a._embedded?.contacts||[]).length}, companies=${(a._embedded?.companies||[]).length}`);
         }
-      }
-      safety.registerMigratedBatch('leads', pairs);
-    } catch (e) { result.errors.push('Сделки: ' + e.message); }
-  }
+        safety.registerMigratedBatch('leads', pairs);
+      } catch (e) { result.errors.push('Сделки: ' + e.message); }
+    }
 
-  // ── Tasks (from cache) ─────────────────────────────────────────────────────
-  const selectedIds = new Set(selectedLeads.map(l => l.id));
-  const dealTasks = allTasks.filter(
-    t => t.entity_type === 'leads' && selectedIds.has(t.entity_id)
-  );
-  if (dealTasks.length > 0) {
-    try {
-      const { transformTask } = require('../utils/dataTransformer');
-      const tasksToCreate = dealTasks
-        .map(t => {
-          const tt = transformTask(t);
-          tt.entity_id   = leadIdMap[String(t.entity_id)];
-          tt.entity_type = 'leads';
-          return tt;
-        })
-        .filter(t => t.entity_id);
-      if (tasksToCreate.length < dealTasks.length) {
-        result.warnings.push(
-          (dealTasks.length - tasksToCreate.length) + ' задач потеряли привязку (сделка не создана в этом переносе).'
-        );
+    // ── Tasks (from cache) ───────────────────────────────────────────────────────
+    // Number() cast защищает от несоответствия типов string/number в Set.has()
+    const selectedIds = new Set(selectedLeads.map(l => Number(l.id)));
+    const dealTasks = allTasks.filter(
+      t => t.entity_type === 'leads' && selectedIds.has(Number(t.entity_id))
+    );
+    logger.info(`[transfer] задач в кэше: ${dealTasks.length} (selectedLeads: ${selectedLeads.length}, leadIdMap keys: ${Object.keys(leadIdMap).length})`);
+    if (dealTasks.length > 0) {
+      try {
+        const { transformTask } = require('../utils/dataTransformer');
+        const tasksToCreate = dealTasks
+          .map(t => {
+            const tt = transformTask(t);
+            tt.entity_id   = leadIdMap[String(t.entity_id)];
+            tt.entity_type = 'leads';
+            return tt;
+          })
+          .filter(t => t.entity_id);
+        if (tasksToCreate.length < dealTasks.length) {
+          const lost = dealTasks.length - tasksToCreate.length;
+          result.warnings.push(lost + ' задач потеряли привязку (сделка не создана в этом переносе).');
+          logger.warn(`[transfer] ${lost} задач без entity_id в leadIdMap`);
+        }
+        logger.info(`[transfer] создаём ${tasksToCreate.length} задач в Kommo`);
+        const created = await kommoApi.createTasksBatch(tasksToCreate);
+        logger.info(`[transfer] createTasksBatch вернул ${created.length} объектов`);
+        created.forEach(k => { if (k) { result.createdIds.tasks.push(k.id); result.transferred.tasks++; } });
+      } catch (e) {
+        result.warnings.push('Задачи: ' + e.message);
+        logger.error('[transfer] ошибка задач:', e.message);
       }
-      const created = await kommoApi.createTasksBatch(tasksToCreate);
-      created.forEach(k => { if (k) { result.createdIds.tasks.push(k.id); result.transferred.tasks++; } });
-    } catch (e) { result.warnings.push('Задачи: ' + e.message); }
-  }
+    }
 
-  // ── Notes: lead notes (live fetch from AMO) ───────────────────────────────────────────
-  for (const aLead of selectedLeads) {
-    const kId = leadIdMap[String(aLead.id)];
-    if (!kId) continue;
-    try {
-      const notes = await amoApi.getLeadNotes(aLead.id);
-      if (notes.length > 0) {
-        const notesData = notes.map(n => ({
-          entity_id:  kId,
-          note_type:  n.note_type || 'common',
-          params:     n.params    || {},
-        }));
-        const created = await kommoApi.createNotesBatch('leads', notesData);
-        created.forEach(n => { if (n) { result.createdIds.notes.push(n.id); result.transferred.notes++; } });
+    // ── Notes: lead notes (live fetch from AMO) ──────────────────────────────────────────
+    for (const aLead of selectedLeads) {
+      const kId = leadIdMap[String(aLead.id)];
+      if (!kId) { logger.warn(`[transfer] notes(lead): нет kommo id для AMO#${aLead.id}`); continue; }
+      try {
+        const notes = await amoApi.getLeadNotes(aLead.id);
+        logger.info(`[transfer] AMO lead #${aLead.id}: ${notes.length} заметок`);
+        if (notes.length > 0) {
+          const notesData = notes.map(n => ({
+            entity_id:  kId,
+            note_type:  n.note_type || 'common',
+            params:     n.params    || {},
+          }));
+          const created = await kommoApi.createNotesBatch('leads', notesData);
+          logger.info(`[transfer] createNotesBatch(leads) вернул ${created.length} объектов`);
+          created.forEach(n => { if (n) { result.createdIds.notes.push(n.id); result.transferred.notes++; } });
+        }
+      } catch (e) {
+        result.warnings.push('Заметки сделки AMO#' + aLead.id + ': ' + e.message);
+        logger.error('[transfer] ошибка заметок AMO#' + aLead.id + ':', e.message);
       }
-    } catch (e) { result.warnings.push('Заметки сделки AMO#' + aLead.id + ': ' + e.message); }
-  }
+    }
 
   // ── Notes: contact notes (live fetch from AMO — индивидуальные заметки по контакту) ───────
   // Проходимся по всем контактам, связанным со сделками выборки

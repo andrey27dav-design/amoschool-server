@@ -238,10 +238,18 @@ async function createTasksBatch(tasks) {
   const created = [];
   for (const chunk of chunks) {
     await rateLimit();
-    const res = await kommoClient.post('/api/v4/tasks', chunk);
-    created.push(...(res.data._embedded?.tasks || []));
-    logger.info(`Kommo: created ${created.length} tasks so far`);
+    try {
+      const res = await kommoClient.post('/api/v4/tasks', chunk);
+      const embedded = res.data._embedded?.tasks || [];
+      logger.info(`Kommo createTasksBatch: HTTP ${res.status}, tasks=${embedded.length}, resp_keys=${Object.keys(res.data||{}).join(',')}`);
+      created.push(...embedded);
+    } catch (e) {
+      const body = e.response?.data ? JSON.stringify(e.response.data).slice(0,300) : e.message;
+      logger.error(`Kommo createTasksBatch error: ${body}`);
+      throw e;
+    }
   }
+  logger.info(`Kommo createTasksBatch: returning ${created.length} total`);
   return created;
 }
 
@@ -258,9 +266,18 @@ async function createNotesBatch(entityType, notes) {
   const created = [];
   for (const chunk of chunks) {
     await rateLimit();
-    const res = await kommoClient.post(`/api/v4/${entityType}/notes`, chunk);
-    created.push(...(res.data._embedded?.notes || []));
+    try {
+      const res = await kommoClient.post(`/api/v4/${entityType}/notes`, chunk);
+      const embedded = res.data._embedded?.notes || [];
+      logger.info(`Kommo createNotesBatch(${entityType}): HTTP ${res.status}, notes=${embedded.length}`);
+      created.push(...embedded);
+    } catch (e) {
+      const body = e.response?.data ? JSON.stringify(e.response.data).slice(0,300) : e.message;
+      logger.error(`Kommo createNotesBatch(${entityType}) error: ${body}`);
+      throw e;
+    }
   }
+  logger.info(`Kommo createNotesBatch(${entityType}): returning ${created.length} total`);
   return created;
 }
 
