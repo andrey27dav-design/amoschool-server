@@ -553,6 +553,13 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
     errors:   [],
     warnings: [],
     createdIds: { contacts: [], companies: [], leads: [], tasks: [], notes: [] },
+    // Детальная статистика заметок и задач
+    notesDetail: {
+      leads:     { fetched: 0, transferred: 0 },
+      contacts:  { fetched: 0, transferred: 0 },
+      companies: { fetched: 0, transferred: 0 },
+    },
+    tasksDetail: { found: 0, created: 0 },
   };
 
   const fieldMappings = loadFieldMapping() || { leads: null, contacts: null, companies: null };
@@ -722,6 +729,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
       t => t.entity_type === 'leads' && selectedIds.has(Number(t.entity_id))
     );
     logger.info(`[transfer] задач в кэше: ${dealTasks.length} (selectedLeads: ${selectedLeads.length}, leadIdMap keys: ${Object.keys(leadIdMap).length})`);
+    result.tasksDetail.found = dealTasks.length;
     if (dealTasks.length > 0) {
       try {
         const { transformTask } = require('../utils/dataTransformer');
@@ -741,7 +749,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
         logger.info(`[transfer] создаём ${tasksToCreate.length} задач в Kommo`);
         const created = await kommoApi.createTasksBatch(tasksToCreate);
         logger.info(`[transfer] createTasksBatch вернул ${created.length} объектов`);
-        created.forEach(k => { if (k) { result.createdIds.tasks.push(k.id); result.transferred.tasks++; } });
+        created.forEach(k => { if (k) { result.createdIds.tasks.push(k.id); result.transferred.tasks++; result.tasksDetail.created++; } });
       } catch (e) {
         result.warnings.push('Задачи: ' + e.message);
         logger.error('[transfer] ошибка задач:', e.message);
@@ -755,6 +763,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
       try {
         const notes = await amoApi.getLeadNotes(aLead.id);
         logger.info(`[transfer] AMO lead #${aLead.id}: ${notes.length} заметок`);
+        result.notesDetail.leads.fetched += notes.length;
         if (notes.length > 0) {
           const notesData = notes.map(n => ({
             entity_id:  Number(kId),
@@ -763,7 +772,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
           }));
           const created = await kommoApi.createNotesBatch('leads', notesData);
           logger.info(`[transfer] createNotesBatch(leads) вернул ${created.length} объектов`);
-          created.forEach(n => { if (n) { result.createdIds.notes.push(n.id); result.transferred.notes++; } });
+          created.forEach(n => { if (n) { result.createdIds.notes.push(n.id); result.transferred.notes++; result.notesDetail.leads.transferred++; } });
         }
       } catch (e) {
         result.warnings.push('Заметки сделки AMO#' + aLead.id + ': ' + e.message);
@@ -782,6 +791,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
       transferredContactIds.add(aContactId);
       try {
         const notes = await amoApi.getContactNotes(aContactId);
+        result.notesDetail.contacts.fetched += notes.length;
         if (notes.length > 0) {
           const notesData = notes.map(n => ({
             entity_id:  Number(kContactId),
@@ -789,9 +799,33 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
             params:     n.params    || {},
           }));
           const created = await kommoApi.createNotesBatch('contacts', notesData);
-          created.forEach(n => { if (n) { result.createdIds.notes.push(n.id); result.transferred.notes++; } });
+          created.forEach(n => { if (n) { result.createdIds.notes.push(n.id); result.transferred.notes++; result.notesDetail.contacts.transferred++; } });
         }
       } catch (e) { result.warnings.push('Заметки контакта AMO#' + aContactId + ': ' + e.message); }
+    }
+  }
+
+  // ── Notes: company notes (live fetch from AMO) ─────────────────────────────────
+  const transferredCompanyIds = new Set();
+  for (const aLead of selectedLeads) {
+    for (const c of ((aLead._embedded && aLead._embedded.companies) || [])) {
+      const aCompanyId = c.id;
+      const kCompanyId = companyIdMap[String(aCompanyId)];
+      if (!kCompanyId || transferredCompanyIds.has(aCompanyId)) continue;
+      transferredCompanyIds.add(aCompanyId);
+      try {
+        const { notes } = await amoApi.getNotes('companies', aCompanyId);
+        result.notesDetail.companies.fetched += notes.length;
+        if (notes.length > 0) {
+          const notesData = notes.map(n => ({
+            entity_id:  Number(kCompanyId),
+            note_type:  n.note_type || 'common',
+            params:     n.params    || {},
+          }));
+          const created = await kommoApi.createNotesBatch('companies', notesData);
+          created.forEach(n => { if (n) { result.createdIds.notes.push(n.id); result.transferred.notes++; result.notesDetail.companies.transferred++; } });
+        }
+      } catch (e) { result.warnings.push('Заметки компании AMO#' + aCompanyId + ': ' + e.message); }
     }
   }
 
@@ -800,7 +834,10 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
     ' contacts=' + result.transferred.contacts +
     ' companies=' + result.transferred.companies +
     ' tasks=' + result.transferred.tasks +
-    ' notes=' + result.transferred.notes
+    ' notes=' + result.transferred.notes +
+    ' (leads:' + result.notesDetail.leads.transferred +
+    '/contacts:' + result.notesDetail.contacts.transferred +
+    '/companies:' + result.notesDetail.companies.transferred + ')'
   );
   return result;
 }

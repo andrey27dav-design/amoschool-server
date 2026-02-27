@@ -1018,8 +1018,27 @@ export default function App() {
                         <div>Сделок перенесено: <strong>{singleTransferResult.transferred?.leads}</strong> / запрошено {singleTransferResult.requested}</div>
                         <div>Контактов: {singleTransferResult.transferred?.contacts}</div>
                         <div>Компаний: {singleTransferResult.transferred?.companies}</div>
-                        <div>Задач: {singleTransferResult.transferred?.tasks}</div>
-                        <div>Заметок (сделки + контакты): {singleTransferResult.transferred?.notes}</div>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                          <span>Задач:</span>
+                          <strong>{singleTransferResult.transferred?.tasks}</strong>
+                          {singleTransferResult.tasksDetail && (
+                            <span style={{ fontSize: 12, color: '#6b7280' }}>
+                              (найдено в кэше: {singleTransferResult.tasksDetail.found}, создано: {singleTransferResult.tasksDetail.created})
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ marginTop: 4 }}>
+                          <div><strong>Заметки:</strong> {singleTransferResult.transferred?.notes} перенесено</div>
+                          {singleTransferResult.notesDetail ? (
+                            <div style={{ marginLeft: 12, fontSize: 13, color: '#374151', lineHeight: 1.7 }}>
+                              <div>🔹 Сделки: скачано {singleTransferResult.notesDetail.leads?.fetched ?? '—'}, перенесено <strong>{singleTransferResult.notesDetail.leads?.transferred ?? '—'}</strong></div>
+                              <div>🔹 Контакты: скачано {singleTransferResult.notesDetail.contacts?.fetched ?? '—'}, перенесено <strong>{singleTransferResult.notesDetail.contacts?.transferred ?? '—'}</strong></div>
+                              <div>🔹 Компании: скачано {singleTransferResult.notesDetail.companies?.fetched ?? '—'}, перенесено <strong>{singleTransferResult.notesDetail.companies?.transferred ?? '—'}</strong></div>
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: 12, color: '#6b7280' }}>(Заметки сделки + контакты)</div>
+                          )}
+                        </div>
                         {singleTransferResult.skipped?.leads > 0 && (
                           <div style={{ marginTop: 4 }}>⚠️ Пропущено (уже перенесены): {singleTransferResult.skipped.leads}</div>
                         )}
