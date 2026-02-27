@@ -28,13 +28,13 @@ function transformLead(amoLead, stageMapping, fieldMapping) {
   const lead = {
     name: amoLead.name || `Lead #${amoLead.id}`,
     price: amoLead.price || 0,
-    status_id: kommoStatusId,
     pipeline_id: null, // set by caller
-    created_at: amoLead.created_at,
-    updated_at: amoLead.updated_at,
-    closed_at: amoLead.closed_at,
     // responsible_user_id: null — omit, Kommo assigns to token owner
   };
+
+  // Only set status_id if we have a valid mapping — null causes 400 in Kommo API
+  if (kommoStatusId) lead.status_id = kommoStatusId;
+
   const cfv = transformCustomFields(amoLead.custom_fields_values, fieldMapping);
   if (cfv.length > 0) lead.custom_fields_values = cfv;
 
@@ -92,41 +92,44 @@ function transformCustomFields(amoValues, fieldMapping) {
  * Transform AMO contact to Kommo contact format
  */
 function transformContact(amoContact, fieldMapping) {
-  return {
+  const obj = {
     name: amoContact.name || `Contact #${amoContact.id}`,
-    first_name: amoContact.first_name || '',
-    last_name: amoContact.last_name || '',
-    created_at: amoContact.created_at,
-    updated_at: amoContact.updated_at,
+    // Note: first_name/last_name are NOT valid Kommo API top-level fields — omit them
     custom_fields_values: transformCustomFields(amoContact.custom_fields_values, fieldMapping),
   };
+  if (!obj.custom_fields_values.length) delete obj.custom_fields_values;
+  return obj;
 }
 
 /**
  * Transform AMO company to Kommo company format
  */
 function transformCompany(amoCompany, fieldMapping) {
-  return {
+  const obj = {
     name: amoCompany.name || `Company #${amoCompany.id}`,
-    created_at: amoCompany.created_at,
-    updated_at: amoCompany.updated_at,
     custom_fields_values: transformCustomFields(amoCompany.custom_fields_values, fieldMapping),
   };
+  if (!obj.custom_fields_values.length) delete obj.custom_fields_values;
+  return obj;
 }
 
 /**
  * Transform AMO task to Kommo task format
  */
 function transformTask(amoTask, entityIdMap) {
-  return {
+  const obj = {
     task_type_id: amoTask.task_type_id || 1,
     text: amoTask.text || '',
     complete_till: amoTask.complete_till,
     is_completed: amoTask.is_completed || false,
-    result: amoTask.result || {},
-    created_at: amoTask.created_at,
-    updated_at: amoTask.updated_at,
   };
+  // Only include result if it has content (empty object causes 400 in some Kommo versions)
+  if (amoTask.result && typeof amoTask.result === 'object' && Object.keys(amoTask.result).length > 0) {
+    obj.result = amoTask.result;
+  } else if (typeof amoTask.result === 'string' && amoTask.result) {
+    obj.result = { text: amoTask.result };
+  }
+  return obj;
 }
 
 /**

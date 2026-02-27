@@ -76,9 +76,15 @@ async function createLeadsBatch(leads) {
   const created = [];
   for (const chunk of chunks) {
     await rateLimit();
-    const res = await kommoClient.post('/api/v4/leads', chunk);
-    created.push(...(res.data._embedded?.leads || []));
-    logger.info(`Kommo: created ${created.length} leads so far`);
+    try {
+      const res = await kommoClient.post('/api/v4/leads', chunk);
+      created.push(...(res.data._embedded?.leads || []));
+      logger.info(`Kommo: created ${created.length} leads so far`);
+    } catch (e) {
+      const ve = e.response?.data?.['validation-errors'];
+      if (ve) logger.error('Kommo leads validation-errors:', JSON.stringify(ve));
+      throw e;
+    }
   }
   return created;
 }
@@ -101,9 +107,15 @@ async function createContactsBatch(contacts) {
   const created = [];
   for (const chunk of chunks) {
     await rateLimit();
-    const res = await kommoClient.post('/api/v4/contacts', chunk);
-    created.push(...(res.data._embedded?.contacts || []));
-    logger.info(`Kommo: created ${created.length} contacts so far`);
+    try {
+      const res = await kommoClient.post('/api/v4/contacts', chunk);
+      created.push(...(res.data._embedded?.contacts || []));
+      logger.info(`Kommo: created ${created.length} contacts so far`);
+    } catch (e) {
+      const ve = e.response?.data?.['validation-errors'];
+      if (ve) logger.error('Kommo contacts validation-errors:', JSON.stringify(ve));
+      throw e;
+    }
   }
   return created;
 }
@@ -120,9 +132,15 @@ async function createCompaniesBatch(companies) {
   const created = [];
   for (const chunk of chunks) {
     await rateLimit();
-    const res = await kommoClient.post('/api/v4/companies', chunk);
-    created.push(...(res.data._embedded?.companies || []));
-    logger.info(`Kommo: created ${created.length} companies so far`);
+    try {
+      const res = await kommoClient.post('/api/v4/companies', chunk);
+      created.push(...(res.data._embedded?.companies || []));
+      logger.info(`Kommo: created ${created.length} companies so far`);
+    } catch (e) {
+      const ve = e.response?.data?.['validation-errors'];
+      if (ve) logger.error('Kommo companies validation-errors:', JSON.stringify(ve));
+      throw e;
+    }
   }
   return created;
 }
