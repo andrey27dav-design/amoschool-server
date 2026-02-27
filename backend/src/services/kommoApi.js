@@ -81,9 +81,20 @@ async function createLeadsBatch(leads) {
       created.push(...(res.data._embedded?.leads || []));
       logger.info(`Kommo: created ${created.length} leads so far`);
     } catch (e) {
-      const ve = e.response?.data?.['validation-errors'];
-      if (ve) logger.error('Kommo leads validation-errors:', JSON.stringify(ve));
-      throw e;
+      if (e.response?.status === 400) {
+        logger.error('Kommo leads 400, retrying without custom fields. Response:', JSON.stringify(e.response?.data));
+        // Fallback: retry without custom_fields_values but keep tags, pipeline_id, status_id
+        const stripped = chunk.map(l => {
+          const { custom_fields_values, ...rest } = l;
+          return rest;
+        });
+        await rateLimit();
+        const res2 = await kommoClient.post('/api/v4/leads', stripped);
+        created.push(...(res2.data._embedded?.leads || []));
+        logger.info(`Kommo: created ${created.length} leads (without custom fields fallback)`);
+      } else {
+        throw e;
+      }
     }
   }
   return created;
@@ -112,9 +123,17 @@ async function createContactsBatch(contacts) {
       created.push(...(res.data._embedded?.contacts || []));
       logger.info(`Kommo: created ${created.length} contacts so far`);
     } catch (e) {
-      const ve = e.response?.data?.['validation-errors'];
-      if (ve) logger.error('Kommo contacts validation-errors:', JSON.stringify(ve));
-      throw e;
+      if (e.response?.status === 400) {
+        logger.error('Kommo contacts 400, retrying without custom fields. Response:', JSON.stringify(e.response?.data));
+        // Fallback: retry without custom_fields_values
+        const stripped = chunk.map(c => ({ name: c.name }));
+        await rateLimit();
+        const res2 = await kommoClient.post('/api/v4/contacts', stripped);
+        created.push(...(res2.data._embedded?.contacts || []));
+        logger.info(`Kommo: created ${created.length} contacts (without custom fields fallback)`);
+      } else {
+        throw e;
+      }
     }
   }
   return created;
@@ -137,9 +156,16 @@ async function createCompaniesBatch(companies) {
       created.push(...(res.data._embedded?.companies || []));
       logger.info(`Kommo: created ${created.length} companies so far`);
     } catch (e) {
-      const ve = e.response?.data?.['validation-errors'];
-      if (ve) logger.error('Kommo companies validation-errors:', JSON.stringify(ve));
-      throw e;
+      if (e.response?.status === 400) {
+        logger.error('Kommo companies 400, retrying without custom fields. Response:', JSON.stringify(e.response?.data));
+        const stripped = chunk.map(c => ({ name: c.name }));
+        await rateLimit();
+        const res2 = await kommoClient.post('/api/v4/companies', stripped);
+        created.push(...(res2.data._embedded?.companies || []));
+        logger.info(`Kommo: created ${created.length} companies (without custom fields fallback)`);
+      } else {
+        throw e;
+      }
     }
   }
   return created;

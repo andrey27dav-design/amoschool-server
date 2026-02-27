@@ -57,28 +57,57 @@ function transformCustomFields(amoValues, fieldMapping) {
     const { kommoFieldId, fieldType, enumMap } = mapped;
     let values;
     switch (fieldType) {
-      case 'multitext': // phone, email — preserve enum_code, drop enum_id
+      case 'multitext': // phone, email — enum_code is category (WORK/HOME/MOB)
         values = (field.values || []).map(v => ({
           value: v.value,
           ...(v.enum_code ? { enum_code: v.enum_code } : {}),
         })).filter(v => v.value);
         break;
       case 'select':
-      case 'radiobutton':
-        values = (field.values || []).map(v => {
-          const kEnumId = enumMap[v.enum_id];
-          return kEnumId ? { enum_id: kEnumId } : null;
-        }).filter(Boolean);
+      case 'radiobutton': {
+        values = [];
+        for (const v of (field.values || [])) {
+          const kEnumId = enumMap && enumMap[v.enum_id];
+          if (kEnumId) {
+            values.push({ enum_id: kEnumId });
+          } else if (v.value) {
+            // fallback: pass as text value if no enum mapping found
+            values.push({ value: String(v.value) });
+          }
+        }
+        values = values.filter(Boolean);
         break;
-      case 'multiselect':
-        values = (field.values || []).map(v => {
-          const kEnumId = enumMap[v.enum_id];
-          return kEnumId ? { enum_id: kEnumId } : null;
-        }).filter(Boolean);
+      }
+      case 'multiselect': {
+        values = [];
+        for (const v of (field.values || [])) {
+          const kEnumId = enumMap && enumMap[v.enum_id];
+          if (kEnumId) {
+            values.push({ enum_id: kEnumId });
+          } else if (v.value) {
+            values.push({ value: String(v.value) });
+          }
+        }
+        values = values.filter(Boolean);
         break;
-      default: // text, numeric, date, url, textarea, date_time, checkbox
-        values = (field.values || []).map(v => ({ value: v.value }))
-          .filter(v => v.value != null && v.value !== '');
+      }
+      case 'checkbox':
+        // Kommo checkbox expects "1" or "0" string, not boolean
+        values = (field.values || []).map(v => ({
+          value: v.value ? '1' : '0',
+        }));
+        break;
+      case 'date':
+      case 'date_time':
+        // Ensure unix timestamp is integer
+        values = (field.values || [])
+          .filter(v => v.value != null && v.value !== '')
+          .map(v => ({ value: parseInt(v.value, 10) }));
+        break;
+      default: // text, numeric, url, textarea
+        values = (field.values || [])
+          .map(v => ({ value: v.value }))
+          .filter(v => v.value != null && v.value !== '' && v.value !== false);
         break;
     }
     if (values && values.length > 0) {
