@@ -499,4 +499,200 @@ function resetOffset() {
   saveBatchConfig();
 }
 
-module.exports = { getBatchConfig, setBatchConfig, getBatchState, analyzeManagers, getStats, runBatchMigration, rollbackBatch, resetOffset, loadBatchConfig };
+// ─── Single / selective deals transfer ───────────────────────────────────────
+/**
+ * Transfer a specific set of leads (by AMO id) from cache to Kommo.
+ * Unlike runBatchMigration this is synchronous (returns result directly).
+ * Notes are fetched live from AMO API just like the batch process.
+ */
+async function runSingleDealsTransfer(leadIds, stageMapping) {
+  const idSet = new Set(leadIds.map(Number));
+  const cache = loadAmoCache();
+
+  const allLeads     = cache.leads     || [];
+  const allContacts  = cache.contacts  || [];
+  const allCompanies = cache.companies || [];
+  // Support both old (tasks) and new (leadTasks/contactTasks) cache format
+  const allTasks = [
+    ...(cache.tasks || []),
+    ...(cache.leadTasks || []),
+    ...(cache.contactTasks || []),
+  ];
+
+  const selectedLeads = allLeads.filter(l => idSet.has(l.id));
+  if (selectedLeads.length === 0) {
+    throw new Error('Указанные сделки не найдены в кэше. Обновите данные AMO на вкладке "Данные AMO".');
+  }
+
+  const result = {
+    requested: leadIds.length,
+    found: selectedLeads.length,
+    transferred: { leads: 0, contacts: 0, companies: 0, tasks: 0, notes: 0 },
+    skipped:     { leads: 0, contacts: 0, companies: 0 },
+    errors:   [],
+    warnings: [],
+    createdIds: { contacts: [], companies: [], leads: [], tasks: [], notes: [] },
+  };
+
+  const fieldMappings = loadFieldMapping() || { leads: null, contacts: null, companies: null };
+
+  // ── Companies ──────────────────────────────────────────────────────────────
+  const neededCompanyIds = new Set(
+    selectedLeads.flatMap(l => ((l._embedded && l._embedded.companies) || []).map(c => c.id))
+  );
+  const companyIdMap = {};
+  if (neededCompanyIds.size > 0) {
+    const companies = allCompanies.filter(c => neededCompanyIds.has(c.id));
+    const { toCreate, skipped } = safety.filterNotMigrated('companies', companies, c => c.id);
+    skipped.forEach(({ amoId, kommoId }) => { companyIdMap[String(amoId)] = kommoId; result.skipped.companies++; });
+    if (toCreate.length > 0) {
+      try {
+        const { transformCompany } = require('../utils/dataTransformer');
+        const created = await kommoApi.createCompaniesBatch(
+          toCreate.map(c => transformCompany(c, fieldMappings.companies))
+        );
+        const pairs = [];
+        created.forEach((k, i) => {
+          if (k && toCreate[i]) {
+            companyIdMap[String(toCreate[i].id)] = k.id;
+            result.createdIds.companies.push(k.id);
+            result.transferred.companies++;
+            pairs.push({ amoId: toCreate[i].id, kommoId: k.id });
+          }
+        });
+        safety.registerMigratedBatch('companies', pairs);
+      } catch (e) { result.errors.push('Компании: ' + e.message); }
+    }
+  }
+
+  // ── Contacts ───────────────────────────────────────────────────────────────
+  const neededContactIds = new Set(
+    selectedLeads.flatMap(l => ((l._embedded && l._embedded.contacts) || []).map(c => c.id))
+  );
+  const contactIdMap = {};
+  if (neededContactIds.size > 0) {
+    const contacts = allContacts.filter(c => neededContactIds.has(c.id));
+    const { toCreate, skipped } = safety.filterNotMigrated('contacts', contacts, c => c.id);
+    skipped.forEach(({ amoId, kommoId }) => { contactIdMap[String(amoId)] = kommoId; result.skipped.contacts++; });
+    if (toCreate.length > 0) {
+      try {
+        const { transformContact } = require('../utils/dataTransformer');
+        const created = await kommoApi.createContactsBatch(
+          toCreate.map(c => transformContact(c, fieldMappings.contacts))
+        );
+        const pairs = [];
+        created.forEach((k, i) => {
+          if (k && toCreate[i]) {
+            contactIdMap[String(toCreate[i].id)] = k.id;
+            result.createdIds.contacts.push(k.id);
+            result.transferred.contacts++;
+            pairs.push({ amoId: toCreate[i].id, kommoId: k.id });
+          }
+        });
+        safety.registerMigratedBatch('contacts', pairs);
+      } catch (e) { result.errors.push('Контакты: ' + e.message); }
+    }
+  }
+
+  // ── Leads ──────────────────────────────────────────────────────────────────
+  const { toCreate: leadsToCreate, skipped: leadsSkipped } =
+    safety.filterNotMigrated('leads', selectedLeads, l => l.id);
+  leadsSkipped.forEach(({ amoId, kommoId }) => {
+    result.skipped.leads++;
+    result.warnings.push('Сделка AMO#' + amoId + ' уже перенесена → Kommo#' + kommoId);
+  });
+  const leadIdMap = {};
+  if (leadsToCreate.length > 0) {
+    try {
+      const { transformLead } = require('../utils/dataTransformer');
+      const leadsForKommo = leadsToCreate.map(lead => {
+        const t = transformLead(lead, stageMapping || {}, fieldMappings.leads);
+        t.pipeline_id = config.kommo.pipelineId;
+        return t;
+      });
+      const created = await kommoApi.createLeadsBatch(leadsForKommo);
+      const pairs = [];
+      for (let i = 0; i < created.length; i++) {
+        const k = created[i], a = leadsToCreate[i];
+        if (!k || !a) continue;
+        leadIdMap[String(a.id)] = k.id;
+        result.createdIds.leads.push(k.id);
+        result.transferred.leads++;
+        pairs.push({ amoId: a.id, kommoId: k.id });
+        // Link contacts
+        for (const c of ((a._embedded && a._embedded.contacts) || [])) {
+          const kId = contactIdMap[String(c.id)];
+          if (kId) {
+            try { await kommoApi.linkContactToLead(k.id, kId); }
+            catch (e) { result.warnings.push('Привязка контакта #' + c.id + ': ' + e.message); }
+          }
+        }
+        // Link companies
+        for (const c of ((a._embedded && a._embedded.companies) || [])) {
+          const kId = companyIdMap[String(c.id)];
+          if (kId) {
+            try { await kommoApi.linkCompanyToLead(k.id, kId); }
+            catch (e) { result.warnings.push('Привязка компании #' + c.id + ': ' + e.message); }
+          }
+        }
+      }
+      safety.registerMigratedBatch('leads', pairs);
+    } catch (e) { result.errors.push('Сделки: ' + e.message); }
+  }
+
+  // ── Tasks (from cache) ─────────────────────────────────────────────────────
+  const selectedIds = new Set(selectedLeads.map(l => l.id));
+  const dealTasks = allTasks.filter(
+    t => t.entity_type === 'leads' && selectedIds.has(t.entity_id)
+  );
+  if (dealTasks.length > 0) {
+    try {
+      const { transformTask } = require('../utils/dataTransformer');
+      const tasksToCreate = dealTasks
+        .map(t => {
+          const tt = transformTask(t);
+          tt.entity_id   = leadIdMap[String(t.entity_id)];
+          tt.entity_type = 'leads';
+          return tt;
+        })
+        .filter(t => t.entity_id);
+      if (tasksToCreate.length < dealTasks.length) {
+        result.warnings.push(
+          (dealTasks.length - tasksToCreate.length) + ' задач потеряли привязку (сделка не создана в этом переносе).'
+        );
+      }
+      const created = await kommoApi.createTasksBatch(tasksToCreate);
+      created.forEach(k => { if (k) { result.createdIds.tasks.push(k.id); result.transferred.tasks++; } });
+    } catch (e) { result.warnings.push('Задачи: ' + e.message); }
+  }
+
+  // ── Notes (live fetch from AMO for accuracy) ───────────────────────────────
+  for (const aLead of selectedLeads) {
+    const kId = leadIdMap[String(aLead.id)];
+    if (!kId) continue;
+    try {
+      const notes = await amoApi.getLeadNotes(aLead.id);
+      if (notes.length > 0) {
+        const notesData = notes.map(n => ({
+          entity_id: kId,
+          note_type: n.note_type || 'common',
+          params:    n.params    || {},
+          created_at: n.created_at,
+        }));
+        const created = await kommoApi.createNotesBatch('leads', notesData);
+        created.forEach(n => { if (n) { result.createdIds.notes.push(n.id); result.transferred.notes++; } });
+      }
+    } catch (e) { result.warnings.push('Заметки сделки AMO#' + aLead.id + ': ' + e.message); }
+  }
+
+  logger.info(
+    '[single transfer] done: leads=' + result.transferred.leads +
+    ' contacts=' + result.transferred.contacts +
+    ' companies=' + result.transferred.companies +
+    ' tasks=' + result.transferred.tasks +
+    ' notes=' + result.transferred.notes
+  );
+  return result;
+}
+
+module.exports = { getBatchConfig, setBatchConfig, getBatchState, analyzeManagers, getStats, runBatchMigration, rollbackBatch, resetOffset, loadBatchConfig, loadAmoCache, runSingleDealsTransfer };

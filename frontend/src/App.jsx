@@ -48,6 +48,14 @@ export default function App() {
   const [batchSize, setBatchSize] = useState(10);
   const [batchLoading, setBatchLoading] = useState(false);
 
+  // Single deals transfer state
+  const [dealsList, setDealsList] = useState([]);
+  const [dealsLoading, setDealsLoading] = useState(false);
+  const [selectedDealIds, setSelectedDealIds] = useState(new Set());
+  const [singleTransferLoading, setSingleTransferLoading] = useState(false);
+  const [singleTransferResult, setSingleTransferResult] = useState(null);
+  const [dealsManagersMap, setDealsManagersMap] = useState({});
+
   // Pipeline selector state — persist across tab-switches and page reloads
   const [selectedAmoPipeline, setSelectedAmoPipeline] = useState(() => {
     const s = localStorage.getItem('pipeline_amo');
@@ -117,8 +125,6 @@ export default function App() {
     fetchStatus();
     fetchPipelines();
     fetchBackups();
-    api.getBatchStats().then(setBatchStats).catch(() => {});
-    api.getBatchStatus().then(setBatchStatusData).catch(() => {});
   }, []);
 
   // Load saved stage mapping from DB whenever pipeline pair changes
@@ -528,7 +534,8 @@ export default function App() {
 
       {/* ═══════════════════════════ DASHBOARD ═══════════════════════════════ */}
       {tab === 'dashboard' && (
-        <div className="dashboard">
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+          <div className="dashboard" style={{ flex: '1 1 auto', minWidth: 0 }}>
           {/* Status Card */}
           <div className="card status-card">
             <h2>Статус миграции</h2>
@@ -807,6 +814,172 @@ export default function App() {
               </div>
             </div>
           )}
+          </div>{/* /dashboard column */}
+
+          {/* ═══ Панель тонкого переноса (правая колонка) ═══════════════════ */}
+          <div className="card" style={{ width: 400, flexShrink: 0, position: 'sticky', top: 16 }}>
+            <h2 style={{ marginTop: 0 }}>🎯 Тонкий перенос</h2>
+            <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--text-muted)' }}>
+              Выберите конкретные сделки из кэша AMO для переноса в Kommo.
+            </p>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+              <button
+                className="btn"
+                onClick={async () => {
+                  setDealsLoading(true);
+                  setSingleTransferResult(null);
+                  try {
+                    const [dl, mgrs] = await Promise.all([
+                      api.getDealsList(),
+                      api.analyzeManagers().catch(() => ({ managers: [] })),
+                    ]);
+                    setDealsList(dl.leads || []);
+                    const m = {};
+                    (mgrs.managers || []).forEach(u => { m[u.id] = u.name; });
+                    setDealsManagersMap(m);
+                    setSelectedDealIds(new Set());
+                  } catch (e) {
+                    alert('Ошибка загрузки: ' + (e.response?.data?.error || e.message));
+                  } finally {
+                    setDealsLoading(false);
+                  }
+                }}
+                disabled={dealsLoading}
+              >
+                {dealsLoading ? '⏳ Загрузка...' : '🔄 Загрузить список'}
+              </button>
+              {dealsList.length > 0 && (
+                <>
+                  <button className="btn" style={{ fontSize: 12 }} onClick={() => setSelectedDealIds(new Set(dealsList.map(d => d.id)))}>
+                    ✅ Все
+                  </button>
+                  <button className="btn" style={{ fontSize: 12 }} onClick={() => setSelectedDealIds(new Set())}>
+                    ☐ Снять
+                  </button>
+                </>
+              )}
+            </div>
+
+            {dealsList.length === 0 && !dealsLoading && (
+              <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '8px 0 16px' }}>
+                Нажмите «Загрузить список» для отображения сделок из кэша AMO.<br />
+                Если кэш пуст — сначала загрузите данные на вкладке «Данные AMO».
+              </div>
+            )}
+
+            {dealsList.length > 0 && (
+              <div style={{ maxHeight: 380, overflowY: 'auto', marginBottom: 12, border: '1px solid var(--border)', borderRadius: 6 }}>
+                <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: 'var(--bg-secondary, #f3f4f6)', position: 'sticky', top: 0 }}>
+                      <th style={{ padding: '6px 8px', textAlign: 'left', width: 28 }}></th>
+                      <th style={{ padding: '6px 8px', textAlign: 'left' }}>Сделка / ID</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'right' }}>Бюджет</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'left' }}>Менеджер</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dealsList.map(d => (
+                      <tr
+                        key={d.id}
+                        style={{
+                          borderBottom: '1px solid var(--border, #e5e7eb)',
+                          background: selectedDealIds.has(d.id) ? 'rgba(59,130,246,.1)' : 'transparent',
+                          cursor: 'pointer',
+                        }}
+                        onClick={() => {
+                          const next = new Set(selectedDealIds);
+                          if (next.has(d.id)) next.delete(d.id); else next.add(d.id);
+                          setSelectedDealIds(next);
+                        }}
+                      >
+                        <td style={{ padding: '4px 8px' }}>
+                          <input type="checkbox" checked={selectedDealIds.has(d.id)} onChange={() => {}} style={{ pointerEvents: 'none' }} />
+                        </td>
+                        <td style={{ padding: '4px 8px' }}>
+                          <div style={{ fontWeight: 500 }}>{d.name}</div>
+                          <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>#{d.id}</div>
+                          {d.tags?.length > 0 && <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>{d.tags.join(', ')}</div>}
+                        </td>
+                        <td style={{ padding: '4px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          {d.price > 0 ? d.price.toLocaleString('ru-RU') + ' ₽' : '—'}
+                        </td>
+                        <td style={{ padding: '4px 8px', fontSize: 11, maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {dealsManagersMap[d.responsible_user_id] || ('#' + d.responsible_user_id)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {dealsList.length > 0 && (
+              <div style={{ borderTop: '1px solid var(--border, #e5e7eb)', paddingTop: 12 }}>
+                <div style={{ marginBottom: 8, fontSize: 13 }}>
+                  Выбрано: <strong>{selectedDealIds.size}</strong> из {dealsList.length}
+                </div>
+                <button
+                  className="btn btn-primary"
+                  style={{ width: '100%' }}
+                  disabled={selectedDealIds.size === 0 || singleTransferLoading}
+                  onClick={async () => {
+                    if (!window.confirm('Перенести ' + selectedDealIds.size + ' сделок в Kommo CRM?')) return;
+                    setSingleTransferLoading(true);
+                    setSingleTransferResult(null);
+                    try {
+                      const sm = status?.stageMapping || {};
+                      const res = await api.transferDeals([...selectedDealIds], sm);
+                      setSingleTransferResult(res);
+                    } catch (e) {
+                      setSingleTransferResult({ error: e.response?.data?.error || e.message });
+                    } finally {
+                      setSingleTransferLoading(false);
+                    }
+                  }}
+                >
+                  {singleTransferLoading
+                    ? '⏳ Переносим...'
+                    : '🚀 Перенести ' + (selectedDealIds.size > 0 ? selectedDealIds.size + ' сделок' : '')}
+                </button>
+
+                {singleTransferResult && (
+                  <div style={{
+                    marginTop: 12, fontSize: 12, borderRadius: 6, padding: 10,
+                    background: singleTransferResult.error ? 'rgba(239,68,68,.1)' : 'rgba(16,185,129,.1)',
+                  }}>
+                    {singleTransferResult.error ? (
+                      <div>❌ Ошибка: {singleTransferResult.error}</div>
+                    ) : (
+                      <>
+                        <div style={{ fontWeight: 600, marginBottom: 6 }}>✅ Перенос завершён</div>
+                        <div>Сделок перенесено: <strong>{singleTransferResult.transferred?.leads}</strong> / запрошено {singleTransferResult.requested}</div>
+                        <div>Контактов: {singleTransferResult.transferred?.contacts}</div>
+                        <div>Компаний: {singleTransferResult.transferred?.companies}</div>
+                        <div>Задач: {singleTransferResult.transferred?.tasks}</div>
+                        <div>Заметок: {singleTransferResult.transferred?.notes}</div>
+                        {singleTransferResult.skipped?.leads > 0 && (
+                          <div style={{ marginTop: 4 }}>⚠️ Пропущено (уже перенесены): {singleTransferResult.skipped.leads}</div>
+                        )}
+                        {singleTransferResult.errors?.length > 0 && (
+                          <div style={{ marginTop: 6 }}>
+                            <div style={{ fontWeight: 600, color: '#ef4444' }}>Ошибки:</div>
+                            {singleTransferResult.errors.map((e, i) => <div key={i}>• {e}</div>)}
+                          </div>
+                        )}
+                        {singleTransferResult.warnings?.length > 0 && (
+                          <details style={{ marginTop: 6 }}>
+                            <summary style={{ cursor: 'pointer' }}>⚠️ Предупреждения ({singleTransferResult.warnings.length})</summary>
+                            {singleTransferResult.warnings.map((w, i) => <div key={i} style={{ paddingLeft: 8 }}>• {w}</div>)}
+                          </details>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

@@ -587,6 +587,41 @@ router.post('/batch-reset', (req, res) => {
   }
 });
 
+// GET /api/migration/deals-list — список сделок из кэша AMO
+router.get('/deals-list', (req, res) => {
+  try {
+    const cache = batchService.loadAmoCache();
+    const leads = (cache.leads || []).map(l => ({
+      id:                  l.id,
+      name:                l.name || ('Сделка #' + l.id),
+      price:               l.price || 0,
+      status_id:           l.status_id,
+      pipeline_id:         l.pipeline_id,
+      responsible_user_id: l.responsible_user_id,
+      tags:                ((l._embedded && l._embedded.tags) || []).map(t => t.name),
+      created_at:          l.created_at,
+    }));
+    res.json({ leads, total: leads.length, fetchedAt: cache.fetchedAt });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+// POST /api/migration/transfer-deals — перенести конкретные сделки
+router.post('/transfer-deals', async (req, res) => {
+  try {
+    const { leadIds, stageMapping } = req.body;
+    if (!Array.isArray(leadIds) || leadIds.length === 0) {
+      return res.status(400).json({ error: 'leadIds (непустой массив) обязателен' });
+    }
+    const result = await batchService.runSingleDealsTransfer(leadIds, stageMapping || {});
+    res.json(result);
+  } catch (e) {
+    logger.error('[transfer-deals] error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 router.post('/sync-fields', async (req, res) => {
   try {
     const { buildAllFieldMappings, saveFieldMapping, getFieldMappingStats } = require('../utils/fieldMapping');

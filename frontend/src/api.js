@@ -61,3 +61,8 @@ export const fetchSessionDeals = (params) => api.post('/sessions/fetch', params)
 export const startCopySession  = (id, userMap = null) => api.post(`/copy/${id}/start`, { user_map: userMap }).then(r => r.data);
 export const rollbackLastDeal  = (id) => api.post(`/sessions/${id}/rollback-last`).then(r => r.data);
 export const rollbackSession   = (id) => api.post(`/sessions/${id}/rollback-session`).then(r => r.data);
+
+// ── Single / selective deal transfer ────────────────────────────────────────
+export const getDealsList    = () => api.get('/migration/deals-list').then(r => r.data);
+export const transferDeals   = (leadIds, stageMapping) =>
+  api.post('/migration/transfer-deals', { leadIds, stageMapping }).then(r => r.data);
