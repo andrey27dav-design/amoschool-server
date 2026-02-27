@@ -97,10 +97,10 @@ async function createLeadsBatch(leads) {
           if (cfv && cfv.length > 0) {
             try {
               await rateLimit();
-              await kommoClient.patch(`/api/v4/leads/${fallbackLeads[i].id}`, { custom_fields_values: cfv });
+              await updateLead(fallbackLeads[i].id, { custom_fields_values: cfv });
               logger.info(`Kommo: patched custom fields for lead ${fallbackLeads[i].id}`);
             } catch (patchErr) {
-              logger.error(`Kommo: PATCH lead ${fallbackLeads[i].id} custom fields failed:`, JSON.stringify(patchErr.response?.data));
+              logger.error(`Kommo: PATCH lead ${fallbackLeads[i].id} custom fields failed: status=${patchErr.response?.status}`, JSON.stringify(patchErr.response?.data));
             }
           }
         }
@@ -115,20 +115,23 @@ async function createLeadsBatch(leads) {
 
 async function updateLead(leadId, data) {
   await rateLimit();
-  const res = await kommoClient.patch(`/api/v4/leads/${leadId}`, data);
-  return res.data;
+  // Kommo API: PATCH /api/v4/leads with array [{id, ...fields}]
+  const res = await kommoClient.patch('/api/v4/leads', [{ id: leadId, ...data }]);
+  return res.data._embedded?.leads?.[0] || null;
 }
 
 async function updateContact(contactId, data) {
   await rateLimit();
-  const res = await kommoClient.patch(`/api/v4/contacts/${contactId}`, data);
-  return res.data;
+  // Kommo API: PATCH /api/v4/contacts with array [{id, ...fields}]
+  const res = await kommoClient.patch('/api/v4/contacts', [{ id: contactId, ...data }]);
+  return res.data._embedded?.contacts?.[0] || null;
 }
 
 async function updateCompany(companyId, data) {
   await rateLimit();
-  const res = await kommoClient.patch(`/api/v4/companies/${companyId}`, data);
-  return res.data;
+  // Kommo API: PATCH /api/v4/companies with array [{id, ...fields}]
+  const res = await kommoClient.patch('/api/v4/companies', [{ id: companyId, ...data }]);
+  return res.data._embedded?.companies?.[0] || null;
 }
 
 async function createContact(contact) {
@@ -163,10 +166,10 @@ async function createContactsBatch(contacts) {
           if (cfv && cfv.length > 0) {
             try {
               await rateLimit();
-              await kommoClient.patch(`/api/v4/contacts/${fallbackContacts[i].id}`, { custom_fields_values: cfv });
+              await updateContact(fallbackContacts[i].id, { custom_fields_values: cfv });
               logger.info(`Kommo: patched custom fields for contact ${fallbackContacts[i].id}`);
             } catch (patchErr) {
-              logger.error(`Kommo: PATCH contact ${fallbackContacts[i].id} custom fields failed:`, JSON.stringify(patchErr.response?.data));
+              logger.error(`Kommo: PATCH contact ${fallbackContacts[i].id} custom fields failed: status=${patchErr.response?.status}`, JSON.stringify(patchErr.response?.data));
             }
           }
         }
@@ -207,9 +210,9 @@ async function createCompaniesBatch(companies) {
           if (cfv && cfv.length > 0) {
             try {
               await rateLimit();
-              await kommoClient.patch(`/api/v4/companies/${fallbackCompanies[i].id}`, { custom_fields_values: cfv });
+              await updateCompany(fallbackCompanies[i].id, { custom_fields_values: cfv });
             } catch (patchErr) {
-              logger.error(`Kommo: PATCH company ${fallbackCompanies[i].id} failed:`, JSON.stringify(patchErr.response?.data));
+              logger.error(`Kommo: PATCH company ${fallbackCompanies[i].id} failed: status=${patchErr.response?.status}`, JSON.stringify(patchErr.response?.data));
             }
           }
         }
@@ -262,19 +265,19 @@ async function createNotesBatch(entityType, notes) {
 }
 
 async function linkContactToLead(leadId, contactId) {
-  // Kommo requires linking FROM the contact side: POST /contacts/{id}/links
+  // Kommo API: PATCH /api/v4/leads with _embedded.contacts
   await rateLimit();
-  const res = await kommoClient.post(`/api/v4/contacts/${contactId}/links`, [
-    { to_entity_id: leadId, to_entity_type: 'leads' },
+  const res = await kommoClient.patch('/api/v4/leads', [
+    { id: leadId, _embedded: { contacts: [{ id: contactId }] } },
   ]);
   return res.data;
 }
 
 async function linkCompanyToLead(leadId, companyId) {
-  // Kommo requires linking FROM the company side: POST /companies/{id}/links
+  // Kommo API: PATCH /api/v4/leads with _embedded.companies  
   await rateLimit();
-  const res = await kommoClient.post(`/api/v4/companies/${companyId}/links`, [
-    { to_entity_id: leadId, to_entity_type: 'leads' },
+  const res = await kommoClient.patch('/api/v4/leads', [
+    { id: leadId, _embedded: { companies: [{ id: companyId }] } },
   ]);
   return res.data;
 }
