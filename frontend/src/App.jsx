@@ -257,17 +257,33 @@ export default function App() {
   };
 
   const handleAmoFetch = async () => {
+    // Подгружаем маппинги менеджеров если ещё не загружены
+    let mapping = managerMapping;
+    if (mapping.length === 0) {
+      try {
+        const res = await api.getManagerMapping();
+        mapping = res.mappings || [];
+        setManagerMapping(mapping);
+      } catch (e) {
+        mapping = [];
+      }
+    }
+
+    // Берём AMO-менеджеров из маппинга (те, для кого задан ответственный в Kommo)
+    const mappedAmoIds = mapping.map(m => m.amo_user_id).filter(Boolean);
+
     const pipeLabel = selectedAmoPipeline
       ? (pipelines.amo.find(p => p.id === selectedAmoPipeline)?.name || selectedAmoPipeline)
       : 'все воронки';
-    const mgrLabel = selectedManagers.length > 0
-      ? `менеджеры: ${selectedManagers.length}`
-      : 'все менеджеры';
+    const mgrLabel = mappedAmoIds.length > 0
+      ? `${mappedAmoIds.length} менеджер(а) из вкладки Менеджеры`
+      : 'все менеджеры (маппинг не настроен)';
+
     if (!confirm(`Загрузить данные из amo CRM?\nВоронка: ${pipeLabel}\nМенеджеры: ${mgrLabel}\n\nЭто может занять несколько минут.`)) return;
     setLoading(true);
     setMessage('');
     try {
-      await api.triggerAmoFetch(selectedAmoPipeline, selectedManagers);
+      await api.triggerAmoFetch(selectedAmoPipeline, mappedAmoIds);
       setMessage('⏳ Загрузка данных из amo CRM запущена...');
       const s = await api.getAmoFetchStatus();
       setFetchSt(s);
