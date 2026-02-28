@@ -347,10 +347,10 @@ export default function FieldSync({ pipelines, isActive = true, cacheRefreshKey 
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [log]);
 
-  // Авторефреш: перезагружаем анализ, если вкладка стала активной и данные уже были загружены.
-  // Это нужно чтобы не показывались устаревшие статусы (например, поля удалены в Kommo).
+  // Авторефреш: перезагружаем анализ при активации вкладки.
+  // Если data===null (первое открытие после перезагрузки страницы) — тоже загружаем.
   useEffect(() => {
-    if (isActive && data && !inProgress && !loading) {
+    if (isActive && !inProgress && !loading) {
       loadAnalysis();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
