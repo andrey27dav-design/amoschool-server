@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import * as api from './api';
 import './App.css';
 import FieldSync from './FieldSync';
@@ -42,6 +42,9 @@ export default function App() {
 
   // AMO data fetch state (dashboard)
   const [fetchSt, setFetchSt] = useState(null);
+  // Счётчик обновлений кэша — передаётся в FieldSync для авто-перезагрузки полей
+  const [cacheRefreshKey, setCacheRefreshKey] = useState(0);
+  const prevFetchStatus = useRef(null);
 
   // Batch migration state
   const [batchStats, setBatchStats] = useState(null);
@@ -192,6 +195,15 @@ export default function App() {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  // При завершении загрузки кэша — уведомляем FieldSync о необходимости перезагрузить маппинг
+  useEffect(() => {
+    const prev = prevFetchStatus.current;
+    prevFetchStatus.current = fetchSt?.status;
+    if (prev === 'loading' && fetchSt?.status === 'done') {
+      setCacheRefreshKey(k => k + 1);
+    }
+  }, [fetchSt?.status]);
 
   // Auto-poll while amo data is loading
   useEffect(() => {
@@ -1420,7 +1432,7 @@ export default function App() {
 
       {/* FieldSync — always mounted, shown/hidden via CSS to keep state */}
       <div style={{ display: tab === 'fields' ? '' : 'none' }}>
-        <FieldSync isActive={tab === 'fields'} />
+        <FieldSync isActive={tab === 'fields'} cacheRefreshKey={cacheRefreshKey} />
       </div>
 
       {tab === 'copy' && (

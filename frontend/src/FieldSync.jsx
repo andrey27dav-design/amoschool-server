@@ -299,7 +299,7 @@ function FieldCard({ field, status, side, entityLabel, groupName, differences, p
 
 // ─── Основной компонент ───────────────────────────────────────────────────────
 
-export default function FieldSync({ pipelines, isActive = true }) {
+export default function FieldSync({ pipelines, isActive = true, cacheRefreshKey = 0 }) {
   // ── Данные ──
   const [data, setData]         = useState(null);   // ответ /fields-analysis
   const [loading, setLoading]   = useState(false);
@@ -355,6 +355,13 @@ export default function FieldSync({ pipelines, isActive = true }) {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive]);
+
+  // Перезагружаем анализ при обновлении кэша (cacheRefreshKey меняется в App.jsx)
+  useEffect(() => {
+    if (cacheRefreshKey === 0) return; // первый рендер — пропускаем
+    loadAnalysis();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cacheRefreshKey]);
 
   // ── Загрузка данных ──
   const loadAnalysis = useCallback(async () => {
