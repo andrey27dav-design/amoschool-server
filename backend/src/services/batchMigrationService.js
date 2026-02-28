@@ -850,6 +850,8 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
             entity_id:  Number(kId),
             note_type:  n.note_type || 'common',
             params:     n.params    || {},
+            created_at: n.created_at,
+            updated_at: n.updated_at,
           }));
           const created = await kommoApi.createNotesBatch('leads', notesData);
           logger.info(`[transfer] createNotesBatch(leads) вернул ${created.length} объектов`);
@@ -878,6 +880,8 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
             entity_id:  Number(kContactId),
             note_type:  n.note_type || 'common',
             params:     n.params    || {},
+            created_at: n.created_at,
+            updated_at: n.updated_at,
           }));
           const created = await kommoApi.createNotesBatch('contacts', notesData);
           created.forEach(n => { if (n) { result.createdIds.notes.push(n.id); result.transferred.notes++; result.notesDetail.contacts.transferred++; } });
@@ -902,6 +906,8 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
             entity_id:  Number(kCompanyId),
             note_type:  n.note_type || 'common',
             params:     n.params    || {},
+            created_at: n.created_at,
+            updated_at: n.updated_at,
           }));
           const created = await kommoApi.createNotesBatch('companies', notesData);
           created.forEach(n => { if (n) { result.createdIds.notes.push(n.id); result.transferred.notes++; result.notesDetail.companies.transferred++; } });

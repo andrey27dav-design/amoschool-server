@@ -207,6 +207,8 @@ async function copyTimeline(amoLeadId, kommoLeadId, sessionId) {
 
   for (const note of notes) {
     try {
+      // Дедупликация: если заметка уже перенесена в этой сессии — пропустить
+      if (db.getMapping(sessionId, 'note', note.id)) continue;
       const noteType = NOTE_TYPE_MAP[note.note_type] || 4;
       const payload = {
         note_type: noteType,
@@ -225,6 +227,8 @@ async function copyTimeline(amoLeadId, kommoLeadId, sessionId) {
 
   for (const task of tasks) {
     try {
+      // Дедупликация: если задача уже перенесена в этой сессии — пропустить
+      if (db.getMapping(sessionId, 'task', task.id)) continue;
       const payload = {
         text: task.text || '',
         complete_till: task.complete_till,
@@ -232,7 +236,6 @@ async function copyTimeline(amoLeadId, kommoLeadId, sessionId) {
         entity_id: kommoLeadId,
         entity_type: 'leads',
         responsible_user_id: task.responsible_user_id,
-        is_completed: task.is_completed,
         created_at: task.created_at,
       };
       const created = await kommo.createTask(payload);

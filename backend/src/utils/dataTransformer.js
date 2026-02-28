@@ -53,7 +53,7 @@ function transformCustomFields(amoValues, fieldMapping) {
   const result = [];
   for (const field of amoValues) {
     const mapped = fieldMapping[field.field_id];
-    if (!mapped) continue;
+    if (!mapped) { logger.warn(`[transformCustomFields] поле AMO #${field.field_id} ("${field.field_name || field.field_code || '?'}") не найдено в маппинге — пропускаем`); continue; }
     const { kommoFieldId, enumMap, kommoFieldType, amoFieldType, fieldType, transferMode } = mapped;
 
     // Priority: kommoFieldType → amoFieldType → fieldType (legacy mapping key) → 'text'

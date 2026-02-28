@@ -162,7 +162,7 @@ function SessionLog({ sessionId }) {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [logs]);
 
-  const levelColor = { info: '#10b981', warn: '#f59e0b', error: '#ef4444' };
+  const levelColor = { info: '#34d399', warn: '#fcd34d', error: '#f87171' };
 
   return (
     <div style={{ background: '#0f172a', borderRadius: 8, padding: '12px 16px', maxHeight: 220, overflow: 'auto', fontFamily: 'monospace', fontSize: 12 }}>
@@ -612,7 +612,7 @@ export default function CopyDeals() {
           <h3 style={{ margin: '0 0 16px' }}>{step === 'done' ? '🎉 Копирование завершено' : '⚙️ Копирование...'}</h3>
 
           <ProgressBar value={progress.current} max={progress.total} color={step === 'done' ? '#10b981' : '#3b82f6'} />
-          <div style={{ fontSize: 14, color: '#374151', marginBottom: 16 }}>
+          <div style={{ fontSize: 14, color: '#111827', fontWeight: 500, marginBottom: 16 }}>
             {progress.current} / {progress.total} сделок
             {step === 'done' && ` · ${copied} скопировано · ${skipped} пропущено · ${errors} ошибок`}
           </div>
