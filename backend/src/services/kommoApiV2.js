@@ -259,6 +259,20 @@ async function getCompanyCustomFields() {
   return fetchAllPages('/companies/custom_fields');
 }
 
+
+/**
+ * Patch custom fields of an existing lead (re-fill missing fields).
+ */
+async function updateLeadFields(leadId, customFieldsValues) {
+  if (!customFieldsValues || customFieldsValues.length === 0) return;
+  const res = await execute(
+    () => client.patch(`/leads/${leadId}`, { custom_fields_values: customFieldsValues }),
+    `updateLeadFields(${leadId})`
+  );
+  logger.info(`Kommo: updateLeadFields lead=${leadId} fields=${customFieldsValues.length}`);
+  return res;
+}
+
 module.exports = {
   getPipelines,
   getUsers,
@@ -281,4 +295,5 @@ module.exports = {
   getLeadCustomFields,
   getContactCustomFields,
   getCompanyCustomFields,
+  updateLeadFields,
 };

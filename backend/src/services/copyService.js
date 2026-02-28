@@ -330,9 +330,18 @@ async function copyDeal(amoLead, session, stageMapping, kommoUsers) {
   const sessionId = session.id;
   const amoLeadId = amoLead.id;
 
-  // Skip if already copied
+  // Skip create if already copied — but still patch custom fields
   const existingMapping = db.getMapping(sessionId, 'lead', amoLeadId);
   if (existingMapping?.status === 'created') {
+    try {
+      const fieldsToUpdate = transformCustomFields(amoLead.custom_fields_values, 'leads');
+      if (fieldsToUpdate.length > 0) {
+        await kommo.updateLeadFields(existingMapping.kommo_id, fieldsToUpdate);
+        db.log(sessionId, 'info', `[refill] Lead ${amoLeadId} → Kommo ${existingMapping.kommo_id}: patched ${fieldsToUpdate.length} fields`);
+      }
+    } catch (e) {
+      db.log(sessionId, 'warn', `[refill] Lead ${amoLeadId} field patch failed: ${e.message}`);
+    }
     return { skipped: true, reason: 'already_copied', kommoId: existingMapping.kommo_id };
   }
 
@@ -343,6 +352,15 @@ async function copyDeal(amoLead, session, stageMapping, kommoUsers) {
     if (existing) {
       db.setMapping(sessionId, 'lead', amoLeadId, existing.id, 'skipped');
       db.log(sessionId, 'info', `Lead ${amoLeadId} already exists in Kommo as ${existing.id} (amo_id field)`);
+      try {
+        const fieldsToUpdate = transformCustomFields(amoLead.custom_fields_values, 'leads');
+        if (fieldsToUpdate.length > 0) {
+          await kommo.updateLeadFields(existing.id, fieldsToUpdate);
+          db.log(sessionId, 'info', `[refill] Lead ${amoLeadId} → Kommo ${existing.id}: patched ${fieldsToUpdate.length} fields`);
+        }
+      } catch (e) {
+        db.log(sessionId, 'warn', `[refill] Lead ${amoLeadId} field patch failed: ${e.message}`);
+      }
       return { skipped: true, reason: 'exists_in_kommo', kommoId: existing.id };
     }
   }
