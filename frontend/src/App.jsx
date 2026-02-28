@@ -4,7 +4,7 @@ import './App.css';
 import FieldSync from './FieldSync';
 import CopyDeals from './CopyDeals';
 
-const APP_VERSION = 'V1.2.5';
+const APP_VERSION = 'V1.3.0';
 
 const STATUS_LABELS = {
   idle: 'Ожидание',
@@ -1033,25 +1033,25 @@ export default function App() {
                         <div>
                           <div style={{ marginBottom: 2 }}><strong>Задачи:</strong> {singleTransferResult.transferred?.tasks} перенесено</div>
                           {singleTransferResult.tasksDetail ? (
-                            <div style={{ marginLeft: 12, fontSize: 13, color: '#374151', lineHeight: 1.7 }}>
+                            <div style={{ marginLeft: 12, fontSize: 13, color: '#ffffff', lineHeight: 1.7 }}>
                               <div>🔹 Сделки: найдено {singleTransferResult.tasksDetail.leads?.found ?? '—'}, перенесено <strong>{singleTransferResult.tasksDetail.leads?.created ?? '—'}</strong></div>
                               <div>🔹 Контакты: найдено {singleTransferResult.tasksDetail.contacts?.found ?? '—'}, перенесено <strong>{singleTransferResult.tasksDetail.contacts?.created ?? '—'}</strong></div>
                               <div>🔹 Компании: найдено {singleTransferResult.tasksDetail.companies?.found ?? '—'}, перенесено <strong>{singleTransferResult.tasksDetail.companies?.created ?? '—'}</strong></div>
                             </div>
                           ) : (
-                            <div style={{ fontSize: 12, color: '#6b7280' }}>(задачи сделок из кэша)</div>
+                            <div style={{ fontSize: 12, color: '#94a3b8' }}>(задачи сделок из кэша)</div>
                           )}
                         </div>
                         <div style={{ marginTop: 4 }}>
                           <div><strong>Заметки:</strong> {singleTransferResult.transferred?.notes} перенесено</div>
                           {singleTransferResult.notesDetail ? (
-                            <div style={{ marginLeft: 12, fontSize: 13, color: '#374151', lineHeight: 1.7 }}>
+                            <div style={{ marginLeft: 12, fontSize: 13, color: '#ffffff', lineHeight: 1.7 }}>
                               <div>🔹 Сделки: скачано {singleTransferResult.notesDetail.leads?.fetched ?? '—'}, перенесено <strong>{singleTransferResult.notesDetail.leads?.transferred ?? '—'}</strong></div>
                               <div>🔹 Контакты: скачано {singleTransferResult.notesDetail.contacts?.fetched ?? '—'}, перенесено <strong>{singleTransferResult.notesDetail.contacts?.transferred ?? '—'}</strong></div>
                               <div>🔹 Компании: скачано {singleTransferResult.notesDetail.companies?.fetched ?? '—'}, перенесено <strong>{singleTransferResult.notesDetail.companies?.transferred ?? '—'}</strong></div>
                             </div>
                           ) : (
-                            <div style={{ fontSize: 12, color: '#6b7280' }}>(Заметки сделки + контакты)</div>
+                            <div style={{ fontSize: 12, color: '#94a3b8' }}>(Заметки сделки + контакты)</div>
                           )}
                         </div>
                         {singleTransferResult.skipped?.leads > 0 && (

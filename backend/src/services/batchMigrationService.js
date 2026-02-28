@@ -574,6 +574,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
     selectedLeads.flatMap(l => ((l._embedded && l._embedded.companies) || []).map(c => c.id))
   );
   const companyIdMap = {};
+  const newCompanyAmoIds = new Set();
   if (neededCompanyIds.size > 0) {
     const companies = allCompanies.filter(c => neededCompanyIds.has(c.id));
     const { toCreate, skipped } = safety.filterNotMigrated('companies', companies, c => c.id);
@@ -600,6 +601,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
             companyIdMap[String(toCreate[i].id)] = k.id;
             result.createdIds.companies.push(k.id);
             result.transferred.companies++;
+              newCompanyAmoIds.add(toCreate[i].id);
             pairs.push({ amoId: toCreate[i].id, kommoId: k.id });
           }
         });
@@ -613,6 +615,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
     selectedLeads.flatMap(l => ((l._embedded && l._embedded.contacts) || []).map(c => c.id))
   );
   const contactIdMap = {};
+  const newContactAmoIds = new Set();
   if (neededContactIds.size > 0) {
     const contacts = allContacts.filter(c => neededContactIds.has(c.id));
     const { toCreate, skipped } = safety.filterNotMigrated('contacts', contacts, c => c.id);
@@ -639,6 +642,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
             contactIdMap[String(toCreate[i].id)] = k.id;
             result.createdIds.contacts.push(k.id);
             result.transferred.contacts++;
+              newContactAmoIds.add(toCreate[i].id);
             pairs.push({ amoId: toCreate[i].id, kommoId: k.id });
           }
         });
@@ -651,6 +655,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
   const { toCreate: leadsToCreate, skipped: leadsSkipped } =
     safety.filterNotMigrated('leads', selectedLeads, l => l.id);
   const leadIdMap = {};
+  const newLeadAmoIds = new Set();
   // Для уже перенесённых сделок — PATCH полей + повторная привязка
   for (const { item: aLead, amoId, kommoId } of leadsSkipped) {
     result.skipped.leads++;
@@ -720,6 +725,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
           leadIdMap[String(a.id)] = k.id;
           result.createdIds.leads.push(k.id);
           result.transferred.leads++;
+            newLeadAmoIds.add(a.id);
           pairs.push({ amoId: a.id, kommoId: k.id });
           logger.info(`[transfer] Lead AMO#${a.id} → Kommo#${k.id}: contacts=${(a._embedded?.contacts||[]).length}, companies=${(a._embedded?.companies||[]).length}`);
         }
@@ -729,7 +735,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
 
     // ── Tasks (from cache) ───────────────────────────────────────────────────────
     // Number() cast защищает от несоответствия типов string/number в Set.has()
-    const selectedIds = new Set(selectedLeads.map(l => Number(l.id)));
+      const selectedIds = new Set([...newLeadAmoIds].map(Number)); // new leads only, no task dupes
     const dealTasks = allTasks.filter(
       t => t.entity_type === 'leads' && selectedIds.has(Number(t.entity_id))
     );
@@ -762,9 +768,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
     }
 
     // ── Tasks: contact tasks (from cache) ────────────────────────────────────
-    const neededContactIdsForTasks = new Set(
-      selectedLeads.flatMap(l => ((l._embedded && l._embedded.contacts) || []).map(c => Number(c.id)))
-    );
+      const neededContactIdsForTasks = new Set([...newContactAmoIds].map(Number));
     const contactTasks = allTasks.filter(
       t => t.entity_type === 'contacts' && neededContactIdsForTasks.has(Number(t.entity_id))
     );
@@ -800,9 +804,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
     }
 
     // ── Tasks: company tasks (from cache) ──────────────────────────────────────────
-    const neededCompanyIdsForTasks = new Set(
-      selectedLeads.flatMap(l => ((l._embedded && l._embedded.companies) || []).map(c => Number(c.id)))
-    );
+      const neededCompanyIdsForTasks = new Set([...newCompanyAmoIds].map(Number));
     const companyTasksToTransfer = allTasks.filter(
       t => t.entity_type === 'companies' && neededCompanyIdsForTasks.has(Number(t.entity_id))
     );
@@ -839,6 +841,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
 
     // ── Notes: lead notes (live fetch from AMO) ──────────────────────────────────────────
     for (const aLead of selectedLeads) {
+        if (!newLeadAmoIds.has(aLead.id)) continue; // skipped lead, skip notes
       const kId = leadIdMap[String(aLead.id)];
       if (!kId) { logger.warn(`[transfer] notes(lead): нет kommo id для AMO#${aLead.id}`); continue; }
       try {
@@ -871,6 +874,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
       const aContactId = c.id;
       const kContactId = contactIdMap[String(aContactId)];
       if (!kContactId || transferredContactIds.has(aContactId)) continue; // не дублируем
+        if (!newContactAmoIds.has(aContactId)) continue; // skipped contact, skip notes
       transferredContactIds.add(aContactId);
       try {
         const notes = await amoApi.getContactNotes(aContactId);
@@ -897,6 +901,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
       const aCompanyId = c.id;
       const kCompanyId = companyIdMap[String(aCompanyId)];
       if (!kCompanyId || transferredCompanyIds.has(aCompanyId)) continue;
+        if (!newCompanyAmoIds.has(aCompanyId)) continue; // skipped company, skip notes
       transferredCompanyIds.add(aCompanyId);
       try {
         const { notes } = await amoApi.getNotes('companies', aCompanyId);
