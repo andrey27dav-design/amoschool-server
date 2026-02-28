@@ -4,7 +4,7 @@ import './App.css';
 import FieldSync from './FieldSync';
 import CopyDeals from './CopyDeals';
 
-const APP_VERSION = 'V1.2.0';
+const APP_VERSION = 'V1.2.2';
 
 const STATUS_LABELS = {
   idle: 'Ожидание',

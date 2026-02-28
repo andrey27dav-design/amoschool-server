@@ -83,7 +83,18 @@ function transformCustomFields(amoFields, section) {
     const mode = entry.transferMode || 'direct';
 
     if (mode === 'direct') {
-      result.push({ field_id: kommoFieldId, values: field.values });
+        // Sanitize AMO values — strip null/undefined enum_id/enum to avoid Kommo 400
+        const cleanValues = (field.values || [])
+          .map(v => {
+            const o = {};
+            if (v.value != null && v.value !== '') o.value = String(v.value);
+            if (v.enum_id)   o.enum_id   = v.enum_id;
+            if (v.enum_code) o.enum_code = v.enum_code;
+            return Object.keys(o).length > 0 ? o : null;
+          })
+          .filter(Boolean);
+        if (cleanValues.length === 0) continue;
+        result.push({ field_id: kommoFieldId, values: cleanValues });
     } else if (mode === 'first_value') {
       const first = field.values?.[0];
       if (!first) continue;
