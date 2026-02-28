@@ -13,5 +13,5 @@ module.exports = {
   },
   port: parseInt(process.env.PORT) || 3001,
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
-  backupDir: process.env.BACKUP_DIR || './backups',
+  backupDir: process.env.BACKUP_DIR || require('path').resolve(__dirname, '../../backups'),
 };
