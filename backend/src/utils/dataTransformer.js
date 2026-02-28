@@ -1,3 +1,5 @@
+const logger = require('../utils/logger');
+
 // Maps AMO CRM stage IDs to Kommo CRM stage names
 // AMO pipeline: 3456421 (Школа/Репетиторство)
 // Kommo pipeline: 12856848 (russianlanguadge department)
