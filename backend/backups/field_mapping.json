@@ -93,72 +93,86 @@
     "184243": {
       "kommoFieldId": 918501,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "184245": {
       "kommoFieldId": 918499,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "184247": {
       "kommoFieldId": 918495,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "184249": {
       "kommoFieldId": 918489,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "184251": {
       "kommoFieldId": 918497,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "184253": {
       "kommoFieldId": 918493,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "184255": {
       "kommoFieldId": 918503,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "184267": {
       "kommoFieldId": 918491,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "219937": {
       "kommoFieldId": 918511,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "219939": {
       "kommoFieldId": 918507,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "219941": {
       "kommoFieldId": 918513,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "219943": {
       "kommoFieldId": 918515,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "228287": {
       "kommoFieldId": 918487,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "228289": {
       "kommoFieldId": 918505,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "661771": {
       "kommoFieldId": 200316,
@@ -173,17 +187,20 @@
     "661773": {
       "kommoFieldId": 918571,
       "fieldType": "tracking_data",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "tracking_data"
     },
     "661775": {
       "kommoFieldId": 918551,
       "fieldType": "tracking_data",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "tracking_data"
     },
     "661777": {
       "kommoFieldId": 918553,
       "fieldType": "tracking_data",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "tracking_data"
     },
     "661779": {
       "kommoFieldId": 200318,
@@ -198,27 +215,32 @@
     "661781": {
       "kommoFieldId": 918549,
       "fieldType": "tracking_data",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "tracking_data"
     },
     "661783": {
       "kommoFieldId": 918557,
       "fieldType": "tracking_data",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "tracking_data"
     },
     "661785": {
       "kommoFieldId": 918559,
       "fieldType": "tracking_data",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "tracking_data"
     },
     "661787": {
       "kommoFieldId": 918555,
       "fieldType": "tracking_data",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "tracking_data"
     },
     "661789": {
       "kommoFieldId": 918561,
       "fieldType": "tracking_data",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "tracking_data"
     },
     "661791": {
       "kommoFieldId": 200320,
@@ -243,7 +265,8 @@
     "661795": {
       "kommoFieldId": 918563,
       "fieldType": "tracking_data",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "tracking_data"
     },
     "661797": {
       "kommoFieldId": 200324,
@@ -258,22 +281,26 @@
     "685679": {
       "kommoFieldId": 918509,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "685683": {
       "kommoFieldId": 918483,
       "fieldType": "text",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "text"
     },
     "685695": {
       "kommoFieldId": 918547,
       "fieldType": "tracking_data",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "tracking_data"
     },
     "693669": {
       "kommoFieldId": 918485,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "698769": {
       "kommoFieldId": 871440,
@@ -306,27 +333,32 @@
       "kommoFieldId": 918363,
       "fieldType": "textarea",
       "enumMap": {},
-      "amoGroup": "emfy"
+      "amoGroup": "emfy",
+      "kommoFieldType": "textarea"
     },
     "701093": {
       "kommoFieldId": 918477,
       "fieldType": "text",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "text"
     },
     "701095": {
       "kommoFieldId": 918523,
       "fieldType": "text",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "text"
     },
     "701563": {
       "kommoFieldId": 918479,
       "fieldType": "numeric",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "numeric"
     },
     "701571": {
       "kommoFieldId": 918481,
       "fieldType": "numeric",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "numeric"
     },
     "703419": {
       "kommoFieldId": 871430,
@@ -340,12 +372,14 @@
     "703421": {
       "kommoFieldId": 918583,
       "fieldType": "numeric",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "numeric"
     },
     "703425": {
       "kommoFieldId": 918595,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "703925": {
       "kommoFieldId": 871436,
@@ -415,46 +449,54 @@
       "kommoFieldId": 918353,
       "fieldType": "text",
       "enumMap": {},
-      "amoGroup": "контроль_качества"
+      "amoGroup": "контроль_качества",
+      "kommoFieldType": "text"
     },
     "706987": {
       "kommoFieldId": 918355,
       "fieldType": "checkbox",
       "enumMap": {},
-      "amoGroup": "контроль_качества"
+      "amoGroup": "контроль_качества",
+      "kommoFieldType": "checkbox"
     },
     "706989": {
       "kommoFieldId": 918357,
       "fieldType": "text",
       "enumMap": {},
-      "amoGroup": "контроль_качества"
+      "amoGroup": "контроль_качества",
+      "kommoFieldType": "text"
     },
     "707307": {
       "kommoFieldId": 918447,
       "fieldType": "text",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "text"
     },
     "707309": {
       "kommoFieldId": 918385,
       "fieldType": "url",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "url"
     },
     "707323": {
       "kommoFieldId": 918367,
       "fieldType": "text",
       "enumMap": {},
-      "amoGroup": "emfy"
+      "amoGroup": "emfy",
+      "kommoFieldType": "text"
     },
     "707325": {
       "kommoFieldId": 918365,
       "fieldType": "numeric",
       "enumMap": {},
-      "amoGroup": "emfy"
+      "amoGroup": "emfy",
+      "kommoFieldType": "numeric"
     },
     "709163": {
       "kommoFieldId": 918391,
       "fieldType": "text",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "text"
     },
     "709781": {
       "kommoFieldId": 871438,
@@ -486,27 +528,32 @@
     "710285": {
       "kommoFieldId": 918389,
       "fieldType": "url",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "url"
     },
     "710689": {
       "kommoFieldId": 918381,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "710691": {
       "kommoFieldId": 918383,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "710693": {
       "kommoFieldId": 918453,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "710695": {
       "kommoFieldId": 918455,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "710763": {
       "kommoFieldId": 911846,
@@ -534,7 +581,8 @@
     "710877": {
       "kommoFieldId": 918527,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "711035": {
       "kommoFieldId": 918521,
@@ -556,12 +604,14 @@
     "711367": {
       "kommoFieldId": 918445,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "712079": {
       "kommoFieldId": 918441,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "712553": {
       "kommoFieldId": 871424,
@@ -590,37 +640,44 @@
     "712701": {
       "kommoFieldId": 918399,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "712703": {
       "kommoFieldId": 918401,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "712705": {
       "kommoFieldId": 918403,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "712707": {
       "kommoFieldId": 918405,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "712709": {
       "kommoFieldId": 918407,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "712711": {
       "kommoFieldId": 918409,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "712713": {
       "kommoFieldId": 918411,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "712715": {
       "kommoFieldId": 868564,
@@ -638,52 +695,62 @@
     "716959": {
       "kommoFieldId": 918439,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "717433": {
       "kommoFieldId": 918443,
       "fieldType": "text",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "text"
     },
     "717435": {
       "kommoFieldId": 918437,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "717751": {
       "kommoFieldId": 918435,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "717753": {
       "kommoFieldId": 918427,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "721875": {
       "kommoFieldId": 918431,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "721877": {
       "kommoFieldId": 918433,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "721879": {
       "kommoFieldId": 918429,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "721881": {
       "kommoFieldId": 918423,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "721883": {
       "kommoFieldId": 918425,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "723487": {
       "kommoFieldId": 871422,
@@ -698,87 +765,104 @@
       "kommoFieldId": 918369,
       "fieldType": "textarea",
       "enumMap": {},
-      "amoGroup": "emfy"
+      "amoGroup": "emfy",
+      "kommoFieldType": "textarea"
     },
     "724179": {
       "kommoFieldId": 918449,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "724645": {
       "kommoFieldId": 918379,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "725415": {
       "kommoFieldId": 918529,
       "fieldType": "text",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "text"
     },
     "725417": {
       "kommoFieldId": 918531,
       "fieldType": "text",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "text"
     },
     "725419": {
       "kommoFieldId": 918533,
       "fieldType": "text",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "text"
     },
     "725651": {
       "kommoFieldId": 918419,
       "fieldType": "text",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "text"
     },
     "725653": {
       "kommoFieldId": 918421,
       "fieldType": "text",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "text"
     },
     "725655": {
       "kommoFieldId": 918415,
       "fieldType": "text",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "text"
     },
     "725657": {
       "kommoFieldId": 918417,
       "fieldType": "text",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "text"
     },
     "725659": {
       "kommoFieldId": 918397,
       "fieldType": "text",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "text"
     },
     "725661": {
       "kommoFieldId": 918395,
       "fieldType": "url",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "url"
     },
     "725663": {
       "kommoFieldId": 918413,
       "fieldType": "text",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "text"
     },
     "725665": {
       "kommoFieldId": 918451,
       "fieldType": "date_time",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "date_time"
     },
     "725667": {
       "kommoFieldId": 918393,
       "fieldType": "text",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "text"
     },
     "725673": {
       "kommoFieldId": 918387,
       "fieldType": "text",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "text"
     },
     "726941": {
       "kommoFieldId": 918589,
       "fieldType": "numeric",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "numeric"
     },
     "729123": {
       "kommoFieldId": 880928,
@@ -793,7 +877,8 @@
     "729215": {
       "kommoFieldId": 918535,
       "fieldType": "checkbox",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "checkbox"
     },
     "729347": {
       "kommoFieldId": 869208,
@@ -808,58 +893,69 @@
     "730353": {
       "kommoFieldId": 918459,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "730355": {
       "kommoFieldId": 918461,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "730357": {
       "kommoFieldId": 918463,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "730359": {
       "kommoFieldId": 918465,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "730361": {
       "kommoFieldId": 918467,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "730363": {
       "kommoFieldId": 918469,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "730365": {
       "kommoFieldId": 918471,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "730373": {
       "kommoFieldId": 918473,
       "fieldType": "text",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "text"
     },
     "730801": {
       "kommoFieldId": 918359,
       "fieldType": "checkbox",
       "enumMap": {},
-      "amoGroup": "контроль_качества"
+      "amoGroup": "контроль_качества",
+      "kommoFieldType": "checkbox"
     },
     "731073": {
       "kommoFieldId": 918475,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "731075": {
       "kommoFieldId": 918457,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     },
     "731083": {
       "kommoFieldId": 918473,
@@ -874,12 +970,14 @@
     "731675": {
       "kommoFieldId": 918517,
       "fieldType": "text",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "text"
     },
     "731677": {
       "kommoFieldId": 918519,
       "fieldType": "text",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "text"
     },
     "732843": {
       "kommoFieldId": 918537,
@@ -1023,13 +1121,15 @@
       "kommoFieldId": 918371,
       "fieldType": "text",
       "enumMap": {},
-      "amoGroup": "emfy"
+      "amoGroup": "emfy",
+      "kommoFieldType": "text"
     },
     "734774": {
       "kommoFieldId": 918373,
       "fieldType": "text",
       "enumMap": {},
-      "amoGroup": "emfy"
+      "amoGroup": "emfy",
+      "kommoFieldType": "text"
     },
     "734776": {
       "kommoFieldId": 918375,
@@ -1048,17 +1148,20 @@
       "kommoFieldId": 918377,
       "fieldType": "text",
       "enumMap": {},
-      "amoGroup": "emfy"
+      "amoGroup": "emfy",
+      "kommoFieldType": "text"
     },
     "735131": {
       "kommoFieldId": 918545,
       "fieldType": "text",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "text"
     },
     "735133": {
       "kommoFieldId": 918577,
       "fieldType": "textarea",
-      "enumMap": {}
+      "enumMap": {},
+      "kommoFieldType": "textarea"
     }
   },
   "contacts": {

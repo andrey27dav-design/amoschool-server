@@ -83,12 +83,32 @@ function transformCustomFields(amoFields, section) {
     const mode = entry.transferMode || 'direct';
 
     if (mode === 'direct') {
-        // Sanitize AMO values — strip null/undefined enum_id/enum to avoid Kommo 400
+        const ENUM_TYPES = ['select', 'radiobutton', 'multiselect'];
+        const isEnumField = ENUM_TYPES.includes(entry.amoFieldType) || ENUM_TYPES.includes(entry.kommoFieldType);
+        const kType = entry.kommoFieldType || entry.amoFieldType || 'text';
+        const enumMap = entry.enumMap || {};
         const cleanValues = (field.values || [])
           .map(v => {
+            if (isEnumField) {
+              // Транслируем AMO enum_id → Kommo enum_id через enumMap
+              const kommoEnumId = enumMap[String(v.enum_id)];
+              if (kommoEnumId) return { enum_id: kommoEnumId };
+              // Если нет в enumMap — шлём как текст (fallback)
+              if (v.value != null && v.value !== '') return { value: String(v.value) };
+              return null;
+            }
+            // Checkbox — Kommo ожидает boolean
+            if (kType === 'checkbox') {
+              return { value: v.value === true || v.value === 'true' || v.value === 1 || v.value === '1' };
+            }
+            // Date/datetime — Kommo ожидает unix timestamp как число
+            if (kType === 'date' || kType === 'date_time') {
+              const ts = parseInt(v.value);
+              return isNaN(ts) ? null : { value: ts };
+            }
+            // text, textarea, numeric, url — просто value
             const o = {};
             if (v.value != null && v.value !== '') o.value = String(v.value);
-            if (v.enum_id)   o.enum_id   = v.enum_id;
             if (v.enum_code) o.enum_code = v.enum_code;
             return Object.keys(o).length > 0 ? o : null;
           })
