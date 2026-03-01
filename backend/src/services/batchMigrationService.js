@@ -347,7 +347,21 @@ async function runBatchMigration(stageMapping) {
     /* ── 9. Migrate leads ───────────────────────────────────────────── */
     updateState({ step: `Перенос сделок (${batchLeads.length})...` });
     const { transformLead } = require('../utils/dataTransformer');
-    const leadsToCreate = batchLeads.map(lead => {
+
+    // ╔ SAFE: исключаем уже перенесённые сделки ════════════════════════
+    const { toCreate: newLeads, skipped: skippedLeads } =
+      safety.filterNotMigrated('leads', batchLeads, l => l.id);
+    if (skippedLeads.length > 0) {
+      addWarning(
+        `▶️ ${skippedLeads.length} сделок уже перенесены ранее — пропущены (перезапись запрещена).`,
+        'Данные в Kommo не изменены. Чтобы перенести повторно — сбросьте индекс через вкладку Бэкап.'
+      );
+    }
+    // Pre-populate leadIdMap для skipped сделок (нужно для задач/заметок)
+    const leadIdMap = {};
+    skippedLeads.forEach(({ amoId, kommoId }) => { leadIdMap[Number(amoId)] = Number(kommoId); });
+
+    const leadsToCreate = newLeads.map(lead => {
       const t = transformLead(lead, stageMapping || {}, fieldMappings.leads, userMap);
       t.pipeline_id = config.kommo.pipelineId;
       // Embed contacts + companies directly in lead creation payload (bulk, no separate link calls)
@@ -363,18 +377,20 @@ async function runBatchMigration(stageMapping) {
       return t;
     });
 
-    let createdLeads;
+    let createdLeads = [];
+    if (newLeads.length > 0) {
     try {
       createdLeads = await kommoApi.createLeadsBatch(leadsToCreate);
     } catch (e) {
       addError(`Ошибка переноса сделок: ${e.message}`, 'Уменьшите размер пакета или проверьте лимиты API Kommo CRM.');
       updateState({ status: 'error', completedAt: new Date().toISOString() }); return;
     }
+    } // end if (newLeads.length > 0)
 
-    const leadIdMap = {};
+    // leadIdMap declared above (see SAFE dedup block)
     for (let idx = 0; idx < createdLeads.length; idx++) {
       const kLead = createdLeads[idx];
-      const aLead = batchLeads[idx];
+      const aLead = newLeads[idx];       // ← только новые (не skipped)
       if (!kLead || !aLead) continue;
       leadIdMap[aLead.id] = kLead.id;
       batchState.createdIds.leads.push(kLead.id);
