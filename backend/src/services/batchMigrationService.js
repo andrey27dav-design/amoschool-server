@@ -680,9 +680,16 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
     // PATCH custom fields
     const { transformLead: _tl } = require('../utils/dataTransformer');
     const tl = _tl(aLead, stageMapping || {}, fieldMappings.leads, userMap);
+    const patchPayload = {};
     if (tl.custom_fields_values && tl.custom_fields_values.length > 0) {
-      try { await kommoApi.updateLead(kommoId, { custom_fields_values: tl.custom_fields_values }); }
-      catch (e) { result.warnings.push(`Обновление полей сделки AMO#${amoId}: ${e.message}`); }
+      patchPayload.custom_fields_values = tl.custom_fields_values;
+    }
+    if (tl.responsible_user_id) {
+      patchPayload.responsible_user_id = tl.responsible_user_id;
+    }
+    if (Object.keys(patchPayload).length > 0) {
+      try { await kommoApi.updateLead(kommoId, patchPayload); }
+      catch (e) { result.warnings.push(`Обновление полей/менеджера сделки AMO#${amoId}: ${e.message}`); }
     }
     // Re-link contacts/companies (идемпотентно)
     for (const c of ((aLead._embedded && aLead._embedded.contacts) || [])) {
