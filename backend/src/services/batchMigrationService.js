@@ -599,17 +599,21 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
       result.skipped.companies++;
       // PATCH custom fields — может быть пропустили при первом переносе
       const { transformCompany: _tc } = require('../utils/dataTransformer');
-      const cfv = _tc(item, fieldMappings.companies)?.custom_fields_values;
-      if (cfv && cfv.length > 0) {
-        try { await kommoApi.updateCompany(kommoId, { custom_fields_values: cfv }); }
-        catch (e) { result.warnings.push(`Обновление полей компании AMO#${amoId}: ${e.message}`); }
+      const tc = _tc(item, fieldMappings.companies, userMap);
+      if (tc.custom_fields_values && tc.custom_fields_values.length > 0) {
+        try { await kommoApi.updateCompany(kommoId, { custom_fields_values: tc.custom_fields_values }); }
+        catch (e) { result.warnings.push(`Обновление кастомных полей компании AMO#${amoId}: ${e.message}`); }
+      }
+      if (tc.responsible_user_id) {
+        try { await kommoApi.updateCompany(kommoId, { responsible_user_id: tc.responsible_user_id }); }
+        catch (e) { result.warnings.push(`Обновление менеджера компании AMO#${amoId}: ${e.message}`); }
       }
     }
     if (toCreate.length > 0) {
       try {
         const { transformCompany } = require('../utils/dataTransformer');
         const created = await kommoApi.createCompaniesBatch(
-          toCreate.map(c => transformCompany(c, fieldMappings.companies))
+          toCreate.map(c => transformCompany(c, fieldMappings.companies, userMap))
         );
         const pairs = [];
         created.forEach((k, i) => {
@@ -640,17 +644,21 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
       result.skipped.contacts++;
       // PATCH custom fields — может быть пропустили при первом переносе
       const { transformContact: _tct } = require('../utils/dataTransformer');
-      const cfv = _tct(item, fieldMappings.contacts)?.custom_fields_values;
-      if (cfv && cfv.length > 0) {
-        try { await kommoApi.updateContact(kommoId, { custom_fields_values: cfv }); }
-        catch (e) { result.warnings.push(`Обновление полей контакта AMO#${amoId}: ${e.message}`); }
+      const tct = _tct(item, fieldMappings.contacts, userMap);
+      if (tct.custom_fields_values && tct.custom_fields_values.length > 0) {
+        try { await kommoApi.updateContact(kommoId, { custom_fields_values: tct.custom_fields_values }); }
+        catch (e) { result.warnings.push(`Обновление кастомных полей контакта AMO#${amoId}: ${e.message}`); }
+      }
+      if (tct.responsible_user_id) {
+        try { await kommoApi.updateContact(kommoId, { responsible_user_id: tct.responsible_user_id }); }
+        catch (e) { result.warnings.push(`Обновление менеджера контакта AMO#${amoId}: ${e.message}`); }
       }
     }
     if (toCreate.length > 0) {
       try {
         const { transformContact } = require('../utils/dataTransformer');
         const created = await kommoApi.createContactsBatch(
-          toCreate.map(c => transformContact(c, fieldMappings.contacts))
+          toCreate.map(c => transformContact(c, fieldMappings.contacts, userMap))
         );
         const pairs = [];
         created.forEach((k, i) => {
@@ -680,16 +688,15 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
     // PATCH custom fields
     const { transformLead: _tl } = require('../utils/dataTransformer');
     const tl = _tl(aLead, stageMapping || {}, fieldMappings.leads, userMap);
-    const patchPayload = {};
+    // PATCH custom fields separately from manager to avoid blocking manager update on field errors
     if (tl.custom_fields_values && tl.custom_fields_values.length > 0) {
-      patchPayload.custom_fields_values = tl.custom_fields_values;
+      try { await kommoApi.updateLead(kommoId, { custom_fields_values: tl.custom_fields_values }); }
+      catch (e) { result.warnings.push(`Обновление кастомных полей сделки AMO#${amoId}: ${e.message}`); }
     }
+    // Always update responsible_user_id in separate PATCH — never blocked by custom field errors
     if (tl.responsible_user_id) {
-      patchPayload.responsible_user_id = tl.responsible_user_id;
-    }
-    if (Object.keys(patchPayload).length > 0) {
-      try { await kommoApi.updateLead(kommoId, patchPayload); }
-      catch (e) { result.warnings.push(`Обновление полей/менеджера сделки AMO#${amoId}: ${e.message}`); }
+      try { await kommoApi.updateLead(kommoId, { responsible_user_id: tl.responsible_user_id }); }
+      catch (e) { result.warnings.push(`Обновление менеджера сделки AMO#${amoId}: ${e.message}`); }
     }
     // Re-link contacts/companies (идемпотентно)
     for (const c of ((aLead._embedded && aLead._embedded.contacts) || [])) {

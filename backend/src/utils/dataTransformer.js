@@ -153,25 +153,37 @@ function transformCustomFields(amoValues, fieldMapping) {
 /**
  * Transform AMO contact to Kommo contact format
  */
-function transformContact(amoContact, fieldMapping) {
+function transformContact(amoContact, fieldMapping, userMapping) {
   const obj = {
     name: amoContact.name || `Contact #${amoContact.id}`,
     // Note: first_name/last_name are NOT valid Kommo API top-level fields — omit them
     custom_fields_values: transformCustomFields(amoContact.custom_fields_values, fieldMapping),
   };
   if (!obj.custom_fields_values.length) delete obj.custom_fields_values;
+  // Apply responsible user mapping
+  if (userMapping) {
+    const amoUid = amoContact.responsible_user_id;
+    const kommoUid = amoUid ? (userMapping[amoUid] || userMapping[String(amoUid)]) : null;
+    if (kommoUid) obj.responsible_user_id = Number(kommoUid);
+  }
   return obj;
 }
 
 /**
  * Transform AMO company to Kommo company format
  */
-function transformCompany(amoCompany, fieldMapping) {
+function transformCompany(amoCompany, fieldMapping, userMapping) {
   const obj = {
     name: amoCompany.name || `Company #${amoCompany.id}`,
     custom_fields_values: transformCustomFields(amoCompany.custom_fields_values, fieldMapping),
   };
   if (!obj.custom_fields_values.length) delete obj.custom_fields_values;
+  // Apply responsible user mapping
+  if (userMapping) {
+    const amoUid = amoCompany.responsible_user_id;
+    const kommoUid = amoUid ? (userMapping[amoUid] || userMapping[String(amoUid)]) : null;
+    if (kommoUid) obj.responsible_user_id = Number(kommoUid);
+  }
   return obj;
 }
 
