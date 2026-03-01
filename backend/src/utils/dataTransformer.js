@@ -31,13 +31,14 @@ function transformLead(amoLead, stageMapping, fieldMapping, userMapping) {
     name: amoLead.name || `Lead #${amoLead.id}`,
     price: amoLead.price || 0,
     pipeline_id: null, // set by caller
-    // responsible_user_id: применяем userMapping если задан (AMO user id → Kommo user id)
-    if (userMapping) {
-      const amoUid = amoLead.responsible_user_id;
-      const kommoUid = amoUid ? (userMapping[amoUid] || userMapping[String(amoUid)]) : null;
-      if (kommoUid) lead.responsible_user_id = Number(kommoUid);
-    }
   };
+
+  // Apply responsible user mapping (AMO user id → Kommo user id)
+  if (userMapping) {
+    const amoUid = amoLead.responsible_user_id;
+    const kommoUid = amoUid ? (userMapping[amoUid] || userMapping[String(amoUid)]) : null;
+    if (kommoUid) lead.responsible_user_id = Number(kommoUid);
+  }
 
   // Only set status_id if we have a valid mapping — null causes 400 in Kommo API
   if (kommoStatusId) lead.status_id = kommoStatusId;
