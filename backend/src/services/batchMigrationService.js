@@ -604,8 +604,10 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
         try { await kommoApi.updateCompany(kommoId, { custom_fields_values: tc.custom_fields_values }); }
         catch (e) { result.warnings.push(`Обновление кастомных полей компании AMO#${amoId}: ${e.message}`); }
       }
-      if (tc.responsible_user_id) {
-        try { await kommoApi.updateCompany(kommoId, { responsible_user_id: tc.responsible_user_id }); }
+      // Determine Kommo user: from entity's own mapping, fallback to first configured mapping
+      const compKommoUserId = tc.responsible_user_id || (Object.keys(userMap).length > 0 ? Number(Object.values(userMap)[0]) : null);
+      if (compKommoUserId) {
+        try { await kommoApi.updateCompany(kommoId, { responsible_user_id: compKommoUserId }); }
         catch (e) { result.warnings.push(`Обновление менеджера компании AMO#${amoId}: ${e.message}`); }
       }
     }
@@ -649,8 +651,10 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
         try { await kommoApi.updateContact(kommoId, { custom_fields_values: tct.custom_fields_values }); }
         catch (e) { result.warnings.push(`Обновление кастомных полей контакта AMO#${amoId}: ${e.message}`); }
       }
-      if (tct.responsible_user_id) {
-        try { await kommoApi.updateContact(kommoId, { responsible_user_id: tct.responsible_user_id }); }
+      // Determine Kommo user: from entity's own mapping, fallback to first configured mapping
+      const contKommoUserId = tct.responsible_user_id || (Object.keys(userMap).length > 0 ? Number(Object.values(userMap)[0]) : null);
+      if (contKommoUserId) {
+        try { await kommoApi.updateContact(kommoId, { responsible_user_id: contKommoUserId }); }
         catch (e) { result.warnings.push(`Обновление менеджера контакта AMO#${amoId}: ${e.message}`); }
       }
     }
