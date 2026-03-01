@@ -1,5 +1,18 @@
 require('dotenv').config();
 require('express-async-errors');
+
+// Handle EPIPE and unhandledRejection to prevent PM2 crashes on client disconnect
+process.on('uncaughtException', (err) => {
+  if (err.code === 'EPIPE' || err.syscall === 'write') {
+    return; // Client disconnected — ignore silently
+  }
+  console.error('[uncaughtException]', err.message);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason);
+});
+
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs-extra');
