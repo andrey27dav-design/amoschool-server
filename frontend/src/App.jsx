@@ -465,6 +465,24 @@ export default function App() {
     setBatchLoading(false);
   };
 
+  const handleResumeBatch = async () => {
+    if (!confirm(`Продолжить перенос? Будет использован offset: ${batchStatus?.progress?.current ?? 0} сделок.`)) return;
+    setBatchLoading(true);
+    setMessage('');
+    try {
+      await api.setBatchConfig({ managerIds: selectedManagers, batchSize });
+      await api.startBatch();
+      setMessage('▶ Продолжение миграции запущено...');
+      setTimeout(async () => {
+        const d = await api.getBatchStatus().catch(() => null);
+        if (d) setBatchStatusData(d);
+      }, 800);
+    } catch (e) {
+      setMessage(`❌ Ошибка: ${e.response?.data?.error || e.message}`);
+    }
+    setBatchLoading(false);
+  };
+
   const handleBatchReset = async () => {
     if (!confirm('Сбросить счётчик? Следующий пакет начнётся с первой сделки.')) return;
     try {
@@ -683,22 +701,62 @@ export default function App() {
                 </button>
               </div>
               <button className="btn btn-primary" onClick={handleStartBatch}
-                disabled={batchLoading || batchStatus?.status === 'running' || !batchStats?.remainingLeads}>
+                disabled={batchLoading || batchStatus?.status === 'running' || batchStats?.remainingLeads === 0}>
                 {batchStatus?.status === 'running'
                   ? `⏳ ${batchStatus.step || 'Выполняется...'}`
                   : batchSize === 0
                     ? '🚀 Перенести ВСЕ сделки'
-                    : `🚀 Перенести ${batchSize} сделок`}
+                    : `🚀 Перенести первые ${batchSize} неотработанных`}
               </button>
-              <button className="btn btn-warn" onClick={handleBatchRollback}
-                disabled={batchLoading || batchStatus?.status === 'running'}>
-                ↩ Откатить пакет
-              </button>
+              {batchStatus?.status === 'error'
+                ? <button className="btn btn-primary" onClick={handleResumeBatch}
+                    disabled={batchLoading}
+                    title="Продолжить с последнего успешного места">
+                    ▶ Продолжить пакет
+                  </button>
+                : <button className="btn btn-warn" onClick={handleBatchRollback}
+                    disabled={batchLoading || batchStatus?.status === 'running'}
+                    title="Удалить последний перенесённый пакет из Kommo CRM">
+                    ↩ Откатить пакет
+                  </button>
+              }
               <button className="btn btn-secondary" onClick={handleBatchReset}
                 disabled={batchLoading || batchStatus?.status === 'running'}>
                 🔁 Сбросить счётчик
               </button>
             </div>
+
+            {/* Time estimate */}
+            {batchStatus?.status !== 'running' && batchSize > 0 && (
+              <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6, marginBottom: 2 }}>
+                ⏱ Прогноз: ~{Math.max(1, Math.round(batchSize * 1.5 * 1.3 / 60))} мин для {batchSize} сделок
+                {batchStats?.remainingLeads > 0 && ` · Осталось: ${batchStats.remainingLeads}`}
+              </div>
+            )}
+
+            {/* Interrupted banner */}
+            {batchStatus?.status === 'error' && (
+              <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 8, padding: '8px 14px', marginTop: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 13, color: '#fca5a5' }}>
+                  ⛔ Перенос прерван.{batchStatus.progress?.current > 0 ? ` Обработано: ${batchStatus.progress.current} сделок.` : ''} Нажмите «▶ Продолжить пакет».
+                </span>
+              </div>
+            )}
+
+            {/* Completion stats */}
+            {batchStatus?.status === 'completed' && batchStatus?.createdIds && (
+              <div style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 8, padding: '10px 14px', marginTop: 8 }}>
+                <div style={{ fontWeight: 700, fontSize: 13, color: '#86efac', marginBottom: 6 }}>✅ Пакет завершён</div>
+                <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: 12, color: '#cbd5e1' }}>
+                  <span>Сделок: <b style={{color:'#fff'}}>{batchStatus.createdIds.leads?.length ?? 0}</b></span>
+                  <span>Контактов: <b style={{color:'#fff'}}>{batchStatus.createdIds.contacts?.length ?? 0}</b></span>
+                  <span>Компаний: <b style={{color:'#fff'}}>{batchStatus.createdIds.companies?.length ?? 0}</b></span>
+                  <span>Заметок: <b style={{color:'#fff'}}>{batchStatus.createdIds.notes?.length ?? 0}</b></span>
+                  <span>⚠️ предупреждений: <b style={{color: batchStatus.warnings?.length > 0 ? '#fbbf24':'#fff'}}>{batchStatus.warnings?.length ?? 0}</b></span>
+                  <span>❌ ошибок: <b style={{color: batchStatus.errors?.length > 0 ? '#f87171':'#fff'}}>{batchStatus.errors?.length ?? 0}</b></span>
+                </div>
+              </div>
+            )}
 
             {/* Batch progress */}
             {batchStatus?.status === 'running' && batchStatus.progress?.total > 0 && (
