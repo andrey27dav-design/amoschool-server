@@ -11,6 +11,22 @@ const amoClient = axios.create({
   timeout: 30000,
 });
 
+// 429 retry interceptor — wait Retry-After (or 2s) then retry up to 3 times
+amoClient.interceptors.response.use(null, async (error) => {
+  const cfg = error.config;
+  if (!cfg) return Promise.reject(error);
+  cfg.__retryCount = cfg.__retryCount || 0;
+  if (error.response && error.response.status === 429 && cfg.__retryCount < 3) {
+    cfg.__retryCount++;
+    const retryAfter = parseInt(error.response.headers['retry-after'] || '2', 10);
+    const delay = Math.max(retryAfter * 1000, 2000);
+    logger.warn(`[amoApi] 429 received, retry #${cfg.__retryCount} after ${delay}ms`);
+    await new Promise(r => setTimeout(r, delay));
+    return amoClient(cfg);
+  }
+  return Promise.reject(error);
+});
+
 // ⛔ SAFETY: Block any DELETE/PUT/PATCH requests to AMO CRM API
 // AMO is a READ-ONLY source — data is deleted manually by operator after verification
 amoClient.interceptors.request.use((cfg) => {
@@ -25,7 +41,7 @@ amoClient.interceptors.request.use((cfg) => {
 
 // Rate limiter: max 7 requests/sec for amo CRM API
 let lastRequestTime = 0;
-const MIN_INTERVAL = 150; // ms
+const MIN_INTERVAL = 300; // ms — 300ms gap = ~3 req/sec, well below 7/sec limit // ms
 
 async function rateLimit() {
   const now = Date.now();

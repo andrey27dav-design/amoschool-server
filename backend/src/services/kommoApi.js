@@ -11,9 +11,9 @@ const kommoClient = axios.create({
   timeout: 30000,
 });
 
-// Rate limiter: max 7 requests/sec
+// Rate limiter: 300ms between requests (~3 req/sec, well below 7/sec limit)
 let lastRequestTime = 0;
-const MIN_INTERVAL = 150;
+const MIN_INTERVAL = 300; // ms — conservative to avoid 429
 
 async function rateLimit() {
   const now = Date.now();
@@ -23,6 +23,22 @@ async function rateLimit() {
   }
   lastRequestTime = Date.now();
 }
+
+// 429 retry interceptor — wait Retry-After (or 2s) then retry up to 3 times
+kommoClient.interceptors.response.use(null, async (error) => {
+  const cfg = error.config;
+  if (!cfg) return Promise.reject(error);
+  cfg.__retryCount = cfg.__retryCount || 0;
+  if (error.response && error.response.status === 429 && cfg.__retryCount < 3) {
+    cfg.__retryCount++;
+    const retryAfter = parseInt(error.response.headers['retry-after'] || '2', 10);
+    const delay = Math.max(retryAfter * 1000, 2000);
+    logger.warn(`[kommoApi] 429 received, retry #${cfg.__retryCount} after ${delay}ms`);
+    await new Promise(r => setTimeout(r, delay));
+    return kommoClient(cfg);
+  }
+  return Promise.reject(error);
+});
 
 async function getPipelines() {
   await rateLimit();
