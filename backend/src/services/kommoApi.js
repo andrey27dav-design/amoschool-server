@@ -301,7 +301,7 @@ async function linkCompanyToLead(leadId, companyId) {
 
 async function getCustomFields(entityType = 'leads') {
   await rateLimit();
-  const res = await kommoClient.get(`/api/v4/${entityType}/custom_fields`);
+  const res = await kommoClient.get(`/api/v4/${entityType}/custom_fields`, { params: { limit: 250 } });
   return res.data._embedded?.custom_fields || [];
 }
 

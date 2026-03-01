@@ -249,6 +249,14 @@ async function runBatchMigration(stageMapping) {
       fieldMappings = { leads: null, contacts: null, companies: null };
     }
 
+      // --- User mapping for batch ---
+      const userMap = {};
+      try {
+        const db = require('../db');
+        const ums = db.getUserMappings ? db.getUserMappings() : [];
+        ums.forEach(m => { userMap[m.amo_user_id] = m.kommo_user_id; userMap[String(m.amo_user_id)] = m.kommo_user_id; });
+      } catch (e) { /* proceed without user mapping */ }
+
     /* ── 7. Migrate companies ───────────────────────────────────────── */
     updateState({ step: `Перенос компаний (${batchCompanies.length})...` });
     const companyIdMap = {};
@@ -330,7 +338,7 @@ async function runBatchMigration(stageMapping) {
     updateState({ step: `Перенос сделок (${batchLeads.length})...` });
     const { transformLead } = require('../utils/dataTransformer');
     const leadsToCreate = batchLeads.map(lead => {
-      const t = transformLead(lead, stageMapping || {}, fieldMappings.leads);
+      const t = transformLead(lead, stageMapping || {}, fieldMappings.leads, userMap);
       t.pipeline_id = config.kommo.pipelineId;
       return t;
     });
@@ -569,6 +577,14 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
 
   const fieldMappings = loadFieldMapping() || { leads: null, contacts: null, companies: null };
 
+  // --- User mapping (AMO responsible_user_id → Kommo responsible_user_id) ---
+  const userMap = {};
+  try {
+    const db = require('../db');
+    const ums = db.getUserMappings ? db.getUserMappings() : [];
+    ums.forEach(m => { userMap[m.amo_user_id] = m.kommo_user_id; userMap[String(m.amo_user_id)] = m.kommo_user_id; });
+  } catch (e) { /* db not available — proceed without user mapping */ }
+
   // ── Companies ──────────────────────────────────────────────────────────────
   const neededCompanyIds = new Set(
     selectedLeads.flatMap(l => ((l._embedded && l._embedded.companies) || []).map(c => c.id))
@@ -663,7 +679,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
     leadIdMap[String(amoId)] = kommoId;
     // PATCH custom fields
     const { transformLead: _tl } = require('../utils/dataTransformer');
-    const tl = _tl(aLead, stageMapping || {}, fieldMappings.leads);
+    const tl = _tl(aLead, stageMapping || {}, fieldMappings.leads, userMap);
     if (tl.custom_fields_values && tl.custom_fields_values.length > 0) {
       try { await kommoApi.updateLead(kommoId, { custom_fields_values: tl.custom_fields_values }); }
       catch (e) { result.warnings.push(`Обновление полей сделки AMO#${amoId}: ${e.message}`); }
@@ -688,7 +704,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
       try {
         const { transformLead } = require('../utils/dataTransformer');
         const leadsForKommo = leadsToCreate.map(lead => {
-          const t = transformLead(lead, stageMapping || {}, fieldMappings.leads);
+          const t = transformLead(lead, stageMapping || {}, fieldMappings.leads, userMap);
           t.pipeline_id = config.kommo.pipelineId;
           // ── Передаём contacts и companies в _embedded при СОЗДАНИИ сделки ──
           // В Kommo API PATCH _embedded.contacts работает ненадёжно;

@@ -22,7 +22,7 @@ const AMO_STAGE_MAP = {
 /**
  * Transform an AMO lead to Kommo lead format
  */
-function transformLead(amoLead, stageMapping, fieldMapping) {
+function transformLead(amoLead, stageMapping, fieldMapping, userMapping) {
   const kommoStatusId = stageMapping[amoLead.status_id] || null;
   // Build tags in Kommo format: [{name: "..."}] — drop amo IDs
   const tags = (amoLead._embedded?.tags || []).map(t => ({ name: t.name })).filter(t => t.name);
@@ -31,7 +31,12 @@ function transformLead(amoLead, stageMapping, fieldMapping) {
     name: amoLead.name || `Lead #${amoLead.id}`,
     price: amoLead.price || 0,
     pipeline_id: null, // set by caller
-    // responsible_user_id: null — omit, Kommo assigns to token owner
+    // responsible_user_id: применяем userMapping если задан (AMO user id → Kommo user id)
+    if (userMapping) {
+      const amoUid = amoLead.responsible_user_id;
+      const kommoUid = amoUid ? (userMapping[amoUid] || userMapping[String(amoUid)]) : null;
+      if (kommoUid) lead.responsible_user_id = Number(kommoUid);
+    }
   };
 
   // Only set status_id if we have a valid mapping — null causes 400 in Kommo API
