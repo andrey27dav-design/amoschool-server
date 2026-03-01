@@ -116,21 +116,21 @@ async function createLeadsBatch(leads) {
 async function updateLead(leadId, data) {
   await rateLimit();
   // Kommo API: PATCH /api/v4/leads with array [{id, ...fields}]
-  const res = await kommoClient.patch('/api/v4/leads', [{ id: leadId, ...data }]);
+  const res = await kommoClient.patch('/api/v4/leads', [{ id: parseInt(leadId), ...data }]);
   return res.data._embedded?.leads?.[0] || null;
 }
 
 async function updateContact(contactId, data) {
   await rateLimit();
   // Kommo API: PATCH /api/v4/contacts with array [{id, ...fields}]
-  const res = await kommoClient.patch('/api/v4/contacts', [{ id: contactId, ...data }]);
+  const res = await kommoClient.patch('/api/v4/contacts', [{ id: parseInt(contactId), ...data }]);
   return res.data._embedded?.contacts?.[0] || null;
 }
 
 async function updateCompany(companyId, data) {
   await rateLimit();
   // Kommo API: PATCH /api/v4/companies with array [{id, ...fields}]
-  const res = await kommoClient.patch('/api/v4/companies', [{ id: companyId, ...data }]);
+  const res = await kommoClient.patch('/api/v4/companies', [{ id: parseInt(companyId), ...data }]);
   return res.data._embedded?.companies?.[0] || null;
 }
 
@@ -285,7 +285,7 @@ async function linkContactToLead(leadId, contactId) {
   // Kommo API: PATCH /api/v4/leads with _embedded.contacts
   await rateLimit();
   const res = await kommoClient.patch('/api/v4/leads', [
-    { id: leadId, _embedded: { contacts: [{ id: contactId }] } },
+    { id: parseInt(leadId), _embedded: { contacts: [{ id: parseInt(contactId) }] } },
   ]);
   return res.data;
 }
@@ -294,7 +294,7 @@ async function linkCompanyToLead(leadId, companyId) {
   // Kommo API: PATCH /api/v4/leads with _embedded.companies  
   await rateLimit();
   const res = await kommoClient.patch('/api/v4/leads', [
-    { id: leadId, _embedded: { companies: [{ id: companyId }] } },
+    { id: parseInt(leadId), _embedded: { companies: [{ id: parseInt(companyId) }] } },
   ]);
   return res.data;
 }
