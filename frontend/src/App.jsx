@@ -12,6 +12,7 @@ const STATUS_LABELS = {
   completed: 'Завершено',
   error: 'Ошибка',
   rolling_back: 'Откат...',
+  paused: 'На паузе',
 };
 
 const STATUS_COLORS = {
@@ -20,6 +21,7 @@ const STATUS_COLORS = {
   completed: '#10b981',
   error: '#ef4444',
   rolling_back: '#f59e0b',
+  paused: '#f59e0b',
 };
 
 const MIGRATION_PLAN = [
@@ -483,6 +485,20 @@ export default function App() {
     setBatchLoading(false);
   };
 
+  const handleBatchPause = async () => {
+    try {
+      await api.pauseBatch();
+      setMessage('⏸ Запрос паузы отправлен. Миграция остановится на ближайшей точке.');
+      setTimeout(async () => {
+        const [d, s] = await Promise.all([api.getBatchStatus(), api.getBatchStats()]).catch(() => [null, null]);
+        if (d) setBatchStatusData(d);
+        if (s) setBatchStats(s);
+      }, 1500);
+    } catch (e) {
+      setMessage('❌ ' + (e.response?.data?.error || e.message));
+    }
+  };
+
   const handleBatchReset = async () => {
     if (!confirm('Сбросить счётчик? Следующий пакет начнётся с первой сделки.')) return;
     try {
@@ -708,18 +724,20 @@ export default function App() {
                     ? '🚀 Перенести ВСЕ сделки'
                     : `🚀 Перенести первые ${batchSize} неотработанных`}
               </button>
-              {batchStatus?.status === 'error'
-                ? <button className="btn btn-primary" onClick={handleResumeBatch}
-                    disabled={batchLoading}
-                    title="Продолжить с последнего успешного места">
-                    ▶ Продолжить пакет
-                  </button>
-                : <button className="btn btn-warn" onClick={handleBatchRollback}
-                    disabled={batchLoading || batchStatus?.status === 'running'}
-                    title="Удалить последний перенесённый пакет из Kommo CRM">
-                    ↩ Откатить пакет
-                  </button>
-              }
+              {batchStatus?.status === 'running' && (
+                <button className="btn btn-warn" onClick={handleBatchPause}
+                  disabled={batchLoading}
+                  title="Остановить на ближайшей контрольной точке">
+                  ⏸ Пауза
+                </button>
+              )}
+              {(batchStatus?.status === 'error' || batchStatus?.status === 'paused') && (
+                <button className="btn btn-primary" onClick={handleResumeBatch}
+                  disabled={batchLoading}
+                  title="Продолжить с последнего успешного места">
+                  ▶ Продолжить пакет
+                </button>
+              )}
               <button className="btn btn-secondary" onClick={handleBatchReset}
                 disabled={batchLoading || batchStatus?.status === 'running'}>
                 🔁 Сбросить счётчик
@@ -735,10 +753,10 @@ export default function App() {
             )}
 
             {/* Interrupted banner */}
-            {batchStatus?.status === 'error' && (
-              <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 8, padding: '8px 14px', marginTop: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontSize: 13, color: '#fca5a5' }}>
-                  ⛔ Перенос прерван.{batchStatus.progress?.current > 0 ? ` Обработано: ${batchStatus.progress.current} сделок.` : ''} Нажмите «▶ Продолжить пакет».
+            {(batchStatus?.status === 'error' || batchStatus?.status === 'paused') && (
+              <div style={{ background: batchStatus?.status === 'paused' ? 'rgba(245,158,11,0.12)' : 'rgba(239,68,68,0.12)', border: '1px solid ' + (batchStatus?.status === 'paused' ? 'rgba(245,158,11,0.45)' : 'rgba(239,68,68,0.35)'), borderRadius: 8, padding: '8px 14px', marginTop: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 13, color: batchStatus?.status === 'paused' ? '#fcd34d' : '#fca5a5' }}>
+                  {batchStatus?.status === 'paused' ? '⏸ Перенос на паузе.' : '⛔ Перенос прерван.'}{batchStatus.progress?.current > 0 ? ` Обработано: ${batchStatus.progress.current} сделок.` : ''} Нажмите «▶ Продолжить пакет».
                 </span>
               </div>
             )}
@@ -845,8 +863,8 @@ export default function App() {
             </div>
           </div>
 
-          {/* Controls */}
-          <div className="card controls-card">
+          {/* Controls hidden */}
+          <div className="card controls-card" style={{ display: 'none' }}>
             <h2>Управление</h2>
             <div className="controls">
               <button className="btn btn-primary" onClick={handleStart} disabled={loading || isRunning}>
@@ -859,7 +877,7 @@ export default function App() {
           </div>
 
           {/* Rollback */}
-          <div className="card rollback-card">
+          <div className="card rollback-card" style={{ display: 'none' }}>
             <h2>⏪ Откат</h2>
             <div className="controls">
               <button className="btn btn-danger" onClick={() => handleRollback()} disabled={loading || isRunning}>

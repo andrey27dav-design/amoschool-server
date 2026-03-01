@@ -15,8 +15,10 @@ const CACHE_FILE = path.resolve(config.backupDir, 'amo_data_cache.json');
 const BATCH_CONFIG_FILE = path.resolve(config.backupDir, 'batch_config.json');
 
 // ─── State ────────────────────────────────────────────────────────────────────
+let pauseRequestedFlag = false;
+
 let batchState = {
-  status: 'idle', // idle | running | completed | error | rolling_back
+  status: 'idle', // idle | running | completed | error | rolling_back | paused
   step: null,
   progress: { current: 0, total: 0 },
   errors: [],
@@ -258,6 +260,14 @@ async function runBatchMigration(stageMapping) {
       } catch (e) { /* proceed without user mapping */ }
 
     /* ── 7. Migrate companies ───────────────────────────────────────── */
+        // pause before companies (safe: nothing written to Kommo yet)
+    if (pauseRequestedFlag) {
+      pauseRequestedFlag = false;
+      saveBatchConfig();
+      updateState({ status: 'paused', step: '⏸ Пауза перед переносом компаний', completedAt: new Date().toISOString() });
+      logger.info('Batch paused before companies');
+      return;
+    }
     updateState({ step: `Перенос компаний (${batchCompanies.length})...` });
     const companyIdMap = {};
     if (batchCompanies.length > 0) {
@@ -374,7 +384,19 @@ async function runBatchMigration(stageMapping) {
     // Регистрируем все перенесённые сделки в индексе безопасности
     if (leadPairs.length > 0) safety.registerMigratedBatch('leads', leadPairs);
 
-    /* ── 10. Migrate tasks ──────────────────────────────────────────── */
+
+    // Pause check after leads (saves offset, stops before tasks)
+    if (pauseRequestedFlag) {
+      pauseRequestedFlag = false;
+      batchConfig.offset = from + batchLeads.length;
+      batchState.stats.totalTransferred = batchConfig.offset;
+      batchState.stats.remainingLeads   = Math.max(0, eligible.length - batchConfig.offset);
+      saveBatchConfig();
+      updateState({ status: 'paused', step: '⏸ Пауза после сделок. Задачи/заметки будут при следующем запуске', completedAt: new Date().toISOString() });
+      logger.info('Batch paused after leads, offset=' + batchConfig.offset);
+      return;
+    }
+        /* ── 10. Migrate tasks ──────────────────────────────────────────── */
     const batchAmoIds = new Set(batchLeads.map(l => l.id));
     const batchTasks  = allTasks.filter(t => t.entity_type === 'leads' && batchAmoIds.has(t.entity_id));
 
@@ -992,4 +1014,11 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
   return result;
 }
 
-module.exports = { getBatchConfig, setBatchConfig, getBatchState, analyzeManagers, getStats, runBatchMigration, rollbackBatch, resetOffset, loadBatchConfig, loadAmoCache, runSingleDealsTransfer };
+function pauseBatch() {
+  if (batchState.status !== 'running') throw new Error('Миграция не выполняется');
+  pauseRequestedFlag = true;
+  updateState({ step: '⏸ Запрос паузы...' });
+  return { ok: true, message: 'Пауза будет применена на ближайшей контрольной точке' };
+}
+
+module.exports = { getBatchConfig, setBatchConfig, getBatchState, analyzeManagers, getStats, runBatchMigration, rollbackBatch, resetOffset, loadBatchConfig, loadAmoCache, runSingleDealsTransfer, pauseBatch };

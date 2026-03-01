@@ -577,6 +577,16 @@ router.post('/batch-rollback', async (req, res) => {
   }
 });
 
+// POST /api/migration/batch-pause
+router.post('/batch-pause', (req, res) => {
+  try {
+    const result = batchService.pauseBatch();
+    res.json(result);
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
 // POST /api/migration/batch-reset
 router.post('/batch-reset', (req, res) => {
   try {
