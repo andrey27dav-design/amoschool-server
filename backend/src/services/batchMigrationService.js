@@ -907,11 +907,19 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
     if (contactTasks.length > 0) {
       try {
         const { transformTask } = require('../utils/dataTransformer');
+        // Build contact AMO-user → Kommo-user map for responsible assignment
+        const contactKommoUserById = {};
+        for (const contact of allContacts) {
+          const uid = contact.responsible_user_id;
+          const kuid = uid ? (userMap[uid] || userMap[String(uid)]) : null;
+          if (kuid) contactKommoUserById[contact.id] = Number(kuid);
+        }
         const tasksToCreate = contactTasks
           .map(t => {
             const kContactId = contactIdMap[String(t.entity_id)];
             if (!kContactId) return null;
-            const tt = transformTask(t);
+            const entityUser = contactKommoUserById[t.entity_id] || null;
+            const tt = transformTask(t, userMap, entityUser);
             tt.entity_id   = Number(kContactId);
             tt.entity_type = 'contacts';
             return tt;
@@ -944,11 +952,19 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
     if (companyTasksToTransfer.length > 0) {
       try {
         const { transformTask } = require('../utils/dataTransformer');
+        // Build company AMO-user → Kommo-user map for responsible assignment
+        const companyKommoUserById = {};
+        for (const company of allCompanies) {
+          const uid = company.responsible_user_id;
+          const kuid = uid ? (userMap[uid] || userMap[String(uid)]) : null;
+          if (kuid) companyKommoUserById[company.id] = Number(kuid);
+        }
         const tasksToCreate = companyTasksToTransfer
           .map(t => {
             const kCompanyId = companyIdMap[String(t.entity_id)];
             if (!kCompanyId) return null;
-            const tt = transformTask(t);
+            const entityUser = companyKommoUserById[t.entity_id] || null;
+            const tt = transformTask(t, userMap, entityUser);
             tt.entity_id   = Number(kCompanyId);
             tt.entity_type = 'companies';
             return tt;
