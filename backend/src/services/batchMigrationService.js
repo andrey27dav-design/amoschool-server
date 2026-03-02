@@ -285,7 +285,7 @@ async function runBatchMigration(stageMapping) {
       }
       try {
         if (companiesToCreate.length > 0) {
-          const created = await kommoApi.createCompaniesBatch(companiesToCreate.map(c => transformCompany(c, fieldMappings.companies)));
+          const created = await kommoApi.createCompaniesBatch(companiesToCreate.map(c => transformCompany(c, fieldMappings.companies, userMap)));
           const pairs = [];
           created.forEach((k, i) => {
             if (k && companiesToCreate[i]) {
@@ -306,6 +306,19 @@ async function runBatchMigration(stageMapping) {
       }
     }
 
+    /* ── 7b. Build contact→lead manager fallback map ────────────────── */
+    // For contacts whose AMO user is not in userMap, fall back to lead's mapped manager
+    const contactLeadManagerMap = {};
+    for (const lead of batchLeads) {
+      const amoLeadUid = lead.responsible_user_id;
+      const kommoLeadUid = amoLeadUid ? (userMap[amoLeadUid] || userMap[String(amoLeadUid)]) : null;
+      if (kommoLeadUid) {
+        for (const c of (lead._embedded?.contacts || [])) {
+          if (!contactLeadManagerMap[c.id]) contactLeadManagerMap[c.id] = Number(kommoLeadUid);
+        }
+      }
+    }
+
     /* ── 8. Migrate contacts ────────────────────────────────────────── */
     updateState({ step: `Перенос контактов (${batchContacts.length})...` });
     const contactIdMap = {};
@@ -323,7 +336,14 @@ async function runBatchMigration(stageMapping) {
       }
       try {
         if (contactsToCreate.length > 0) {
-          const created = await kommoApi.createContactsBatch(contactsToCreate.map(c => transformContact(c, fieldMappings.contacts)));
+          const created = await kommoApi.createContactsBatch(contactsToCreate.map(c => {
+            const t = transformContact(c, fieldMappings.contacts, userMap);
+            // Fallback: if contact has no mapped manager, use lead's manager
+            if (!t.responsible_user_id && contactLeadManagerMap[c.id]) {
+              t.responsible_user_id = contactLeadManagerMap[c.id];
+            }
+            return t;
+          }));
           const pairs = [];
           created.forEach((k, i) => {
             if (k && contactsToCreate[i]) {
@@ -419,8 +439,16 @@ async function runBatchMigration(stageMapping) {
     if (batchTasks.length > 0) {
       updateState({ step: `Перенос задач (${batchTasks.length})...` });
       const { transformTask } = require('../utils/dataTransformer');
+      // Build lead responsible_user_id map (AMO lead id → kommo user id)
+      const leadKommoUserById = {};
+      for (const lead of batchLeads) {
+        const amoUid = lead.responsible_user_id;
+        const kommoUid = amoUid ? (userMap[amoUid] || userMap[String(amoUid)]) : null;
+        if (kommoUid) leadKommoUserById[lead.id] = Number(kommoUid);
+      }
       const tasksToCreate = batchTasks.map(t => {
-        const tt = transformTask(t);
+        const entityKommoUser = leadKommoUserById[t.entity_id] || null;
+        const tt = transformTask(t, userMap, entityKommoUser);
         tt.entity_id = leadIdMap[t.entity_id];
         tt.entity_type = 'leads';
         return tt;
@@ -457,7 +485,7 @@ async function runBatchMigration(stageMapping) {
           if (!kId) continue;
           const notes = notesByLeadId[aLead.id] || [];
           if (notes.length > 0) {
-            const n = notes.map(note => ({ entity_id: kId, note_type: note.note_type || 'common', params: note.params || {}, created_at: note.created_at }));
+            const n = notes.map(note => ({ entity_id: kId, note_type: note.note_type || 4, params: note.params || {}, created_at: note.created_at }));
             try {
               const created = await kommoApi.createNotesBatch('leads', n);
               created.forEach(n => { if (n) batchState.createdIds.notes.push(n.id); });
@@ -482,7 +510,7 @@ async function runBatchMigration(stageMapping) {
         try {
           const notes = await amoApi.getContactNotes(aContactId);
           if (notes.length > 0) {
-            const n = notes.map(note => ({ entity_id: kContactId, note_type: note.note_type || 'common', params: note.params || {}, created_at: note.created_at }));
+            const n = notes.map(note => ({ entity_id: kContactId, note_type: note.note_type || 4, params: note.params || {}, created_at: note.created_at }));
             const created = await kommoApi.createNotesBatch('contacts', n);
             created.forEach(n => { if (n) batchState.createdIds.notes.push(n.id); });
           }
@@ -678,6 +706,18 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
   }
 
   // ── Contacts ───────────────────────────────────────────────────────────────
+  // Build contact→lead manager fallback (for contacts whose AMO user is not in userMap)
+  const contactLeadManagerMapTransfer = {};
+  for (const lead of selectedLeads) {
+    const amoLeadUid = lead.responsible_user_id;
+    const kommoLeadUid = amoLeadUid ? (userMap[amoLeadUid] || userMap[String(amoLeadUid)]) : null;
+    if (kommoLeadUid) {
+      for (const c of ((lead._embedded && lead._embedded.contacts) || [])) {
+        if (!contactLeadManagerMapTransfer[c.id]) contactLeadManagerMapTransfer[c.id] = Number(kommoLeadUid);
+      }
+    }
+  }
+
   const neededContactIds = new Set(
     selectedLeads.flatMap(l => ((l._embedded && l._embedded.contacts) || []).map(c => c.id))
   );
@@ -823,10 +863,20 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
     if (dealTasks.length > 0) {
       try {
         const { transformTask } = require('../utils/dataTransformer');
+        // Build lead kommo responsible user map
+        const leadKommoUserTransfer = {};
+        for (const lead of selectedLeads) {
+          const uid = lead.responsible_user_id;
+          const kuid = uid ? (userMap[uid] || userMap[String(uid)]) : null;
+          const kLeadId = leadIdMap[String(lead.id)];
+          if (kuid && kLeadId) leadKommoUserTransfer[Number(kLeadId)] = Number(kuid);
+        }
         const tasksToCreate = dealTasks
           .map(t => {
-            const tt = transformTask(t);
-            tt.entity_id   = Number(leadIdMap[String(t.entity_id)]);
+            const kLeadId = Number(leadIdMap[String(t.entity_id)]);
+            const entityUser = leadKommoUserTransfer[kLeadId] || null;
+            const tt = transformTask(t, userMap, entityUser);
+            tt.entity_id   = kLeadId;
             tt.entity_type = 'leads';
             return tt;
           })
@@ -847,7 +897,8 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
     }
 
     // ── Tasks: contact tasks (from cache) ────────────────────────────────────
-      const neededContactIdsForTasks = new Set([...newContactAmoIds].map(Number));
+      // Bug#2 fix: use ALL contact IDs (not just newly created)
+      const neededContactIdsForTasks = new Set(Object.keys(contactIdMap).map(Number));
     const contactTasks = allTasks.filter(
       t => t.entity_type === 'contacts' && neededContactIdsForTasks.has(Number(t.entity_id))
     );
@@ -883,7 +934,8 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
     }
 
     // ── Tasks: company tasks (from cache) ──────────────────────────────────────────
-      const neededCompanyIdsForTasks = new Set([...newCompanyAmoIds].map(Number));
+      // Bug#2 fix: use ALL company IDs (not just newly created) so tasks are found even for already-migrated companies
+      const neededCompanyIdsForTasks = new Set(Object.keys(companyIdMap).map(Number));
     const companyTasksToTransfer = allTasks.filter(
       t => t.entity_type === 'companies' && neededCompanyIdsForTasks.has(Number(t.entity_id))
     );
@@ -920,8 +972,10 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
 
     // ── Notes: lead notes (batch fetch from AMO) ─────────────────────────────────────────
     {
-      const newLeads = selectedLeads.filter(l => newLeadAmoIds.has(l.id));
-      const newLeadIds = newLeads.map(l => l.id);
+      // Bug#3 fix: transfer notes for ALL leads (new + previously migrated/skipped)
+      const allLeadIdsForNotes = selectedLeads.map(l => l.id);
+      const newLeadIds = allLeadIdsForNotes; // use all, leadIdMap covers both new and skipped
+      const newLeads = selectedLeads;        // same
       if (newLeadIds.length > 0) {
         try {
           const allLeadNotes = await amoApi.getLeadNotesByEntityIds(newLeadIds);
@@ -940,7 +994,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
             if (notes.length > 0) {
               const notesData = notes.map(n => ({
                 entity_id: Number(kId),
-                note_type: n.note_type || 'common',
+                note_type: n.note_type || 4,
                 params: n.params || {},
                 created_at: n.created_at,
                 updated_at: n.updated_at,
@@ -978,7 +1032,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
         if (notes.length > 0) {
           const notesData = notes.map(n => ({
             entity_id:  Number(kContactId),
-            note_type:  n.note_type || 'common',
+            note_type:  n.note_type || 4,
             params:     n.params    || {},
             created_at: n.created_at,
             updated_at: n.updated_at,
@@ -1005,7 +1059,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
         if (notes.length > 0) {
           const notesData = notes.map(n => ({
             entity_id:  Number(kCompanyId),
-            note_type:  n.note_type || 'common',
+            note_type:  n.note_type || 4,
             params:     n.params    || {},
             created_at: n.created_at,
             updated_at: n.updated_at,

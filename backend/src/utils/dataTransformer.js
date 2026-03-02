@@ -190,7 +190,7 @@ function transformCompany(amoCompany, fieldMapping, userMapping) {
 /**
  * Transform AMO task to Kommo task format
  */
-function transformTask(amoTask, entityIdMap) {
+function transformTask(amoTask, userMapping, entityKommoResponsibleId) {
   // complete_till must be a valid future/past unix timestamp > 0
   // is_completed is NOT accepted by Kommo POST /api/v4/tasks — causes 400
   const fallbackTill = Math.floor(Date.now() / 1000) + 86400; // tomorrow
@@ -201,6 +201,18 @@ function transformTask(amoTask, entityIdMap) {
       ? amoTask.complete_till
       : fallbackTill,
   };
+  // Map responsible_user_id via userMapping; fallback to entity's manager
+  if (userMapping) {
+    const amoUid = amoTask.responsible_user_id;
+    const kommoUid = amoUid ? (userMapping[amoUid] || userMapping[String(amoUid)]) : null;
+    if (kommoUid) {
+      obj.responsible_user_id = Number(kommoUid);
+    } else if (entityKommoResponsibleId) {
+      obj.responsible_user_id = Number(entityKommoResponsibleId);
+    }
+  } else if (entityKommoResponsibleId) {
+    obj.responsible_user_id = Number(entityKommoResponsibleId);
+  }
   // Only include result if it has content (empty object causes 400 in some Kommo versions)
   if (amoTask.result && typeof amoTask.result === 'object' && Object.keys(amoTask.result).length > 0) {
     obj.result = amoTask.result;
