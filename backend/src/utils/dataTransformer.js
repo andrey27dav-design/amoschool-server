@@ -194,9 +194,12 @@ function transformTask(amoTask, userMapping, entityKommoResponsibleId) {
   // complete_till must be a valid future/past unix timestamp > 0
   // is_completed is NOT accepted by Kommo POST /api/v4/tasks — causes 400
   const fallbackTill = Math.floor(Date.now() / 1000) + 86400; // tomorrow
+  // Kommo only accepts task_type_id 1 (call) or 2 (meeting); custom AMO types → 1
+  const rawTypeId = amoTask.task_type_id;
+  const safeTypeId = (rawTypeId === 1 || rawTypeId === 2) ? rawTypeId : 1;
   const obj = {
-    task_type_id: amoTask.task_type_id || 1,
-    text: amoTask.text || '',
+    task_type_id: safeTypeId,
+    text: (amoTask.text && amoTask.text.trim()) ? amoTask.text : 'Задача',
     complete_till: (amoTask.complete_till && amoTask.complete_till > 0)
       ? amoTask.complete_till
       : fallbackTill,

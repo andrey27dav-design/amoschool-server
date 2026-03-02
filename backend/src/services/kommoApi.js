@@ -269,6 +269,26 @@ async function createTasksBatch(tasks) {
   return created;
 }
 
+async function completeTasksBatch(taskIds) {
+  if (!taskIds || taskIds.length === 0) return;
+  const chunks = [];
+  for (let i = 0; i < taskIds.length; i += 50) chunks.push(taskIds.slice(i, i + 50));
+  for (const chunk of chunks) {
+    await rateLimit();
+    try {
+      const payload = chunk.map(id => ({ id, is_completed: true }));
+      await kommoClient.patch('/api/v4/tasks', payload);
+      logger.info('Kommo completeTasksBatch: помечено выполненных: ' + chunk.length);
+    } catch (e) {
+      const body = e.response && e.response.data
+        ? JSON.stringify(e.response.data).slice(0, 300)
+        : e.message;
+      logger.error('Kommo completeTasksBatch error: ' + body);
+      // non-critical — не бросаем, задача уже создана
+    }
+  }
+}
+
 async function createNote(entityType, entityId, noteData) {
   await rateLimit();
   const payload = [{ ...noteData, entity_id: entityId }];
@@ -436,6 +456,7 @@ module.exports = {
   createCompaniesBatch,
   createTask,
   createTasksBatch,
+  completeTasksBatch,
   createNote,
   createNotesBatch,
   updateContact,
