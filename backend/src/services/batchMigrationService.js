@@ -897,8 +897,10 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
     }
 
     // ── Tasks: contact tasks (from cache) ────────────────────────────────────
-      // Bug#2 fix: use ALL contact IDs (not just newly created)
-      const neededContactIdsForTasks = new Set(Object.keys(contactIdMap).map(Number));
+      // Dedup: only contacts whose tasks not yet migrated (Bug#2 preserved)
+      const { toCreate: contactIdsForTasks } = safety.filterNotMigrated(
+        'tasks_contacts', Object.keys(contactIdMap).map(Number), id => id);
+      const neededContactIdsForTasks = new Set(contactIdsForTasks);
     const contactTasks = allTasks.filter(
       t => t.entity_type === 'contacts' && neededContactIdsForTasks.has(Number(t.entity_id))
     );
@@ -935,6 +937,11 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
           logger.info(`[transfer] createTasksBatch(contacts) вернул ${created.length} объектов`);
           created.forEach(k => { if (k) { result.createdIds.tasks.push(k.id); result.transferred.tasks++; result.tasksDetail.contacts.created++; } });
         }
+        if (contactIdsForTasks && contactIdsForTasks.length > 0) {
+          safety.registerMigratedBatch('tasks_contacts',
+            contactIdsForTasks.map(id => ({ amoId: id, kommoId: contactIdMap[String(id)] || '1' })));
+          logger.info('[transfer] tasks_contacts registered: ' + contactIdsForTasks.length);
+        }
       } catch (e) {
         result.warnings.push('Задачи контактов: ' + e.message);
         logger.error('[transfer] ошибка задач контактов:', e.message);
@@ -942,8 +949,10 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
     }
 
     // ── Tasks: company tasks (from cache) ──────────────────────────────────────────
-      // Bug#2 fix: use ALL company IDs (not just newly created) so tasks are found even for already-migrated companies
-      const neededCompanyIdsForTasks = new Set(Object.keys(companyIdMap).map(Number));
+      // Dedup: only companies whose tasks not yet migrated (Bug#2 preserved)
+      const { toCreate: companyIdsForTasks } = safety.filterNotMigrated(
+        'tasks_companies', Object.keys(companyIdMap).map(Number), id => id);
+      const neededCompanyIdsForTasks = new Set(companyIdsForTasks);
     const companyTasksToTransfer = allTasks.filter(
       t => t.entity_type === 'companies' && neededCompanyIdsForTasks.has(Number(t.entity_id))
     );
@@ -980,6 +989,11 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
           logger.info(`[transfer] createTasksBatch(companies) вернул ${created.length} объектов`);
           created.forEach(k => { if (k) { result.createdIds.tasks.push(k.id); result.transferred.tasks++; result.tasksDetail.companies.created++; } });
         }
+        if (companyIdsForTasks && companyIdsForTasks.length > 0) {
+          safety.registerMigratedBatch('tasks_companies',
+            companyIdsForTasks.map(id => ({ amoId: id, kommoId: companyIdMap[String(id)] || '1' })));
+          logger.info('[transfer] tasks_companies registered: ' + companyIdsForTasks.length);
+        }
       } catch (e) {
         result.warnings.push('Задачи компаний: ' + e.message);
         logger.error('[transfer] ошибка задач компаний:', e.message);
@@ -988,10 +1002,9 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
 
     // ── Notes: lead notes (batch fetch from AMO) ─────────────────────────────────────────
     {
-      // Bug#3 fix: transfer notes for ALL leads (new + previously migrated/skipped)
-      const allLeadIdsForNotes = selectedLeads.map(l => l.id);
-      const newLeadIds = allLeadIdsForNotes; // use all, leadIdMap covers both new and skipped
-      const newLeads = selectedLeads;        // same
+      // Dedup: only leads whose notes not yet migrated (Bug#3 preserved: first run includes skipped)
+      const { toCreate: newLeads } = safety.filterNotMigrated('notes_leads', selectedLeads, l => l.id);
+      const newLeadIds = newLeads.map(l => l.id);
       if (newLeadIds.length > 0) {
         try {
           const allLeadNotes = await amoApi.getLeadNotesByEntityIds(newLeadIds);
@@ -1024,6 +1037,12 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
                 logger.error('[transfer] ошибка заметок AMO#' + aLead.id + ':', e.message);
               }
             }
+          }
+          if (newLeads.length > 0) {
+            safety.registerMigratedBatch('notes_leads',
+              newLeads.filter(l => leadIdMap[String(l.id)])
+                .map(l => ({ amoId: l.id, kommoId: leadIdMap[String(l.id)] })));
+            logger.info('[transfer] notes_leads registered: ' + newLeads.length);
           }
         } catch (e) {
           result.warnings.push('Пакетная загрузка заметок сделок: ' + e.message);
