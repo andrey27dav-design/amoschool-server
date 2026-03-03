@@ -1,6 +1,9 @@
 const axios = require('axios');
 const config = require('../config');
 const logger = require('../utils/logger');
+// Note types to skip: 10 = incoming call, 11 = outgoing call (null params.link)
+const SKIP_NOTE_TYPES = new Set([10, 11]);
+
 
 const amoClient = axios.create({
   baseURL: config.amo.baseUrl,
