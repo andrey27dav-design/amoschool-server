@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import * as api from './api';
+import { getCopyTotals, createBackupNow } from './api';
 import './App.css';
 import FieldSync from './FieldSync';
 import CopyDeals from './CopyDeals';
@@ -50,6 +51,12 @@ export default function App() {
       .catch(() => {}); // keep fallback value on error
   }, []);
 
+  // Fetch copy totals from DB on mount and expose refresh function
+  const refreshCopyTotals = async () => {
+    try { setCopyTotals(await getCopyTotals()); } catch(e) {}
+  };
+  useEffect(() => { refreshCopyTotals(); }, []);
+
 
 
   // AMO data fetch state (dashboard)
@@ -73,6 +80,13 @@ export default function App() {
   const [singleTransferResult, setSingleTransferResult] = useState(null);
   const [dealsManagersMap, setDealsManagersMap] = useState({});
   const [dealsSearch, setDealsSearch] = useState('');
+  // Migrated deal IDs — persisted in localStorage for green highlight
+  const [migratedDealIds, setMigratedDealIds] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('migrated_deal_ids') || '[]')); }
+    catch { return new Set(); }
+  });
+  // Copy totals from DB — real accumulated counts
+  const [copyTotals, setCopyTotals] = useState(null);
 
   // Pipeline selector state — persist across tab-switches and page reloads
   const [selectedAmoPipeline, setSelectedAmoPipeline] = useState(() => {
@@ -605,7 +619,7 @@ export default function App() {
       )}
 
       <nav className="tabs">
-        {['dashboard', 'pipelines', 'managers', 'fields', 'copy', 'backups'].map(t => (
+        {['dashboard', 'pipelines', 'managers', 'fields', 'backups'].map(t => (
           <button key={t} className={`tab${tab === t ? ' active' : ''}`} onClick={() => setTab(t)}>
             {tabLabel(t)}
           </button>
@@ -865,7 +879,7 @@ export default function App() {
                 <div className="counter" key={key}>
                   <div className="counter-icon">{icon}</div>
                   <div className="counter-value">
-                    {(batchStatus?.createdIds?.[key]?.length || 0) + (status?.createdIds?.[key]?.length || 0)}
+                    {copyTotals ? (copyTotals[key] || 0) : ((batchStatus?.createdIds?.[key]?.length || 0) + (status?.createdIds?.[key]?.length || 0))}
                   </div>
                   <div className="counter-label">{label}</div>
                 </div>
@@ -1037,7 +1051,9 @@ export default function App() {
                         key={d.id}
                         style={{
                           borderBottom: '1px solid var(--border, #e5e7eb)',
-                          background: selectedDealIds.has(d.id) ? 'rgba(59,130,246,.1)' : 'transparent',
+                          background: migratedDealIds.has(d.id)
+                            ? 'rgba(16,185,129,.15)'
+                            : selectedDealIds.has(d.id) ? 'rgba(59,130,246,.1)' : 'transparent',
                           cursor: 'pointer',
                         }}
                         onClick={() => {
@@ -1046,8 +1062,11 @@ export default function App() {
                           setSelectedDealIds(next);
                         }}
                       >
-                        <td style={{ padding: '4px 6px' }}>
-                          <input type="checkbox" checked={selectedDealIds.has(d.id)} onChange={() => {}} style={{ pointerEvents: 'none' }} />
+                        <td style={{ padding: '4px 6px', textAlign: 'center' }}>
+                          {migratedDealIds.has(d.id)
+                            ? <span title="Перенесено" style={{ color: '#10b981', fontSize: 14, lineHeight: 1 }}>✅</span>
+                            : <input type="checkbox" checked={selectedDealIds.has(d.id)} onChange={() => {}} style={{ pointerEvents: 'none' }} />
+                          }
                         </td>
                         <td style={{ padding: '4px 6px', maxWidth: 120 }}>
                           <div style={{ fontWeight: 500, wordBreak: 'break-word', lineHeight: 1.3 }}>{d.name}</div>
@@ -1091,6 +1110,12 @@ export default function App() {
                       const sm = status?.stageMapping || {};
                       const res = await api.transferDeals([...selectedDealIds], sm);
                       setSingleTransferResult(res);
+                      if (!res.error) {
+                        const next = new Set([...migratedDealIds, ...selectedDealIds]);
+                        setMigratedDealIds(next);
+                        localStorage.setItem('migrated_deal_ids', JSON.stringify([...next]));
+                        refreshCopyTotals();
+                      }
                     } catch (e) {
                       setSingleTransferResult({ error: e.response?.data?.error || e.message });
                     } finally {
@@ -1528,6 +1553,22 @@ export default function App() {
       {tab === 'backups' && (
         <div className="card">
           <h2>💾 Резервные копии</h2>
+          <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--text-muted,#888)' }}>
+            Бэкап содержит кэш данных AMO CRM: <strong>сделки, контакты, компании, задачи</strong> —
+            загруженные в момент операции «Загрузить данные из AMO». Данные в AMO CRM не удаляются.
+          </p>
+          <div style={{ marginBottom: 16 }}>
+            <button className="btn" onClick={async () => {
+              try {
+                const r = await createBackupNow();
+                const s = r.stats || {};
+                setMessage('✅ Бэкап создан: ' + (s.leads||0) + ' сделок, ' + (s.contacts||0) + ' контактов, ' + (s.companies||0) + ' компаний');
+                if (typeof fetchBackups === 'function') fetchBackups();
+              } catch(e) { setMessage('❌ Ошибка: ' + (e?.response?.data?.error || e.message)); }
+            }}>
+              💾 Создать резервную копию сейчас
+            </button>
+          </div>
           {backups.length === 0 ? (
             <div className="no-data">Резервных копий пока нет. Они создаются автоматически перед каждой миграцией.</div>
           ) : (

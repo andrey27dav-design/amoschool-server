@@ -504,6 +504,29 @@ router.get('/backups', async (req, res) => {
   res.json(backups);
 });
 
+// POST /api/migration/backups/create — create manual backup from current AMO cache
+router.post('/backups/create', async (req, res) => {
+  try {
+    const cacheFile = pathMod.resolve(cfg.backupDir, 'amo_data_cache.json');
+    let data = {};
+    if (fs.existsSync(cacheFile)) {
+      const raw = await fs.readJson(cacheFile);
+      data = {
+        leads:     raw.leads     || [],
+        contacts:  raw.contacts  || [],
+        companies: raw.companies || [],
+        tasks:     raw.tasks     || [],
+        pipeline:  raw.pipeline  || null,
+      };
+    }
+    const result = await backupService.createFullBackup(data);
+    res.json({ ok: true, filePath: result.filePath, stats: result.stats });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+
 // GET /api/migration/amo-stages
 router.get('/amo-stages', (req, res) => {
   res.json(migrationService.AMO_STAGES_ORDERED);

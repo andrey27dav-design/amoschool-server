@@ -68,3 +68,7 @@ export const rollbackSession   = (id) => api.post(`/sessions/${id}/rollback-sess
 export const getDealsList    = () => api.get('/migration/deals-list').then(r => r.data);
 export const transferDeals   = (leadIds, stageMapping) =>
   api.post('/migration/transfer-deals', { leadIds, stageMapping }).then(r => r.data);
+
+// ── Transfer totals from DB (accumulated across all sessions) ─────────────────
+export const getCopyTotals = () => api.get('/copy/totals').then(r => r.data);
+export const createBackupNow = () => api.post('/migration/backups/create').then(r => r.data);

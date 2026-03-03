@@ -67,4 +67,25 @@ router.post('/:id/start', async (req, res) => {
     });
 });
 
+// GET /api/copy/totals — accumulated counts of all migrated entities across all sessions
+router.get('/totals', (req, res) => {
+  try {
+    const stmt = db.db.prepare(`
+      SELECT entity_type, COUNT(*) as cnt
+      FROM id_mapping
+      WHERE status = 'created'
+      GROUP BY entity_type
+    `);
+    const rows = stmt.all();
+    const totals = { leads: 0, contacts: 0, companies: 0, tasks: 0, notes: 0 };
+    rows.forEach(r => {
+      if (totals[r.entity_type] !== undefined) totals[r.entity_type] = r.cnt;
+      else totals[r.entity_type] = r.cnt; // preserve unknown types too
+    });
+    res.json(totals);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;
