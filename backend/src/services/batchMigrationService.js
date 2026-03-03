@@ -676,6 +676,20 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
 
   const fieldMappings = loadFieldMapping() || { leads: null, contacts: null, companies: null };
 
+  // --- Fix #4: Warn about leads whose stage is not in stageMapping ---
+  if (stageMapping && Object.keys(stageMapping).length > 0) {
+    const unmappedStages = new Set();
+    selectedLeads.forEach(l => {
+      if (l.status_id && !stageMapping[l.status_id] && ![142, 143].includes(l.status_id))
+        unmappedStages.add(l.status_id);
+    });
+    if (unmappedStages.size > 0) {
+      result.warnings.push(
+        `Этапы [${[...unmappedStages].join(', ')}] отсутствуют в маппинге — сделки попадут в первый доступный этап Kommo. Выполните "Синхронизировать этапы" для создания недостающих этапов.`
+      );
+    }
+  }
+
   // --- User mapping (AMO responsible_user_id → Kommo responsible_user_id) ---
   const userMap = {};
   try {
@@ -704,6 +718,10 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
         catch (e) { result.warnings.push(`Обновление кастомных полей компании AMO#${amoId}: ${e.message}`); }
       }
       // Determine Kommo user: from entity's own mapping, fallback to first configured mapping
+      if (!tc.responsible_user_id && item.responsible_user_id) {
+        const _fbUid = Object.keys(userMap).length > 0 ? Number(Object.values(userMap)[0]) : null;
+        result.warnings.push(`Нет маппинга пользователя amo_id=${item.responsible_user_id} для компании AMO#${amoId}${_fbUid ? `, назначен kommo_id=${_fbUid}` : ', ответственный не назначен'}`);
+      }
       const compKommoUserId = tc.responsible_user_id || (Object.keys(userMap).length > 0 ? Number(Object.values(userMap)[0]) : null);
       if (compKommoUserId) {
         try { await kommoApi.updateCompany(kommoId, { responsible_user_id: compKommoUserId }); }
@@ -763,6 +781,10 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
         catch (e) { result.warnings.push(`Обновление кастомных полей контакта AMO#${amoId}: ${e.message}`); }
       }
       // Determine Kommo user: from entity's own mapping, fallback to first configured mapping
+      if (!tct.responsible_user_id && item.responsible_user_id) {
+        const _fbUid = Object.keys(userMap).length > 0 ? Number(Object.values(userMap)[0]) : null;
+        result.warnings.push(`Нет маппинга пользователя amo_id=${item.responsible_user_id} для контакта AMO#${amoId}${_fbUid ? `, назначен kommo_id=${_fbUid}` : ', ответственный не назначен'}`);
+      }
       const contKommoUserId = tct.responsible_user_id || (Object.keys(userMap).length > 0 ? Number(Object.values(userMap)[0]) : null);
       if (contKommoUserId) {
         try { await kommoApi.updateContact(kommoId, { responsible_user_id: contKommoUserId }); }
@@ -812,6 +834,9 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
     if (tl.responsible_user_id) {
       try { await kommoApi.updateLead(kommoId, { responsible_user_id: tl.responsible_user_id }); }
       catch (e) { result.warnings.push(`Обновление менеджера сделки AMO#${amoId}: ${e.message}`); }
+    } else if (aLead.responsible_user_id) {
+      const _fbUid = Object.keys(userMap).length > 0 ? Number(Object.values(userMap)[0]) : null;
+      result.warnings.push(`Нет маппинга пользователя amo_id=${aLead.responsible_user_id} для сделки AMO#${amoId}${_fbUid ? `, назначен kommo_id=${_fbUid}` : ', ответственный не назначен'}`);
     }
     // Re-link contacts/companies (идемпотентно)
     for (const c of ((aLead._embedded && aLead._embedded.contacts) || [])) {
