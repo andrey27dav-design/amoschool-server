@@ -177,6 +177,11 @@ function sanitizeNoteParams(note) {
     delete params.service;
   }
 
+  // For call_out/call_in: embed original AMO date in call_result field (visible in Kommo UI)
+  if (note.created_at && (noteType === 'call_out' || noteType === 'call_in') && !params.call_result) {
+    params.call_result = fmtDatePrefix(note.created_at).trim();
+  }
+
   return {
     note_type: noteType,
     params,
