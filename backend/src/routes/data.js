@@ -141,14 +141,15 @@ async function fetchAllData(pipelineId, managerIds) {
     fetchState.progress.step = 'Загрузка комментариев (deals)...';
     // Fetch only notes for the loaded leads — by entity_id
     const leadNotes = await amoApi.getLeadNotesByEntityIds([...leadIds]);
-    fetchState.progress.loaded.leadNotes = leadNotes.length;
-    logger.info(`Data fetch: loaded ${leadNotes.length} lead notes`);
+    const SKIP_NOTE_TYPES = new Set([10, 11]); // phone calls skipped during migration
+    fetchState.progress.loaded.leadNotes = leadNotes.filter(n => !SKIP_NOTE_TYPES.has(n.note_type)).length;
+    logger.info(`Data fetch: loaded ${leadNotes.length} lead notes (migrateable: ${fetchState.progress.loaded.leadNotes})`);
 
     fetchState.progress.step = 'Загрузка комментариев (contacts)...';
     // Fetch only notes for the loaded contacts — by entity_id
     const contactNotes = await amoApi.getContactNotesByEntityIds([...contactIds]);
-    fetchState.progress.loaded.contactNotes = contactNotes.length;
-    logger.info(`Data fetch: loaded ${contactNotes.length} contact notes`);
+    fetchState.progress.loaded.contactNotes = contactNotes.filter(n => !SKIP_NOTE_TYPES.has(n.note_type)).length;
+    logger.info(`Data fetch: loaded ${contactNotes.length} contact notes (migrateable: ${fetchState.progress.loaded.contactNotes})`);
 
     const data = {
       fetchedAt: new Date().toISOString(),
