@@ -13,6 +13,7 @@ process.on('unhandledRejection', (reason) => {
   console.error('[unhandledRejection]', reason);
 });
 
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs-extra');
@@ -57,6 +58,16 @@ app.use('/api/sessions',  sessionsRoutes);
 app.use('/api/copy',      copyRoutes);
 
 // Health check
+// Version endpoint — reads VERSION file at project root
+app.get('/api/version', (req, res) => {
+  try {
+    const ver = fs.readFileSync(path.join(__dirname, '../../VERSION'), 'utf8').trim();
+    res.json({ version: ver });
+  } catch (e) {
+    res.json({ version: 'unknown' });
+  }
+});
+
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
