@@ -18,6 +18,23 @@ const AMO_STAGE_MAP = {
   34506946: 'Счет выставлен',
   34305370: 'Оплата',
 };
+/**
+ * Formats an AMO unix timestamp (seconds) as "📅 DD.MM.YYYY HH:MM" + newline in Moscow time (UTC+3).
+ * Returns empty string if ts is falsy.
+ */
+function fmtDatePrefix(ts) {
+  if (!ts) return '';
+  const d = new Date(ts * 1000);
+  const msk = new Date(d.getTime() + 3 * 3600000);
+  const dd  = String(msk.getUTCDate()).padStart(2, '0');
+  const mm  = String(msk.getUTCMonth() + 1).padStart(2, '0');
+  const yyyy = msk.getUTCFullYear();
+  const hh  = String(msk.getUTCHours()).padStart(2, '0');
+  const min = String(msk.getUTCMinutes()).padStart(2, '0');
+  return '📅 ' + dd + '.' + mm + '.' + yyyy + ' ' + hh + ':' + min + '\n';
+}
+
+
 
 /**
  * Transform an AMO lead to Kommo lead format
@@ -199,7 +216,7 @@ function transformTask(amoTask, userMapping, entityKommoResponsibleId) {
   const safeTypeId = (rawTypeId === 1 || rawTypeId === 2) ? rawTypeId : 1;
   const obj = {
     task_type_id: safeTypeId,
-    text: (amoTask.text && amoTask.text.trim()) ? amoTask.text : 'Задача',
+    text: fmtDatePrefix(amoTask.created_at) + ((amoTask.text && amoTask.text.trim()) ? amoTask.text : 'Задача'),
     complete_till: (amoTask.complete_till && amoTask.complete_till > 0)
       ? amoTask.complete_till
       : fallbackTill,
@@ -261,6 +278,7 @@ function buildStageMapping(amoStages, kommoStages) {
 }
 
 module.exports = {
+  fmtDatePrefix,
   transformLead,
   transformContact,
   transformCompany,

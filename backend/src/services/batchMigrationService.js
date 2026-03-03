@@ -9,6 +9,7 @@ const kommoApi = require('./kommoApi');
 const config = require('../config');
 const logger = require('../utils/logger');
 const { loadFieldMapping, buildAllFieldMappings, saveFieldMapping } = require('../utils/fieldMapping');
+const { fmtDatePrefix } = require('../utils/dataTransformer');
 const safety = require('../utils/safetyGuard');
 
 const CACHE_FILE = path.resolve(config.backupDir, 'amo_data_cache.json');
@@ -161,6 +162,10 @@ function sanitizeNoteParams(note) {
     );
   } else {
     params = {};
+  }
+  // Prepend original AMO creation date (📅 DD.MM.YYYY HH:MM) to note text
+  if (note.created_at && params.text) {
+    params.text = fmtDatePrefix(note.created_at) + params.text;
   }
   return {
     note_type: note.note_type,
