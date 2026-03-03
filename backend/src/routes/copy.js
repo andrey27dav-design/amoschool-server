@@ -4,6 +4,9 @@
 const express = require('express');
 const router  = express.Router();
 const db      = require('../db');
+const path    = require('path');
+const fse     = require('fs-extra');
+const cfg     = require('../config');
 const {
   registerSSE,
   unregisterSSE,
@@ -27,7 +30,6 @@ router.get('/:id/stream', (req, res) => {
 
   registerSSE(sessionId, res);
 
-  // Send heartbeat every 20s to keep connection alive
   const heartbeat = setInterval(() => {
     res.write(': heartbeat\n\n');
   }, 20000);
@@ -48,16 +50,14 @@ router.post('/:id/start', async (req, res) => {
   }
   if (session.status !== 'fetched') {
     return res.status(400).json({
-      error: `Сессия должна быть в статусе 'fetched' (текущий: ${session.status})`,
+      error: `Session status must be 'fetched' (current: ${session.status})`,
     });
   }
 
-  // Acknowledge immediately; copy runs in background => SSE for progress
   res.json({ status: 'started', session_id: sessionId });
 
   copySessionDeals(sessionId, req.body.user_map || null)
-    .then(async (result) => {
-      // Send email report after completion
+    .then(async () => {
       await sendReport(sessionId).catch((e) =>
         db.log(sessionId, 'warn', `Email report failed: ${e.message}`)
       );
@@ -67,24 +67,71 @@ router.post('/:id/start', async (req, res) => {
     });
 });
 
-// GET /api/copy/totals — accumulated counts of all migrated entities across all sessions
+// Helper: count entries in a migration_index.json field
+// The field can be: object {amo_id: kommo_id}, array, number, or missing
+function countField(idx, key) {
+  const val = idx[key];
+  if (!val) return 0;
+  if (Array.isArray(val)) return val.length;
+  if (typeof val === 'number') return val;
+  if (typeof val === 'object') return Object.keys(val).length;
+  return 0;
+}
+
+// GET /api/copy/totals — read from migration_index.json minus baseline
+// migration_index.json is the permanent dedup record — NEVER cleared
+// counter_reset_baseline.json stores the snapshot at last "reset counter" click
 router.get('/totals', (req, res) => {
   try {
-    const stmt = db.db.prepare(`
-      SELECT entity_type, COUNT(*) as cnt
-      FROM id_mapping
-      WHERE status = 'created'
-      GROUP BY entity_type
-    `);
-    const rows = stmt.all();
-    const totals = { leads: 0, contacts: 0, companies: 0, tasks: 0, notes: 0 };
-    rows.forEach(r => {
-      if (totals[r.entity_type] !== undefined) totals[r.entity_type] = r.cnt;
-      else totals[r.entity_type] = r.cnt; // preserve unknown types too
-    });
+    const indexPath    = path.resolve(cfg.backupDir, 'migration_index.json');
+    const baselinePath = path.resolve(cfg.backupDir, 'counter_reset_baseline.json');
+
+    const idx  = fse.existsSync(indexPath)    ? fse.readJsonSync(indexPath)    : {};
+    const base = fse.existsSync(baselinePath) ? fse.readJsonSync(baselinePath) : {};
+
+    const totals = {
+      leads:     Math.max(0, countField(idx, 'leads')     - (base.leads     || 0)),
+      contacts:  Math.max(0, countField(idx, 'contacts')  - (base.contacts  || 0)),
+      companies: Math.max(0, countField(idx, 'companies') - (base.companies || 0)),
+      tasks:     Math.max(0,
+        (countField(idx, 'tasks_leads') + countField(idx, 'tasks_contacts') + countField(idx, 'tasks_companies'))
+        - (base.tasks || 0)
+      ),
+      notes:     Math.max(0,
+        (countField(idx, 'notes_leads') + countField(idx, 'notes_contacts') + countField(idx, 'notes_companies'))
+        - (base.notes || 0)
+      ),
+    };
+
     res.json(totals);
   } catch (e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/copy/reset-counter — save current totals as display baseline
+// NEVER modifies migration_index.json — only writes counter_reset_baseline.json
+router.post('/reset-counter', (req, res) => {
+  try {
+    const indexPath    = path.resolve(cfg.backupDir, 'migration_index.json');
+    const baselinePath = path.resolve(cfg.backupDir, 'counter_reset_baseline.json');
+
+    const idx = fse.existsSync(indexPath) ? fse.readJsonSync(indexPath) : {};
+
+    const baseline = {
+      leads:     countField(idx, 'leads'),
+      contacts:  countField(idx, 'contacts'),
+      companies: countField(idx, 'companies'),
+      tasks:     countField(idx, 'tasks_leads') + countField(idx, 'tasks_contacts') + countField(idx, 'tasks_companies'),
+      notes:     countField(idx, 'notes_leads') + countField(idx, 'notes_contacts') + countField(idx, 'notes_companies'),
+      resetAt:   new Date().toISOString(),
+    };
+
+    fse.writeJsonSync(baselinePath, baseline, { spaces: 2 });
+
+    res.json({ ok: true, baseline });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
   }
 });
 

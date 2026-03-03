@@ -72,3 +72,4 @@ export const transferDeals   = (leadIds, stageMapping) =>
 // ── Transfer totals from DB (accumulated across all sessions) ─────────────────
 export const getCopyTotals = () => api.get('/copy/totals').then(r => r.data);
 export const createBackupNow = () => api.post('/migration/backups/create').then(r => r.data);
+export const resetCopyCounter = () => api.post('/copy/reset-counter').then(r => r.data);

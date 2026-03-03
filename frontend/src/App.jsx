@@ -524,9 +524,17 @@ export default function App() {
   };
 
   const handleBatchReset = async () => {
-    if (!confirm('Сбросить счётчик? Следующий пакет начнётся с первой сделки.')) return;
+    if (!confirm('Сбросить счётчик? Следующий пакет начнётся с первой сделки. Счётчик «Перенесено» тоже обнулится.')) return;
     try {
       await api.resetBatchOffset();
+      // Reset the ПЕРЕНЕСЕНО display counter (baseline is saved, migration_index.json is NOT touched)
+      await api.resetCopyCounter().catch(() => {});
+      // Refresh totals display
+      const totals = await getCopyTotals().catch(() => null);
+      if (totals) setCopyTotals(totals);
+      // Clear green highlights for migrated deals
+      localStorage.removeItem('migrated_deal_ids');
+      if (typeof setMigratedDealIds === 'function') setMigratedDealIds(new Set());
       const stats = await api.getBatchStats();
       setBatchStats(stats);
       setMessage('✅ Счётчик сброшен');
