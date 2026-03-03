@@ -36,6 +36,38 @@ function loadCacheFromDisk() {
   return null;
 }
 
+// Restore fetchState from disk cache on module start (survives PM2 restarts)
+function initFetchStateFromDisk() {
+  const cached = loadCacheFromDisk();
+  if (cached) {
+    const c = cached.counts || {};
+    fetchState = {
+      status: 'done',
+      progress: {
+        step: 'Готово',
+        loaded: {
+          leads:        c.leads        || 0,
+          contacts:     c.contacts     || 0,
+          companies:    c.companies    || 0,
+          leadTasks:    c.leadTasks    != null ? c.leadTasks    : (c.tasks || 0),
+          contactTasks: c.contactTasks != null ? c.contactTasks : 0,
+          companyTasks: c.companyTasks != null ? c.companyTasks : 0,
+          leadNotes:    c.leadNotes    != null ? c.leadNotes    : 0,
+          contactNotes: c.contactNotes != null ? c.contactNotes : 0,
+        },
+        pipelineId: cached.pipelineId || null,
+        managerIds: cached.managerIds || [],
+      },
+      error: null,
+      updatedAt: cached.fetchedAt || null,
+    };
+    logger.info('[data] fetchState restored from disk cache: ' + cached.fetchedAt);
+  }
+}
+
+// Eager init — restore state when module is loaded (PM2 restart safe)
+initFetchStateFromDisk();
+
 // Background fetch all amo CRM data
 async function fetchAllData(pipelineId, managerIds) {
   if (fetchState.status === 'loading') return;
@@ -159,24 +191,9 @@ async function fetchAllData(pipelineId, managerIds) {
 
 // GET /api/amo/fetch-status — current fetch status
 router.get('/fetch-status', (req, res) => {
-  // Check if cache exists but state is idle
-  if (fetchState.status === 'idle' && !memCache) {
-    loadCacheFromDisk();
-    if (memCache) {
-      fetchState.status = 'done';
-      fetchState.updatedAt = memCache.fetchedAt;
-      // Normalize: handle old cache format that used 'tasks' instead of leadTasks/contactTasks
-      const c = memCache.counts || {};
-      fetchState.progress.loaded = {
-        leads: c.leads || 0,
-        contacts: c.contacts || 0,
-        companies: c.companies || 0,
-        leadTasks: c.leadTasks ?? c.tasks ?? 0,
-        contactTasks: c.contactTasks ?? 0,
-        leadNotes: c.leadNotes ?? 0,
-        contactNotes: c.contactNotes ?? 0,
-      };
-    }
+  // Safety fallback: if fetchState is still idle but cache exists on disk
+  if (fetchState.status === 'idle') {
+    initFetchStateFromDisk();
   }
   res.json(fetchState);
 });
