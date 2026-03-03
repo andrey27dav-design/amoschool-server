@@ -1054,8 +1054,8 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
             await kommoApi.completeTasksBatch(completedContactTaskIds);
             logger.info('[transfer] выполненных задач контактов помечено: ' + completedContactTaskIds.length);
           }
-        }
-        const _taskPairsContacts = [];
+          // Register contacts in id_mapping inside if-block (created is in scope here)
+          const _taskPairsContacts = [];
           created.forEach((k, idx) => {
             if (k && tasksToCreate[idx]?._amoTaskId)
               _taskPairsContacts.push({ amoId: Number(tasksToCreate[idx]._amoTaskId), kommoId: k.id });
@@ -1064,6 +1064,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
             safety.registerMigratedBatch('tasks_contacts', _taskPairsContacts);
             logger.info('[transfer] tasks_contacts registered by task ID: ' + _taskPairsContacts.length);
           }
+        }
       } catch (e) {
         result.warnings.push('Задачи контактов: ' + e.message);
         logger.error('[transfer] ошибка задач контактов:', e.message);
@@ -1125,8 +1126,8 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
             await kommoApi.completeTasksBatch(completedCompanyTaskIds);
             logger.info('[transfer] выполненных задач компаний помечено: ' + completedCompanyTaskIds.length);
           }
-        }
-        const _taskPairsCompanies = [];
+          // Register companies in id_mapping inside if-block (created is in scope here)
+          const _taskPairsCompanies = [];
           created.forEach((k, idx) => {
             if (k && tasksToCreate[idx]?._amoTaskId)
               _taskPairsCompanies.push({ amoId: Number(tasksToCreate[idx]._amoTaskId), kommoId: k.id });
@@ -1135,6 +1136,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
             safety.registerMigratedBatch('tasks_companies', _taskPairsCompanies);
             logger.info('[transfer] tasks_companies registered by task ID: ' + _taskPairsCompanies.length);
           }
+        }
       } catch (e) {
         result.warnings.push('Задачи компаний: ' + e.message);
         logger.error('[transfer] ошибка задач компаний:', e.message);
