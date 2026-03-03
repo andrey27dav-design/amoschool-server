@@ -881,8 +881,10 @@ export default function App() {
                 { label: 'Сделки',   key: 'leads',     icon: '📋' },
                 { label: 'Контакты', key: 'contacts',  icon: '👤' },
                 { label: 'Компании', key: 'companies', icon: '🏢' },
-                { label: 'Задачи',   key: 'tasks',     icon: '✅' },
-                { label: 'Заметки',  key: 'notes',     icon: '💬' },
+                { label: 'Задачи (сделки)',         key: 'leadTasks',    icon: '✅' },
+                { label: 'Задачи (контакты)',      key: 'contactTasks', icon: '✅' },
+                { label: 'Комментарии (сделки)',    key: 'leadNotes',    icon: '💬' },
+                { label: 'Комментарии (контакты)', key: 'contactNotes', icon: '💬' },
               ].map(({ label, key, icon }) => (
                 <div className="counter" key={key}>
                   <div className="counter-icon">{icon}</div>

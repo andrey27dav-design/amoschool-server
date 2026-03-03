@@ -90,14 +90,19 @@ router.get('/totals', (req, res) => {
     const base = fse.existsSync(baselinePath) ? fse.readJsonSync(baselinePath) : {};
 
     const totals = {
-      leads:     Math.max(0, countField(idx, 'leads')     - (base.leads     || 0)),
-      contacts:  Math.max(0, countField(idx, 'contacts')  - (base.contacts  || 0)),
-      companies: Math.max(0, countField(idx, 'companies') - (base.companies || 0)),
-      tasks:     Math.max(0,
+      leads:        Math.max(0, countField(idx, 'leads')     - (base.leads     || 0)),
+      contacts:     Math.max(0, countField(idx, 'contacts')  - (base.contacts  || 0)),
+      companies:    Math.max(0, countField(idx, 'companies') - (base.companies || 0)),
+      leadTasks:    Math.max(0, countField(idx, 'tasks_leads')    - (base.leadTasks    || 0)),
+      contactTasks: Math.max(0, countField(idx, 'tasks_contacts') - (base.contactTasks || 0)),
+      leadNotes:    Math.max(0, countField(idx, 'notes_leads')    - (base.leadNotes    || 0)),
+      contactNotes: Math.max(0, countField(idx, 'notes_contacts') - (base.contactNotes || 0)),
+      // combined for backward compat
+      tasks:        Math.max(0,
         (countField(idx, 'tasks_leads') + countField(idx, 'tasks_contacts') + countField(idx, 'tasks_companies'))
         - (base.tasks || 0)
       ),
-      notes:     Math.max(0,
+      notes:        Math.max(0,
         (countField(idx, 'notes_leads') + countField(idx, 'notes_contacts') + countField(idx, 'notes_companies'))
         - (base.notes || 0)
       ),
@@ -119,12 +124,16 @@ router.post('/reset-counter', (req, res) => {
     const idx = fse.existsSync(indexPath) ? fse.readJsonSync(indexPath) : {};
 
     const baseline = {
-      leads:     countField(idx, 'leads'),
-      contacts:  countField(idx, 'contacts'),
-      companies: countField(idx, 'companies'),
-      tasks:     countField(idx, 'tasks_leads') + countField(idx, 'tasks_contacts') + countField(idx, 'tasks_companies'),
-      notes:     countField(idx, 'notes_leads') + countField(idx, 'notes_contacts') + countField(idx, 'notes_companies'),
-      resetAt:   new Date().toISOString(),
+      leads:        countField(idx, 'leads'),
+      contacts:     countField(idx, 'contacts'),
+      companies:    countField(idx, 'companies'),
+      leadTasks:    countField(idx, 'tasks_leads'),
+      contactTasks: countField(idx, 'tasks_contacts'),
+      leadNotes:    countField(idx, 'notes_leads'),
+      contactNotes: countField(idx, 'notes_contacts'),
+      tasks:        countField(idx, 'tasks_leads') + countField(idx, 'tasks_contacts') + countField(idx, 'tasks_companies'),
+      notes:        countField(idx, 'notes_leads') + countField(idx, 'notes_contacts') + countField(idx, 'notes_companies'),
+      resetAt:      new Date().toISOString(),
     };
 
     fse.writeJsonSync(baselinePath, baseline, { spaces: 2 });
