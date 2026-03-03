@@ -1065,14 +1065,25 @@ export default function App() {
                           cursor: 'pointer',
                         }}
                         onClick={() => {
-                          const next = new Set(selectedDealIds);
-                          if (next.has(d.id)) next.delete(d.id); else next.add(d.id);
-                          setSelectedDealIds(next);
+                          if (migratedDealIds.has(d.id)) {
+                            // Снять статус "Перенесено" -> выбрать заново
+                            const newMig = new Set(migratedDealIds);
+                            newMig.delete(d.id);
+                            setMigratedDealIds(newMig);
+                            localStorage.setItem('migrated_deal_ids', JSON.stringify([...newMig]));
+                            const nextSel = new Set(selectedDealIds);
+                            nextSel.add(d.id);
+                            setSelectedDealIds(nextSel);
+                          } else {
+                            const next = new Set(selectedDealIds);
+                            if (next.has(d.id)) next.delete(d.id); else next.add(d.id);
+                            setSelectedDealIds(next);
+                          }
                         }}
                       >
                         <td style={{ padding: '4px 6px', textAlign: 'center' }}>
                           {migratedDealIds.has(d.id)
-                            ? <span title="Перенесено" style={{ color: '#10b981', fontSize: 14, lineHeight: 1 }}>✅</span>
+                            ? <span title="Перенесено — нажмите чтобы выбрать заново" style={{ color: '#10b981', fontSize: 14, lineHeight: 1 }}>✅</span>
                             : <input type="checkbox" checked={selectedDealIds.has(d.id)} onChange={() => {}} style={{ pointerEvents: 'none' }} />
                           }
                         </td>
