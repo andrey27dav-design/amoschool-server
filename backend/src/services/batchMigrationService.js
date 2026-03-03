@@ -167,8 +167,18 @@ function sanitizeNoteParams(note) {
   if (note.created_at && params.text) {
     params.text = fmtDatePrefix(note.created_at) + params.text;
   }
+
+  // Kommo API does not accept 'service_message' as note_type when creating notes.
+  // Convert it to 'common' so the text content is preserved as a regular comment.
+  // Also remove the 'service' field which is AMO-specific and not accepted by Kommo.
+  let noteType = note.note_type;
+  if (noteType === 'service_message') {
+    noteType = 'common';
+    delete params.service;
+  }
+
   return {
-    note_type: note.note_type,
+    note_type: noteType,
     params,
   };
 }
