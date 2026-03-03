@@ -57,14 +57,24 @@ app.use('/api/managers',  managersRoutes);
 app.use('/api/sessions',  sessionsRoutes);
 app.use('/api/copy',      copyRoutes);
 
-// Health check
-// Version endpoint — reads VERSION file at project root
+// Version endpoint — extracts version from last git commit message (e.g. "V1.5.15 - ...")
+// This is always accurate regardless of whether deploy.sh was used.
 app.get('/api/version', (req, res) => {
   try {
-    const ver = fs.readFileSync(path.join(__dirname, '../../VERSION'), 'utf8').trim();
+    const { execSync } = require('child_process');
+    const msg = execSync('git -C /var/www/amoschool log -1 --format=%s', { encoding: 'utf8' }).trim();
+    // Extract version tag like V1.5.15 from commit message
+    const match = msg.match(/^(V\d+\.\d+\.\d+)/);
+    const ver = match ? match[1] : msg.slice(0, 20);
     res.json({ version: ver });
   } catch (e) {
-    res.json({ version: 'unknown' });
+    try {
+      // Fallback to VERSION file
+      const ver = fs.readFileSync(path.join(__dirname, '../../VERSION'), 'utf8').trim();
+      res.json({ version: ver });
+    } catch (_) {
+      res.json({ version: 'unknown' });
+    }
   }
 });
 
