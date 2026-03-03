@@ -458,7 +458,10 @@ async function runBatchMigration(stageMapping) {
     }
         /* ── 10. Migrate tasks ──────────────────────────────────────────── */
     const batchAmoIds = new Set(batchLeads.map(l => l.id));
-    const batchTasks  = allTasks.filter(t => t.entity_type === 'leads' && batchAmoIds.has(t.entity_id));
+    const _batchTasksRaw = allTasks.filter(t => t.entity_type === 'leads' && batchAmoIds.has(t.entity_id));
+    // Dedup by task ID to prevent duplicate tasks if batch is re-run
+    const { toCreate: _batchTasksFiltered } = safety.filterNotMigrated('tasks_leads', _batchTasksRaw, t => t.id);
+    const batchTasks = _batchTasksFiltered;
 
     if (batchTasks.length > 0) {
       updateState({ step: `Перенос задач (${batchTasks.length})...` });
@@ -475,6 +478,7 @@ async function runBatchMigration(stageMapping) {
         const tt = transformTask(t, userMap, entityKommoUser);
         tt.entity_id = leadIdMap[t.entity_id];
         tt.entity_type = 'leads';
+        tt._amoTaskId = t.id;
         return tt;
       }).filter(t => t.entity_id);
 
@@ -486,7 +490,14 @@ async function runBatchMigration(stageMapping) {
       }
       try {
         const created = await kommoApi.createTasksBatch(tasksToCreate);
-        created.forEach(k => { if (k) batchState.createdIds.tasks.push(k.id); });
+        const _batchTaskPairs = [];
+        created.forEach((k, idx) => {
+          if (k) {
+            batchState.createdIds.tasks.push(k.id);
+            if (tasksToCreate[idx]?._amoTaskId) _batchTaskPairs.push({ amoId: Number(tasksToCreate[idx]._amoTaskId), kommoId: k.id });
+          }
+        });
+        if (_batchTaskPairs.length > 0) safety.registerMigratedBatch('tasks_leads', _batchTaskPairs);
       } catch (e) {
         addWarning(`Ошибка переноса задач: ${e.message}`, 'Попробуйте повторить пакет или добавьте задачи вручную.');
       }
@@ -498,27 +509,34 @@ async function runBatchMigration(stageMapping) {
       const leadAmoIds = batchLeads.map(l => l.id);
       try {
         const allLeadNotes = await amoApi.getLeadNotesByEntityIds(leadAmoIds);
-        const notesByLeadId = {};
-        for (const note of allLeadNotes) {
-          const aId = note.entity_id;
-          if (!notesByLeadId[aId]) notesByLeadId[aId] = [];
-          notesByLeadId[aId].push(note);
-        }
-        for (const aLead of batchLeads) {
-          const kId = leadIdMap[aLead.id];
+        // Dedup by note ID to prevent duplicates on batch re-run
+        const _batchLeadNotesTyped = allLeadNotes.filter(note => !SKIP_NOTE_TYPES.has(note.note_type));
+        const { toCreate: _batchLeadNotesToCreate } = safety.filterNotMigrated('notes_leads', _batchLeadNotesTyped, n => n.id);
+        // Group by kommo lead ID
+        const _batchLeadNotesGrouped = {};
+        for (const note of _batchLeadNotesToCreate) {
+          const kId = leadIdMap[note.entity_id];
           if (!kId) continue;
-          const notes = notesByLeadId[aLead.id] || [];
-          if (notes.length > 0) {
-            const filteredLeadNotes = notes.filter(note => !SKIP_NOTE_TYPES.has(note.note_type));
-          const n = filteredLeadNotes.map(note => { const s = sanitizeNoteParams(note); return { entity_id: kId, note_type: s.note_type, params: s.params, created_at: note.created_at }; });
-            try {
-              const created = await kommoApi.createNotesBatch('leads', n);
-              created.forEach(n => { if (n) batchState.createdIds.notes.push(n.id); });
-            } catch (e) {
-              addWarning(`Не удалось перенести заметки сделки #${aLead.id}.`, 'Добавьте заметки вручную в Kommo CRM.');
-            }
+          if (!_batchLeadNotesGrouped[kId]) _batchLeadNotesGrouped[kId] = [];
+          _batchLeadNotesGrouped[kId].push(note);
+        }
+        const _batchLeadNotePairs = [];
+        for (const [kId, notes] of Object.entries(_batchLeadNotesGrouped)) {
+          const _amoNoteIds = notes.map(n => n.id);
+          const n = notes.map(note => { const s = sanitizeNoteParams(note); return { entity_id: kId, note_type: s.note_type, params: s.params, created_at: note.created_at }; });
+          try {
+            const created = await kommoApi.createNotesBatch('leads', n);
+            created.forEach((cn, idx) => {
+              if (cn) {
+                batchState.createdIds.notes.push(cn.id);
+                if (_amoNoteIds[idx]) _batchLeadNotePairs.push({ amoId: Number(_amoNoteIds[idx]), kommoId: cn.id });
+              }
+            });
+          } catch (e) {
+            addWarning(`Не удалось перенести заметки сделки (kommo#${kId}).`, 'Добавьте заметки вручную в Kommo CRM.');
           }
         }
+        if (_batchLeadNotePairs.length > 0) safety.registerMigratedBatch('notes_leads', _batchLeadNotePairs);
       } catch (e) {
         addWarning('Не удалось загрузить заметки сделок: ' + e.message, 'Попробуйте повторить пакет.');
       }
@@ -533,12 +551,22 @@ async function runBatchMigration(stageMapping) {
         if (!kContactId || batchTransferredContactIds.has(aContactId)) continue;
         batchTransferredContactIds.add(aContactId);
         try {
-          const notes = await amoApi.getContactNotes(aContactId);
-          if (notes.length > 0) {
-            const filteredContactNotes = notes.filter(note => !SKIP_NOTE_TYPES.has(note.note_type));
-            const n = filteredContactNotes.map(note => { const s = sanitizeNoteParams(note); return { entity_id: kContactId, note_type: s.note_type, params: s.params, created_at: note.created_at }; });
+          const _bCNotes = await amoApi.getContactNotes(aContactId);
+          // Dedup by note ID
+          const _bCNotesTyped = _bCNotes.filter(note => !SKIP_NOTE_TYPES.has(note.note_type));
+          const { toCreate: _bCNotesToCreate } = safety.filterNotMigrated('notes_contacts', _bCNotesTyped, n => n.id);
+          if (_bCNotesToCreate.length > 0) {
+            const _bCNoteAmoIds = _bCNotesToCreate.map(n => n.id);
+            const n = _bCNotesToCreate.map(note => { const s = sanitizeNoteParams(note); return { entity_id: kContactId, note_type: s.note_type, params: s.params, created_at: note.created_at }; });
             const created = await kommoApi.createNotesBatch('contacts', n);
-            created.forEach(n => { if (n) batchState.createdIds.notes.push(n.id); });
+            const _bCNotePairs = [];
+            created.forEach((cn, idx) => {
+              if (cn) {
+                batchState.createdIds.notes.push(cn.id);
+                if (_bCNoteAmoIds[idx]) _bCNotePairs.push({ amoId: Number(_bCNoteAmoIds[idx]), kommoId: cn.id });
+              }
+            });
+            if (_bCNotePairs.length > 0) safety.registerMigratedBatch('notes_contacts', _bCNotePairs);
           }
         } catch (e) {
           addWarning(`Не удалось перенести заметки контакта #${aContactId}.`, 'Добавьте заметки вручную в Kommo CRM.');
@@ -904,13 +932,15 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
     }
 
     // ── Tasks (from cache) ───────────────────────────────────────────────────────
-    // Dedup: only leads whose tasks not yet migrated (same as tasks_contacts/tasks_companies)
-    const { toCreate: leadIdsForTasks } = safety.filterNotMigrated(
-      'tasks_leads', selectedLeads, l => l.id);
-    const selectedTaskLeadIds = new Set(leadIdsForTasks.map(l => Number(l.id !== undefined ? l.id : l)));
-    const dealTasks = allTasks.filter(
-      t => t.entity_type === 'leads' && selectedTaskLeadIds.has(Number(t.entity_id))
+    // Dedup: filter individual tasks by task ID (not by lead ID)
+    // This ensures: if task creation failed on previous run, it will be retried
+    const _allSelectedLeadIds = new Set(selectedLeads.map(l => l.id));
+    const _allDealTasksRaw = allTasks.filter(
+      t => t.entity_type === 'leads' && _allSelectedLeadIds.has(Number(t.entity_id))
     );
+    const { toCreate: dealTasksFiltered } = safety.filterNotMigrated(
+      'tasks_leads', _allDealTasksRaw, t => t.id);
+    const dealTasks = dealTasksFiltered;
     logger.info(`[transfer] задач в кэше: ${dealTasks.length} (selectedLeads: ${selectedLeads.length}, leadIdMap keys: ${Object.keys(leadIdMap).length})`);
     result.tasksDetail.leads.found = dealTasks.length;
     if (dealTasks.length > 0) {
@@ -932,6 +962,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
             tt.entity_id   = kLeadId;
             tt.entity_type = 'leads';
             tt._wasCompleted = !!t.is_completed;
+            tt._amoTaskId = t.id; // track AMO id for per-task registration
             return tt;
           })
           .filter(t => t.entity_id);
@@ -943,20 +974,21 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
         logger.info(`[transfer] создаём ${tasksToCreate.length} задач сделок в Kommo`);
         const created = await kommoApi.createTasksBatch(tasksToCreate);
         logger.info(`[transfer] createTasksBatch(leads) вернул ${created.length} объектов`);
-        if (leadIdsForTasks && leadIdsForTasks.length > 0) {
-          safety.registerMigratedBatch('tasks_leads',
-            leadIdsForTasks.map(l => { const lid = l.id !== undefined ? l.id : l; return { amoId: Number(lid), kommoId: String(leadIdMap[String(lid)] || '1') }; }));
-          logger.info('[transfer] tasks_leads registered: ' + leadIdsForTasks.length);
-        }
         const completedLeadTaskIds = [];
+        const _taskPairsLeads = [];
         created.forEach((k, idx) => {
           if (k) {
             result.createdIds.tasks.push(k.id);
             result.transferred.tasks++;
             result.tasksDetail.leads.created++;
-            if (tasksToCreate[idx] && tasksToCreate[idx]._wasCompleted) completedLeadTaskIds.push(k.id);
+            if (tasksToCreate[idx]?._wasCompleted) completedLeadTaskIds.push(k.id);
+            if (tasksToCreate[idx]?._amoTaskId) _taskPairsLeads.push({ amoId: Number(tasksToCreate[idx]._amoTaskId), kommoId: k.id });
           }
         });
+        if (_taskPairsLeads.length > 0) {
+          safety.registerMigratedBatch('tasks_leads', _taskPairsLeads);
+          logger.info('[transfer] tasks_leads registered by task ID: ' + _taskPairsLeads.length);
+        }
         if (completedLeadTaskIds.length > 0) {
           await kommoApi.completeTasksBatch(completedLeadTaskIds);
           logger.info('[transfer] выполненных задач сделок помечено: ' + completedLeadTaskIds.length);
@@ -968,13 +1000,14 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
     }
 
     // ── Tasks: contact tasks (from cache) ────────────────────────────────────
-      // Dedup: only contacts whose tasks not yet migrated (Bug#2 preserved)
-      const { toCreate: contactIdsForTasks } = safety.filterNotMigrated(
-        'tasks_contacts', Object.keys(contactIdMap).map(Number), id => id);
-      const neededContactIdsForTasks = new Set(contactIdsForTasks);
-    const contactTasks = allTasks.filter(
-      t => t.entity_type === 'contacts' && neededContactIdsForTasks.has(Number(t.entity_id))
-    );
+      // Dedup: filter individual contact tasks by task ID (not by contact ID)
+      const _allContactIdsSet = new Set(Object.keys(contactIdMap).map(Number));
+      const _allContactTasksRaw = allTasks.filter(
+        t => t.entity_type === 'contacts' && _allContactIdsSet.has(Number(t.entity_id))
+      );
+      const { toCreate: contactTasksFiltered } = safety.filterNotMigrated(
+        'tasks_contacts', _allContactTasksRaw, t => t.id);
+      const contactTasks = contactTasksFiltered;
     logger.info(`[transfer] задач контактов в кэше: ${contactTasks.length}`);
     result.tasksDetail.contacts.found = contactTasks.length;
     if (contactTasks.length > 0) {
@@ -996,6 +1029,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
             tt.entity_id   = Number(kContactId);
             tt.entity_type = 'contacts';
             tt._wasCompleted = !!t.is_completed;
+            tt._amoTaskId = t.id;
             return tt;
           })
           .filter(Boolean);
@@ -1021,11 +1055,15 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
             logger.info('[transfer] выполненных задач контактов помечено: ' + completedContactTaskIds.length);
           }
         }
-        if (contactIdsForTasks && contactIdsForTasks.length > 0) {
-          safety.registerMigratedBatch('tasks_contacts',
-            contactIdsForTasks.map(id => ({ amoId: id, kommoId: contactIdMap[String(id)] || '1' })));
-          logger.info('[transfer] tasks_contacts registered: ' + contactIdsForTasks.length);
-        }
+        const _taskPairsContacts = [];
+          created.forEach((k, idx) => {
+            if (k && tasksToCreate[idx]?._amoTaskId)
+              _taskPairsContacts.push({ amoId: Number(tasksToCreate[idx]._amoTaskId), kommoId: k.id });
+          });
+          if (_taskPairsContacts.length > 0) {
+            safety.registerMigratedBatch('tasks_contacts', _taskPairsContacts);
+            logger.info('[transfer] tasks_contacts registered by task ID: ' + _taskPairsContacts.length);
+          }
       } catch (e) {
         result.warnings.push('Задачи контактов: ' + e.message);
         logger.error('[transfer] ошибка задач контактов:', e.message);
@@ -1033,13 +1071,14 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
     }
 
     // ── Tasks: company tasks (from cache) ──────────────────────────────────────────
-      // Dedup: only companies whose tasks not yet migrated (Bug#2 preserved)
-      const { toCreate: companyIdsForTasks } = safety.filterNotMigrated(
-        'tasks_companies', Object.keys(companyIdMap).map(Number), id => id);
-      const neededCompanyIdsForTasks = new Set(companyIdsForTasks);
-    const companyTasksToTransfer = allTasks.filter(
-      t => t.entity_type === 'companies' && neededCompanyIdsForTasks.has(Number(t.entity_id))
-    );
+      // Dedup: filter individual company tasks by task ID (not by company ID)
+      const _allCompanyIdsSet = new Set(Object.keys(companyIdMap).map(Number));
+      const _allCompanyTasksRaw = allTasks.filter(
+        t => t.entity_type === 'companies' && _allCompanyIdsSet.has(Number(t.entity_id))
+      );
+      const { toCreate: companyTasksFiltered } = safety.filterNotMigrated(
+        'tasks_companies', _allCompanyTasksRaw, t => t.id);
+      const companyTasksToTransfer = companyTasksFiltered;
     logger.info(`[transfer] задач компаний в кэше: ${companyTasksToTransfer.length}`);
     result.tasksDetail.companies.found = companyTasksToTransfer.length;
     if (companyTasksToTransfer.length > 0) {
@@ -1061,6 +1100,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
             tt.entity_id   = Number(kCompanyId);
             tt.entity_type = 'companies';
             tt._wasCompleted = !!t.is_completed;
+            tt._amoTaskId = t.id;
             return tt;
           })
           .filter(Boolean);
@@ -1086,11 +1126,15 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
             logger.info('[transfer] выполненных задач компаний помечено: ' + completedCompanyTaskIds.length);
           }
         }
-        if (companyIdsForTasks && companyIdsForTasks.length > 0) {
-          safety.registerMigratedBatch('tasks_companies',
-            companyIdsForTasks.map(id => ({ amoId: id, kommoId: companyIdMap[String(id)] || '1' })));
-          logger.info('[transfer] tasks_companies registered: ' + companyIdsForTasks.length);
-        }
+        const _taskPairsCompanies = [];
+          created.forEach((k, idx) => {
+            if (k && tasksToCreate[idx]?._amoTaskId)
+              _taskPairsCompanies.push({ amoId: Number(tasksToCreate[idx]._amoTaskId), kommoId: k.id });
+          });
+          if (_taskPairsCompanies.length > 0) {
+            safety.registerMigratedBatch('tasks_companies', _taskPairsCompanies);
+            logger.info('[transfer] tasks_companies registered by task ID: ' + _taskPairsCompanies.length);
+          }
       } catch (e) {
         result.warnings.push('Задачи компаний: ' + e.message);
         logger.error('[transfer] ошибка задач компаний:', e.message);
@@ -1099,46 +1143,50 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
 
     // ── Notes: lead notes (batch fetch from AMO) ─────────────────────────────────────────
     {
-      // Dedup: only leads whose notes not yet migrated (Bug#3 preserved: first run includes skipped)
-      const { toCreate: newLeads } = safety.filterNotMigrated('notes_leads', selectedLeads, l => l.id);
-      const newLeadIds = newLeads.map(l => l.id);
-      if (newLeadIds.length > 0) {
+      // Dedup by NOTE ID: fetch all lead notes, filter out already-migrated ones by note AMO ID
+      const _allLeadNoteIds = selectedLeads.map(l => l.id);
+      if (_allLeadNoteIds.length > 0) {
         try {
-          const allLeadNotes = await amoApi.getLeadNotesByEntityIds(newLeadIds);
-          logger.info(`[transfer] getLeadNotesByEntityIds: ${allLeadNotes.length} заметок для ${newLeadIds.length} сделок`);
-          result.notesDetail.leads.fetched += allLeadNotes.length;
-          const notesByLeadId = {};
-          for (const note of allLeadNotes) {
-            const aId = note.entity_id;
-            if (!notesByLeadId[aId]) notesByLeadId[aId] = [];
-            notesByLeadId[aId].push(note);
+          const _allLeadNotesFetched = await amoApi.getLeadNotesByEntityIds(_allLeadNoteIds);
+          logger.info(`[transfer] getLeadNotesByEntityIds: ${_allLeadNotesFetched.length} заметок для ${_allLeadNoteIds.length} сделок`);
+          result.notesDetail.leads.fetched += _allLeadNotesFetched.length;
+          // Filter by note type, then dedup by note ID
+          const _leadNotesTyped = _allLeadNotesFetched.filter(n => !SKIP_NOTE_TYPES.has(n.note_type));
+          const { toCreate: _leadNotesToCreate } = safety.filterNotMigrated('notes_leads', _leadNotesTyped, n => n.id);
+          // Group by kommo lead ID for batch creation
+          const _leadNotesGrouped = {};
+          for (const note of _leadNotesToCreate) {
+            const kId = leadIdMap[String(note.entity_id)];
+            if (!kId) { logger.warn(`[transfer] notes(lead): нет kommo id для AMO lead#${note.entity_id}`); continue; }
+            if (!_leadNotesGrouped[kId]) _leadNotesGrouped[kId] = [];
+            _leadNotesGrouped[kId].push(note);
           }
-          for (const aLead of newLeads) {
-            const kId = leadIdMap[String(aLead.id)];
-            if (!kId) { logger.warn(`[transfer] notes(lead): нет kommo id для AMO#${aLead.id}`); continue; }
-            const notes = notesByLeadId[aLead.id] || [];
-            if (notes.length > 0) {
-              const notesData = notes
-                .filter(n => !SKIP_NOTE_TYPES.has(n.note_type))
-                .map(n => {
-                const s = sanitizeNoteParams(n);
-                return { entity_id: Number(kId), note_type: s.note_type, params: s.params, created_at: n.created_at, updated_at: n.updated_at };
+          const _notePairsLeads = [];
+          for (const [kId, notes] of Object.entries(_leadNotesGrouped)) {
+            const amoNoteIds = notes.map(n => n.id);
+            const notesData = notes.map(n => {
+              const s = sanitizeNoteParams(n);
+              return { entity_id: Number(kId), note_type: s.note_type, params: s.params, created_at: n.created_at, updated_at: n.updated_at };
+            });
+            try {
+              const created = await kommoApi.createNotesBatch('leads', notesData);
+              logger.info(`[transfer] createNotesBatch(leads) вернул ${created.length} объектов`);
+              created.forEach((n, idx) => {
+                if (n) {
+                  result.createdIds.notes.push(n.id);
+                  result.transferred.notes++;
+                  result.notesDetail.leads.transferred++;
+                  if (amoNoteIds[idx]) _notePairsLeads.push({ amoId: Number(amoNoteIds[idx]), kommoId: n.id });
+                }
               });
-              try {
-                const created = await kommoApi.createNotesBatch('leads', notesData);
-                logger.info(`[transfer] createNotesBatch(leads) вернул ${created.length} объектов`);
-                created.forEach(n => { if (n) { result.createdIds.notes.push(n.id); result.transferred.notes++; result.notesDetail.leads.transferred++; } });
-              } catch (e) {
-                result.warnings.push('Заметки сделки AMO#' + aLead.id + ': ' + e.message);
-                logger.error('[transfer] ошибка заметок AMO#' + aLead.id + ':', e.message);
-              }
+            } catch (e) {
+              result.warnings.push(`Заметки сделки (kommo#${kId}): ${e.message}`);
+              logger.error(`[transfer] ошибка заметок kommo#${kId}:`, e.message);
             }
           }
-          if (newLeads.length > 0) {
-            safety.registerMigratedBatch('notes_leads',
-              newLeads.filter(l => leadIdMap[String(l.id)])
-                .map(l => ({ amoId: l.id, kommoId: leadIdMap[String(l.id)] })));
-            logger.info('[transfer] notes_leads registered: ' + newLeads.length);
+          if (_notePairsLeads.length > 0) {
+            safety.registerMigratedBatch('notes_leads', _notePairsLeads);
+            logger.info('[transfer] notes_leads registered by note ID: ' + _notePairsLeads.length);
           }
         } catch (e) {
           result.warnings.push('Пакетная загрузка заметок сделок: ' + e.message);
@@ -1155,25 +1203,31 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
       const aContactId = c.id;
       const kContactId = contactIdMap[String(aContactId)];
       if (!kContactId || transferredContactIds.has(aContactId)) continue; // не дублируем
-      // Dedup: skip if notes for this contact already transferred in a previous run
-      const { toCreate: _cnCheck } = safety.filterNotMigrated('notes_contacts', [aContactId], id => id);
-      if (_cnCheck.length === 0) continue; // already migrated
       transferredContactIds.add(aContactId);
       try {
-        const notes = await amoApi.getContactNotes(aContactId);
-        result.notesDetail.contacts.fetched += notes.length;
-        if (notes.length > 0) {
-          const notesData = notes
-            .filter(n => !SKIP_NOTE_TYPES.has(n.note_type))
-            .map(n => {
+        const _allContactNotes = await amoApi.getContactNotes(aContactId);
+        result.notesDetail.contacts.fetched += _allContactNotes.length;
+        // Dedup by note ID
+        const _contactNotesTyped = _allContactNotes.filter(n => !SKIP_NOTE_TYPES.has(n.note_type));
+        const { toCreate: _cNotesToCreate } = safety.filterNotMigrated('notes_contacts', _contactNotesTyped, n => n.id);
+        if (_cNotesToCreate.length > 0) {
+          const _cNoteAmoIds = _cNotesToCreate.map(n => n.id);
+          const notesData = _cNotesToCreate.map(n => {
             const s = sanitizeNoteParams(n);
             return { entity_id: Number(kContactId), note_type: s.note_type, params: s.params, created_at: n.created_at, updated_at: n.updated_at };
           });
           const created = await kommoApi.createNotesBatch('contacts', notesData);
-          created.forEach(n => { if (n) { result.createdIds.notes.push(n.id); result.transferred.notes++; result.notesDetail.contacts.transferred++; } });
+          const _cNotePairs = [];
+          created.forEach((n, idx) => {
+            if (n) {
+              result.createdIds.notes.push(n.id);
+              result.transferred.notes++;
+              result.notesDetail.contacts.transferred++;
+              if (_cNoteAmoIds[idx]) _cNotePairs.push({ amoId: Number(_cNoteAmoIds[idx]), kommoId: n.id });
+            }
+          });
+          if (_cNotePairs.length > 0) safety.registerMigratedBatch('notes_contacts', _cNotePairs);
         }
-        // Register contact as notes-migrated
-        safety.registerMigratedBatch('notes_contacts', [{ amoId: aContactId, kommoId: kContactId }]);
       } catch (e) { result.warnings.push('Заметки контакта AMO#' + aContactId + ': ' + e.message); }
     }
   }
@@ -1185,25 +1239,31 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
       const aCompanyId = c.id;
       const kCompanyId = companyIdMap[String(aCompanyId)];
       if (!kCompanyId || transferredCompanyIds.has(aCompanyId)) continue;
-      // Dedup: skip if notes for this company already transferred in a previous run
-      const { toCreate: _coCheck } = safety.filterNotMigrated('notes_companies', [aCompanyId], id => id);
-      if (_coCheck.length === 0) continue; // already migrated
       transferredCompanyIds.add(aCompanyId);
       try {
-        const { notes } = await amoApi.getNotes('companies', aCompanyId);
-        result.notesDetail.companies.fetched += notes.length;
-        if (notes.length > 0) {
-          const notesData = notes
-            .filter(n => !SKIP_NOTE_TYPES.has(n.note_type))
-            .map(n => {
+        const { notes: _allCompanyNotes } = await amoApi.getNotes('companies', aCompanyId);
+        result.notesDetail.companies.fetched += _allCompanyNotes.length;
+        // Dedup by note ID
+        const _coNotesTyped = _allCompanyNotes.filter(n => !SKIP_NOTE_TYPES.has(n.note_type));
+        const { toCreate: _coNotesToCreate } = safety.filterNotMigrated('notes_companies', _coNotesTyped, n => n.id);
+        if (_coNotesToCreate.length > 0) {
+          const _coNoteAmoIds = _coNotesToCreate.map(n => n.id);
+          const notesData = _coNotesToCreate.map(n => {
             const s = sanitizeNoteParams(n);
             return { entity_id: Number(kCompanyId), note_type: s.note_type, params: s.params, created_at: n.created_at, updated_at: n.updated_at };
           });
           const created = await kommoApi.createNotesBatch('companies', notesData);
-          created.forEach(n => { if (n) { result.createdIds.notes.push(n.id); result.transferred.notes++; result.notesDetail.companies.transferred++; } });
+          const _coNotePairs = [];
+          created.forEach((n, idx) => {
+            if (n) {
+              result.createdIds.notes.push(n.id);
+              result.transferred.notes++;
+              result.notesDetail.companies.transferred++;
+              if (_coNoteAmoIds[idx]) _coNotePairs.push({ amoId: Number(_coNoteAmoIds[idx]), kommoId: n.id });
+            }
+          });
+          if (_coNotePairs.length > 0) safety.registerMigratedBatch('notes_companies', _coNotePairs);
         }
-        // Register company as notes-migrated
-        safety.registerMigratedBatch('notes_companies', [{ amoId: aCompanyId, kommoId: kCompanyId }]);
       } catch (e) { result.warnings.push('Заметки компании AMO#' + aCompanyId + ': ' + e.message); }
     }
   }
