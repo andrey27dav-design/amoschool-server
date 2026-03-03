@@ -184,7 +184,7 @@ function sanitizeNoteParams(note) {
 }
 
 // Note types to skip: 10 = incoming call, 11 = outgoing call (have null params.link)
-const SKIP_NOTE_TYPES = new Set([10, 11]);
+const SKIP_NOTE_TYPES = new Set([10, 11, 'amomail_message', 'extended_service_message', 'lead_auto_created']);
 
 async function runBatchMigration(stageMapping) {
   if (batchState.status === 'running') throw new Error('Пакетная миграция уже выполняется');
