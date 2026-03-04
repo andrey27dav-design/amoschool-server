@@ -538,31 +538,35 @@ export default function App() {
   };
 
   const handleBatchReset = async () => {
-    if (!confirm('Сбросить счётчик? Следующий пакет начнётся с первой сделки. Счётчик «Перенесено» сохранит все ранее перенесённые данные.')) return;
+    if (!confirm('Сбросить счётчик? Следующий пакет начнётся с первой сделки. Зелёный счётчик «Перенесено» обнулится и будет считать с нуля.')) return;
     try {
       await api.resetBatchOffset();
-      // Refresh totals display (absolute totals are preserved, only offset resets)
-      const totals = await getCopyTotals().catch(() => null);
-      if (totals) setCopyTotals(totals);
       // Clear green highlights for migrated deals
       localStorage.removeItem('migrated_deal_ids');
-      if (typeof setMigratedDealIds === 'function') setMigratedDealIds(new Set());
-      const stats = await api.getBatchStats();
-      setBatchStats(stats);
-      setMessage('✅ Счётчик сброшен');
+      setMigratedDealIds(new Set());
+      const [d, stats] = await Promise.all([
+        api.getBatchStatus().catch(() => null),
+        api.getBatchStats().catch(() => null),
+      ]);
+      if (d) setBatchStatusData(d);
+      if (stats) setBatchStats(stats);
+      setMessage('✅ Счётчик сброшен — зелёные числа обнулены');
     } catch (e) {
       setMessage(`❌ ${e.response?.data?.error || e.message}`);
     }
   };
 
   const handleFilterCacheUnprocessed = async () => {
-    if (!confirm('Оставить в кэше только необработанные сделки? Уже перенесённые будут исключены из отображения (не из Kommo). Действие необратимо до следующей загрузки AMO.')) return;
+    if (!confirm('Оставить в кэше только необработанные сделки? Уже перенесённые будут исключены. Офсет будет сброшен в 0. Действие необратимо до следующей загрузки AMO.')) return;
     try {
       const r = await api.filterCacheUnprocessed();
-      setMessage(`✅ Готово: ${r.after.leads} необработанных сделок (было ${r.before.leads}, убрано ${r.removed})`);
-      const d = await api.getBatchStatus();
+      setMessage(`✅ Готово: ${r.after.leads} необработанных сделок (было ${r.before.leads}, убрано ${r.removed}). Офсет сброшен. Нажмите «🔁 Сбросить счётчик» чтобы обнулить зелёные числа.`);
+      const [d, stats] = await Promise.all([
+        api.getBatchStatus().catch(() => null),
+        api.getBatchStats().catch(() => null),
+      ]);
       if (d) setBatchStatusData(d);
-      api.getBatchStats().then(setBatchStats).catch(() => {});
+      if (stats) setBatchStats(stats);
     } catch (e) {
       setMessage('❌ ' + (e.response?.data?.error || e.message));
     }

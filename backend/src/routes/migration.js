@@ -778,6 +778,9 @@ router.post('/filter-cache-unprocessed', (req, res) => {
 
     fs.writeJsonSync(cachePath, newCache);
 
+    // Reset batch offset to 0 — the filtered list is now a new sequence
+    batchService.resetOffset();
+
     res.json({
       ok: true,
       before,
