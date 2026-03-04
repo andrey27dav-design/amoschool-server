@@ -250,7 +250,10 @@ async function runBatchMigration(stageMapping) {
 
     /* ── 3. Get current batch ───────────────────────────────────────── */
     const from = batchConfig.offset;
-    const batchLeads = eligible.slice(from, from + batchConfig.batchSize);
+    // batchSize === 0 means "transfer ALL remaining"
+    const batchLeads = batchConfig.batchSize === 0
+      ? eligible.slice(from)
+      : eligible.slice(from, from + batchConfig.batchSize);
 
     if (batchLeads.length === 0) {
       addWarning(
