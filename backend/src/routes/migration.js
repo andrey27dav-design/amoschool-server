@@ -1,11 +1,48 @@
 const express = require('express');
 const router = express.Router();
+const path = require('path');
+const fs = require('fs-extra');
 const migrationService = require('../services/migrationService');
 const batchService = require('../services/batchMigrationService');
 const backupService = require('../services/backupService');
 const logger = require('../utils/logger');
 const amoApi = require('../services/amoApi');
 const kommoApi = require('../services/kommoApi');
+
+// ─── Helpers for persistent stats (survive server crash) ─────────────────────
+function getCacheStats() {
+  try {
+    const cfg = require('../config');
+    const cachePath = path.resolve(cfg.backupDir, 'amo_data_cache.json');
+    if (!fs.existsSync(cachePath)) return null;
+    const c = fs.readJsonSync(cachePath);
+    const leads      = (c.leads      || []).length;
+    const contacts   = (c.contacts   || []).length;
+    const companies  = (c.companies  || []).length;
+    const tasks      = (c.leadTasks  || []).length +
+                       (c.contactTasks || []).length +
+                       (c.companyTasks || []).length +
+                       (c.tasks       || []).length;
+    return { leads, contacts, companies, tasks, fetchedAt: c.fetchedAt || null };
+  } catch { return null; }
+}
+
+function getMigrationTotals() {
+  try {
+    const cfg = require('../config');
+    const idxPath = path.resolve(cfg.backupDir, 'migration_index.json');
+    if (!fs.existsSync(idxPath)) return null;
+    const idx = fs.readJsonSync(idxPath);
+    const count = (obj) => obj ? Object.keys(obj).length : 0;
+    return {
+      leads:     count(idx.leads),
+      contacts:  count(idx.contacts),
+      companies: count(idx.companies),
+      tasks:     count(idx.tasks_leads) + count(idx.tasks_contacts) + count(idx.tasks_companies),
+      notes:     count(idx.notes_leads) + count(idx.notes_contacts) + count(idx.notes_companies),
+    };
+  } catch { return null; }
+}
 
 // GET /api/migration/status
 /**
@@ -562,7 +599,15 @@ router.post('/batch-config', (req, res) => {
 
 // GET /api/migration/batch-status
 router.get('/batch-status', (req, res) => {
-  res.json(batchService.getBatchState());
+  const state = batchService.getBatchState();
+  const cfg   = batchService.getBatchConfig();
+  res.json({
+    ...state,
+    // Persistent stats — survive server crash/restart (read from files, not in-memory)
+    cacheStats:      getCacheStats(),
+    migrationTotals: getMigrationTotals(),
+    batchPosition:   { offset: cfg.offset, batchSize: cfg.batchSize },
+  });
 });
 
 // GET /api/migration/batch-stats

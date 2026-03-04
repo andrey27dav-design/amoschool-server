@@ -71,6 +71,9 @@ export default function App() {
   const [selectedManagers, setSelectedManagers] = useState([]);
   const [batchSize, setBatchSize] = useState(10);
   const [batchLoading, setBatchLoading] = useState(false);
+  // Crash detection: if server restarts while running, status goes idle without completing
+  const prevBatchStatusRef = useRef(null);
+  const [crashDetected, setCrashDetected] = useState(false);
 
   // Single deals transfer state
   const [dealsList, setDealsList] = useState([]);
@@ -157,6 +160,9 @@ export default function App() {
     fetchStatus();
     fetchPipelines();
     fetchBackups();
+    // Initial batch status load — gets cacheStats + migrationTotals from files
+    api.getBatchStatus().then(d => { if (d) setBatchStatusData(d); }).catch(() => {});
+    api.getBatchStats().then(setBatchStats).catch(() => {});
   }, []);
 
   // Load saved stage mapping from DB whenever pipeline pair changes
@@ -228,6 +234,9 @@ export default function App() {
     prevFetchStatus.current = fetchSt?.status;
     if (prev === 'loading' && fetchSt?.status === 'done') {
       setCacheRefreshKey(k => k + 1);
+      // Refresh batchStatus to update cacheStats (new cache file was just written)
+      api.getBatchStatus().then(d => { if (d) setBatchStatusData(d); }).catch(() => {});
+      api.getBatchStats().then(setBatchStats).catch(() => {});
     }
   }, [fetchSt?.status]);
 
@@ -258,6 +267,11 @@ export default function App() {
     const iv = setInterval(async () => {
       try {
         const d = await api.getBatchStatus();
+        // Crash detection: running → idle means server restarted mid-migration
+        if (prevBatchStatusRef.current === 'running' && d.status === 'idle') {
+          setCrashDetected(true);
+        }
+        prevBatchStatusRef.current = d.status;
         setBatchStatusData(d);
         if (d.status !== 'running' && d.status !== 'rolling_back') {
           clearInterval(iv);
@@ -709,16 +723,74 @@ export default function App() {
               );
             })()}
 
-            {/* Stats row */}
+            {/* ── ЗАГРУЖЕНО ИЗ AMO (from cache file — survives crash) ── */}
+            {batchStatus?.cacheStats && (
+              <div style={{ marginTop: 12, marginBottom: 4 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                  📥 Загружено из AMO
+                  {batchStatus.cacheStats.fetchedAt && (
+                    <span style={{ fontWeight: 400, fontSize: 11, color: '#94a3b8', marginLeft: 8 }}>
+                      {new Date(batchStatus.cacheStats.fetchedAt).toLocaleString('ru-RU')}
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {[
+                    { label: 'Сделок',    val: batchStatus.cacheStats.leads,     color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe' },
+                    { label: 'Контактов', val: batchStatus.cacheStats.contacts,   color: '#8b5cf6', bg: '#f5f3ff', border: '#ddd6fe' },
+                    { label: 'Компаний',  val: batchStatus.cacheStats.companies,  color: '#f59e0b', bg: '#fffbeb', border: '#fde68a' },
+                    { label: 'Задач',     val: batchStatus.cacheStats.tasks,      color: '#10b981', bg: '#f0fdf4', border: '#bbf7d0' },
+                  ].map(s => (
+                    <div key={s.label} style={{ padding: '6px 14px', background: s.bg, border: `1px solid ${s.border}`, borderRadius: 8, textAlign: 'center', minWidth: 70 }}>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: s.color }}>{s.val ?? '—'}</div>
+                      <div style={{ fontSize: 11, color: '#6b7280' }}>{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── ПЕРЕНЕСЕНО В KOMMO итого (from migration_index — ground truth, survives crash) ── */}
+            {batchStatus?.migrationTotals && (
+              <div style={{ marginTop: 10, marginBottom: 4 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                  ✅ Перенесено в Kommo
+                  <span style={{ fontWeight: 400, fontSize: 11, color: '#94a3b8', marginLeft: 8 }}>
+                    (накопительно, не сбрасывается при сбое)
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {[
+                    { label: 'Сделок',       val: batchStatus.migrationTotals.leads,     color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe' },
+                    { label: 'Контактов',    val: batchStatus.migrationTotals.contacts,   color: '#8b5cf6', bg: '#f5f3ff', border: '#ddd6fe' },
+                    { label: 'Компаний',     val: batchStatus.migrationTotals.companies,  color: '#f59e0b', bg: '#fffbeb', border: '#fde68a' },
+                    { label: 'Задач',        val: batchStatus.migrationTotals.tasks,      color: '#10b981', bg: '#f0fdf4', border: '#bbf7d0' },
+                    { label: 'Комментариев', val: batchStatus.migrationTotals.notes,      color: '#6366f1', bg: '#eef2ff', border: '#c7d2fe' },
+                  ].map(s => (
+                    <div key={s.label} style={{ padding: '6px 14px', background: s.bg, border: `1px solid ${s.border}`, borderRadius: 8, textAlign: 'center', minWidth: 70 }}>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: s.color }}>{s.val ?? 0}</div>
+                      <div style={{ fontSize: 11, color: '#6b7280' }}>{s.label}</div>
+                    </div>
+                  ))}
+                  {batchStatus?.batchPosition?.offset > 0 && (
+                    <div style={{ alignSelf: 'center', fontSize: 12, color: '#94a3b8', marginLeft: 4 }}>
+                      Позиция: пакет <b style={{color:'#cbd5e1'}}>{batchStatus.batchPosition.offset}</b> из {batchStatus.cacheStats?.leads ?? '?'}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Stats row: available / transferred (leads only, for batch control) */}
             {batchStats && (
-              <div className="batch-stats">
+              <div className="batch-stats" style={{ marginTop: 10 }}>
                 <div className="batch-stat eligible">
                   <div className="batch-stat-val">{batchStats.totalEligible ?? '—'}</div>
                   <div className="batch-stat-lbl">Доступно для переноса</div>
                 </div>
                 <div className="batch-stat transferred">
                   <div className="batch-stat-val">{batchStats.totalTransferred ?? 0}</div>
-                  <div className="batch-stat-lbl">Уже перенесено</div>
+                  <div className="batch-stat-lbl">Перенесено (сделок)</div>
                 </div>
                 <div className="batch-stat remaining">
                   <div className="batch-stat-val">{batchStats.remainingLeads ?? '—'}</div>
@@ -788,6 +860,24 @@ export default function App() {
                 <span style={{ fontSize: 13, color: batchStatus?.status === 'paused' ? '#fcd34d' : '#fca5a5' }}>
                   {batchStatus?.status === 'paused' ? '⏸ Перенос на паузе.' : '⛔ Перенос прерван.'}{batchStatus.progress?.current > 0 ? ` Обработано: ${batchStatus.progress.current} сделок.` : ''} Нажмите «▶ Продолжить пакет».
                 </span>
+              </div>
+            )}
+
+            {/* Crash recovery banner — server restarted during migration */}
+            {crashDetected && (
+              <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.45)', borderRadius: 8, padding: '10px 14px', marginTop: 8 }}>
+                <div style={{ fontWeight: 700, fontSize: 13, color: '#f87171', marginBottom: 4 }}>
+                  ⚡ Сервер перезагрузился в процессе переноса
+                </div>
+                <div style={{ fontSize: 12, color: '#fca5a5', lineHeight: 1.5 }}>
+                  Частично перенесённые данные <b>не потеряны</b> — они зарегистрированы в индексе безопасности.<br/>
+                  Счётчик «Перенесено в Kommo» показывает актуальные данные из индекса.<br/>
+                  Нажмите «▶ Продолжить пакет» — уже созданные объекты будут пропущены автоматически.
+                </div>
+                <button onClick={() => setCrashDetected(false)}
+                  style={{ marginTop: 8, padding: '4px 12px', background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)', color: '#fca5a5', borderRadius: 6, cursor: 'pointer', fontSize: 12 }}>
+                  Понятно
+                </button>
               </div>
             )}
 
