@@ -754,10 +754,10 @@ export default function App() {
                       <div className="counter-value" style={{ fontSize: 22, lineHeight: 1.1 }}>
                         {batchStatus?.cacheStats?.[key] ?? '—'}
                       </div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#10b981', marginTop: 2, lineHeight: 1 }}>
+                      <div style={{ fontSize: 22, fontWeight: 700, color: '#10b981', marginTop: 2, lineHeight: 1.1 }}>
                         ↓ {batchStatus?.migrationTotals?.[key] ?? 0}
                       </div>
-                      <div className="counter-label">{label}</div>
+                      <div className="counter-label" style={{ color: '#ffffff' }}>{label}</div>
                     </div>
                   ))}
                 </div>
