@@ -307,8 +307,8 @@ header h1 {
   border: 1px solid #334155;
   border-radius: 16px;
   width: 100%;
-  max-width: 640px;
-  max-height: 85vh;
+  max-width: 920px;
+  max-height: 93vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -322,7 +322,7 @@ header h1 {
   border-bottom: 1px solid #334155;
 }
 
-.modal-header h2 { font-size: 18px; color: #f1f5f9; }
+.modal-header h2 { font-size: 22px; color: #f1f5f9; font-weight: 700; }
 
 .modal-close {
   background: none;
@@ -337,36 +337,38 @@ header h1 {
 .modal-close:hover { background: #334155; color: #e2e8f0; }
 
 .modal-body {
-  padding: 20px 24px;
+  padding: 24px 32px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
+  font-size: 15px;
 }
 
 .plan-intro {
-  font-size: 14px;
+  font-size: 15px;
   color: #cbd5e1;
-  line-height: 1.6;
-  padding: 12px 16px;
+  line-height: 1.7;
+  padding: 14px 18px;
   background: #0f172a;
   border-radius: 8px;
   border-left: 3px solid #3b82f6;
 }
 
 .plan-warning {
-  font-size: 13px;
-  padding: 10px 14px;
+  font-size: 15px;
+  padding: 14px 18px;
   background: #1c1200;
   border: 1px solid #92400e;
   border-radius: 8px;
   color: #fcd34d;
+  line-height: 1.6;
 }
 
 .plan-steps { padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
 
 .plan-step {
-  padding: 12px 14px;
+  padding: 14px 16px;
   background: #0f172a;
   border-radius: 8px;
   border-left: 3px solid #10b981;
@@ -375,24 +377,94 @@ header h1 {
 .plan-step-title {
   font-weight: 600;
   color: #10b981;
-  font-size: 14px;
-  margin-bottom: 4px;
+  font-size: 15px;
+  margin-bottom: 6px;
 }
 
-.plan-step-desc { font-size: 13px; color: #94a3b8; line-height: 1.5; }
+.plan-step-desc { font-size: 14px; color: #94a3b8; line-height: 1.6; }
 
-.plan-section { border-top: 1px solid #334155; padding-top: 14px; }
+.plan-section { border-top: 1px solid #334155; padding-top: 16px; }
 
-.plan-section h3 { font-size: 15px; color: #f1f5f9; margin-bottom: 8px; }
+.plan-section h3 { font-size: 17px; color: #f1f5f9; margin-bottom: 10px; font-weight: 600; }
 
 .plan-section p, .plan-section li {
-  font-size: 13px;
+  font-size: 14px;
   color: #94a3b8;
-  line-height: 1.6;
-  margin-bottom: 4px;
+  line-height: 1.7;
+  margin-bottom: 6px;
 }
 
-.plan-section ol { padding-left: 18px; }
+.plan-section ol { padding-left: 20px; }
+.plan-section ul { padding-left: 20px; }
+
+.plan-guide-block {
+  background: #0f172a;
+  border-radius: 10px;
+  padding: 16px 20px;
+  border-left: 3px solid #3b82f6;
+}
+
+.plan-guide-block h3 {
+  font-size: 16px;
+  color: #60a5fa;
+  margin: 0 0 10px 0;
+  font-weight: 600;
+}
+
+.plan-guide-block p, .plan-guide-block li {
+  font-size: 14px;
+  color: #cbd5e1;
+  line-height: 1.7;
+  margin-bottom: 5px;
+}
+
+.plan-guide-block ul, .plan-guide-block ol { padding-left: 20px; }
+
+.plan-guide-block.warn { border-left-color: #f59e0b; }
+.plan-guide-block.warn h3 { color: #fbbf24; }
+.plan-guide-block.green { border-left-color: #10b981; }
+.plan-guide-block.green h3 { color: #34d399; }
+.plan-guide-block.red { border-left-color: #ef4444; }
+.plan-guide-block.red h3 { color: #f87171; }
+
+.plan-divider {
+  border: none;
+  border-top: 2px dashed #334155;
+  margin: 4px 0;
+}
+
+.plan-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.plan-table th {
+  text-align: left;
+  padding: 8px 12px;
+  background: #0f172a;
+  color: #94a3b8;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.plan-table td {
+  padding: 8px 12px;
+  color: #cbd5e1;
+  border-top: 1px solid #1e293b;
+}
+
+.plan-table tr:hover td { background: #0f172a; }
+
+.plan-cheatsheet {
+  background: #020817;
+  border-radius: 10px;
+  padding: 16px 20px;
+  font-family: monospace;
+  font-size: 14px;
+  line-height: 2;
+}
 
 .entity-tabs {
   display: flex;
