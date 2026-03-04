@@ -182,6 +182,11 @@ function sanitizeNoteParams(note) {
     params.call_result = fmtDatePrefix(note.created_at).trim();
   }
 
+  // Kommo requires params.duration to be int (some providers like TELPHIN send it as string)
+  if (params.duration !== undefined) {
+    params.duration = parseInt(params.duration, 10) || 0;
+  }
+
   return {
     note_type: noteType,
     params,
