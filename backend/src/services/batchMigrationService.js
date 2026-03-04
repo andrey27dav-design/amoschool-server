@@ -430,9 +430,9 @@ async function runBatchMigration(stageMapping) {
       t.pipeline_id = config.kommo.pipelineId;
       // Embed contacts + companies directly in lead creation payload (bulk, no separate link calls)
       const embContacts = (lead._embedded?.contacts || [])
-        .map(c => contactIdMap[c.id]).filter(Boolean).map(id => ({ id }));
+        .map(c => contactIdMap[c.id]).filter(Boolean).map(id => ({ id: Number(id) }));
       const embCompanies = (lead._embedded?.companies || [])
-        .map(c => companyIdMap[c.id]).filter(Boolean).map(id => ({ id }));
+        .map(c => companyIdMap[c.id]).filter(Boolean).map(id => ({ id: Number(id) }));
       if (embContacts.length > 0 || embCompanies.length > 0) {
         t._embedded = {};
         if (embContacts.length > 0) t._embedded.contacts = embContacts;
@@ -917,7 +917,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
           for (const c of ((lead._embedded && lead._embedded.contacts) || [])) {
             const kId = contactIdMap[String(c.id)];
             if (kId) {
-              embContacts.push({ id: kId });
+              embContacts.push({ id: Number(kId) });
             } else {
               logger.warn(`Lead AMO#${lead.id}: контакт AMO#${c.id} не найден в contactIdMap — привязка пропущена`);
             }
@@ -925,7 +925,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
           for (const c of ((lead._embedded && lead._embedded.companies) || [])) {
             const kId = companyIdMap[String(c.id)];
             if (kId) {
-              embCompanies.push({ id: kId });
+              embCompanies.push({ id: Number(kId) });
             } else {
               logger.warn(`Lead AMO#${lead.id}: компания AMO#${c.id} не найдена в companyIdMap — привязка пропущена`);
             }

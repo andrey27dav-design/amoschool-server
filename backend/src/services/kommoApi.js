@@ -99,13 +99,23 @@ async function createLeadsBatch(leads) {
     } catch (e) {
       if (e.response?.status === 400) {
         logger.error('Kommo leads 400 details:', JSON.stringify(e.response?.data));
+        logger.error('Kommo leads 400 payload sample:', JSON.stringify(chunk[0]));
+        require('fs').writeFileSync('/tmp/kommo_400_payload.json', JSON.stringify({error: e.response?.data, payload: chunk[0]}, null, 2));
         // Fallback: create without custom_fields_values, then PATCH separately
         const stripped = chunk.map(l => {
           const { custom_fields_values, ...rest } = l;
           return rest;
         });
         await rateLimit();
-        const res2 = await kommoClient.post('/api/v4/leads', stripped);
+        let res2;
+        try {
+          res2 = await kommoClient.post('/api/v4/leads', stripped);
+        } catch (e2) {
+          logger.error('Kommo leads fallback 400 details:', JSON.stringify(e2.response?.data));
+          logger.error('Kommo leads fallback payload sample:', JSON.stringify(stripped[0]));
+          require('fs').writeFileSync('/tmp/kommo_400_fallback.json', JSON.stringify({error: e2.response?.data, payload: stripped[0]}, null, 2));
+          throw e2;
+        }
         const fallbackLeads = res2.data._embedded?.leads || [];
         logger.info(`Kommo: created ${fallbackLeads.length} leads (fallback, now patching custom fields)`);
         for (let i = 0; i < fallbackLeads.length; i++) {
