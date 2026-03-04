@@ -723,41 +723,48 @@ export default function App() {
               );
             })()}
 
-            {/* ── ЗАГРУЖЕНО ИЗ AMO (from cache file — survives crash) ── */}
-            {batchStatus?.cacheStats && (
+            {/* ── ЗАГРУЖЕНО / ПЕРЕНЕСЕНО combined ── */}
+            {(batchStatus?.cacheStats || copyTotals) && (
               <div style={{ marginTop: 12, marginBottom: 4 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
-                  📥 Загружено из AMO
-                  {batchStatus.cacheStats.fetchedAt && (
-                    <span style={{ fontWeight: 400, fontSize: 11, color: '#94a3b8', marginLeft: 8 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                  <span>📥 Загружено из AMO / ✅ Перенесено в Kommo</span>
+                  {batchStatus?.cacheStats?.fetchedAt && (
+                    <span style={{ fontWeight: 400, fontSize: 11, color: '#94a3b8' }}>
                       {new Date(batchStatus.cacheStats.fetchedAt).toLocaleString('ru-RU')}
+                    </span>
+                  )}
+                  {batchStatus?.batchPosition?.offset > 0 && (
+                    <span style={{ fontWeight: 400, fontSize: 11, color: '#64748b' }}>
+                      · пакеты: {batchStatus.batchPosition.offset} из {batchStatus.cacheStats?.leads ?? '?'}
                     </span>
                   )}
                 </div>
                 <div className="counters">
                   {[
-                    { label: 'Сделки',                    key: 'leads',        icon: '📋' },
-                    { label: 'Контакты',                  key: 'contacts',     icon: '👤' },
-                    { label: 'Компании',                  key: 'companies',    icon: '🏢' },
-                    { label: 'Задачи (сделки)',           key: 'leadTasks',    icon: '✅' },
-                    { label: 'Задачи (контакты)',         key: 'contactTasks', icon: '✅' },
-                    { label: 'Комментарии (сделки)',      key: 'leadNotes',    icon: '💬' },
-                    { label: 'Комментарии (контакты)',    key: 'contactNotes', icon: '💬' },
+                    { label: 'Сделки',                 key: 'leads',        icon: '📋' },
+                    { label: 'Контакты',               key: 'contacts',     icon: '👤' },
+                    { label: 'Компании',               key: 'companies',    icon: '🏢' },
+                    { label: 'Задачи (сделки)',        key: 'leadTasks',    icon: '✅' },
+                    { label: 'Задачи (контакты)',      key: 'contactTasks', icon: '✅' },
+                    { label: 'Комм. (сделки)',         key: 'leadNotes',    icon: '💬' },
+                    { label: 'Комм. (контакты)',       key: 'contactNotes', icon: '💬' },
                   ].map(({ label, key, icon }) => (
                     <div className="counter" key={key}>
                       <div className="counter-icon">{icon}</div>
-                      <div className="counter-value">{batchStatus.cacheStats[key] ?? '—'}</div>
+                      <div className="counter-value" style={{ fontSize: 22, lineHeight: 1.1 }}>
+                        {batchStatus?.cacheStats?.[key] ?? '—'}
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#10b981', marginTop: 2, lineHeight: 1 }}>
+                        ↓ {copyTotals?.[key] ?? 0}
+                      </div>
                       <div className="counter-label">{label}</div>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
-
-            {/* batch position hint */}
-            {batchStatus?.batchPosition?.offset > 0 && (
-              <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
-                Позиция: обработано <b style={{color:'#cbd5e1'}}>{batchStatus.batchPosition.offset}</b> из {batchStatus.cacheStats?.leads ?? '?'} сделок через пакеты
+                <div style={{ fontSize: 11, color: '#475569', marginTop: 6, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                  <span style={{ color: '#94a3b8' }}>Серое число — загружено из AMO (последний кэш)</span>
+                  <span style={{ color: '#10b981' }}>↓ зелёное — перенесено в Kommo (накопительно)</span>
+                </div>
               </div>
             )}
 
@@ -924,53 +931,9 @@ export default function App() {
             )}
           </div>
 
-          {/* ──────────────────── ДЛЯ ПЕРЕНОСА ──────────────────── */}
-          {fetchSt?.status === 'done' && fetchSt.progress?.loaded && (
-            <div className="card counters-card">
-              <h2>📦 Для переноса (загружено из amo CRM)</h2>
-              <div className="counters">
-                {[
-                  { label: 'Сделки',              key: 'leads',        icon: '📋' },
-                  { label: 'Контакты',            key: 'contacts',     icon: '👤' },
-                  { label: 'Компании',            key: 'companies',    icon: '🏢' },
-                  { label: 'Задачи (сделки)',     key: 'leadTasks',    icon: '✅' },
-                  { label: 'Задачи (контакты)',   key: 'contactTasks', icon: '✅' },
-                  { label: 'Комментарии (сделки)',    key: 'leadNotes',    icon: '💬' },
-                  { label: 'Комментарии (контакты)', key: 'contactNotes', icon: '💬' },
-                ].map(({ label, key, icon }) => (
-                  <div className="counter" key={key}>
-                    <div className="counter-icon">{icon}</div>
-                    <div className="counter-value">{fetchSt.progress.loaded[key] ?? 0}</div>
-                    <div className="counter-label">{label}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* ДЛЯ ПЕРЕНОСА card removed — data shown inside batch card above */}
 
-          {/* ──────────────────── ПЕРЕНЕСЕНО ──────────────────── */}
-          <div className="card counters-card">
-            <h2>✅ Перенесено</h2>
-            <div className="counters">
-              {[
-                { label: 'Сделки',   key: 'leads',     icon: '📋' },
-                { label: 'Контакты', key: 'contacts',  icon: '👤' },
-                { label: 'Компании', key: 'companies', icon: '🏢' },
-                { label: 'Задачи (сделки)',         key: 'leadTasks',    icon: '✅' },
-                { label: 'Задачи (контакты)',      key: 'contactTasks', icon: '✅' },
-                { label: 'Комментарии (сделки)',    key: 'leadNotes',    icon: '💬' },
-                { label: 'Комментарии (контакты)', key: 'contactNotes', icon: '💬' },
-              ].map(({ label, key, icon }) => (
-                <div className="counter" key={key}>
-                  <div className="counter-icon">{icon}</div>
-                  <div className="counter-value">
-                    {copyTotals ? (copyTotals[key] || 0) : ((batchStatus?.createdIds?.[key]?.length || 0) + (status?.createdIds?.[key]?.length || 0))}
-                  </div>
-                  <div className="counter-label">{label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* ПЕРЕНЕСЕНО card removed — merged into batch card above */}
 
           {/* Controls hidden */}
           <div className="card controls-card" style={{ display: 'none' }}>
