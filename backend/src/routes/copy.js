@@ -78,34 +78,25 @@ function countField(idx, key) {
   return 0;
 }
 
-// GET /api/copy/totals — read from migration_index.json minus baseline
+// GET /api/copy/totals — absolute totals from migration_index.json (never subtracted)
 // migration_index.json is the permanent dedup record — NEVER cleared
-// counter_reset_baseline.json stores the snapshot at last "reset counter" click
+// Counter resets ONLY when user explicitly clicks "Сбросить счётчик" button
 router.get('/totals', (req, res) => {
   try {
-    const indexPath    = path.resolve(cfg.backupDir, 'migration_index.json');
-    const baselinePath = path.resolve(cfg.backupDir, 'counter_reset_baseline.json');
-
-    const idx  = fse.existsSync(indexPath)    ? fse.readJsonSync(indexPath)    : {};
-    const base = fse.existsSync(baselinePath) ? fse.readJsonSync(baselinePath) : {};
+    const indexPath = path.resolve(cfg.backupDir, 'migration_index.json');
+    const idx = fse.existsSync(indexPath) ? fse.readJsonSync(indexPath) : {};
 
     const totals = {
-      leads:        Math.max(0, countField(idx, 'leads')     - (base.leads     || 0)),
-      contacts:     Math.max(0, countField(idx, 'contacts')  - (base.contacts  || 0)),
-      companies:    Math.max(0, countField(idx, 'companies') - (base.companies || 0)),
-      leadTasks:    Math.max(0, countField(idx, 'tasks_leads')    - (base.leadTasks    || 0)),
-      contactTasks: Math.max(0, countField(idx, 'tasks_contacts') - (base.contactTasks || 0)),
-      leadNotes:    Math.max(0, countField(idx, 'notes_leads')    - (base.leadNotes    || 0)),
-      contactNotes: Math.max(0, countField(idx, 'notes_contacts') - (base.contactNotes || 0)),
+      leads:        countField(idx, 'leads'),
+      contacts:     countField(idx, 'contacts'),
+      companies:    countField(idx, 'companies'),
+      leadTasks:    countField(idx, 'tasks_leads'),
+      contactTasks: countField(idx, 'tasks_contacts'),
+      leadNotes:    countField(idx, 'notes_leads'),
+      contactNotes: countField(idx, 'notes_contacts'),
       // combined for backward compat
-      tasks:        Math.max(0,
-        (countField(idx, 'tasks_leads') + countField(idx, 'tasks_contacts') + countField(idx, 'tasks_companies'))
-        - (base.tasks || 0)
-      ),
-      notes:        Math.max(0,
-        (countField(idx, 'notes_leads') + countField(idx, 'notes_contacts') + countField(idx, 'notes_companies'))
-        - (base.notes || 0)
-      ),
+      tasks:  countField(idx, 'tasks_leads') + countField(idx, 'tasks_contacts') + countField(idx, 'tasks_companies'),
+      notes:  countField(idx, 'notes_leads') + countField(idx, 'notes_contacts') + countField(idx, 'notes_companies'),
     };
 
     res.json(totals);

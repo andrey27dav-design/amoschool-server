@@ -524,12 +524,10 @@ export default function App() {
   };
 
   const handleBatchReset = async () => {
-    if (!confirm('Сбросить счётчик? Следующий пакет начнётся с первой сделки. Счётчик «Перенесено» тоже обнулится.')) return;
+    if (!confirm('Сбросить счётчик? Следующий пакет начнётся с первой сделки. Счётчик «Перенесено» сохранит все ранее перенесённые данные.')) return;
     try {
       await api.resetBatchOffset();
-      // Reset the ПЕРЕНЕСЕНО display counter (baseline is saved, migration_index.json is NOT touched)
-      await api.resetCopyCounter().catch(() => {});
-      // Refresh totals display
+      // Refresh totals display (absolute totals are preserved, only offset resets)
       const totals = await getCopyTotals().catch(() => null);
       if (totals) setCopyTotals(totals);
       // Clear green highlights for migrated deals
