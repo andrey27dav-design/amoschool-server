@@ -555,6 +555,19 @@ export default function App() {
     }
   };
 
+  const handleFilterCacheUnprocessed = async () => {
+    if (!confirm('Оставить в кэше только необработанные сделки? Уже перенесённые будут исключены из отображения (не из Kommo). Действие необратимо до следующей загрузки AMO.')) return;
+    try {
+      const r = await api.filterCacheUnprocessed();
+      setMessage(`✅ Готово: ${r.after.leads} необработанных сделок (было ${r.before.leads}, убрано ${r.removed})`);
+      const d = await api.getBatchStatus();
+      if (d) setBatchStatusData(d);
+      api.getBatchStats().then(setBatchStats).catch(() => {});
+    } catch (e) {
+      setMessage('❌ ' + (e.response?.data?.error || e.message));
+    }
+  };
+
   const isRunning = status?.status === 'running' || status?.status === 'rolling_back';
   const progressPct = status?.progress?.total > 0
     ? Math.round((status.progress.current / status.progress.total) * 100)
@@ -830,6 +843,12 @@ export default function App() {
               <button className="btn btn-secondary" onClick={handleBatchReset}
                 disabled={batchLoading || batchStatus?.status === 'running'}>
                 🔁 Сбросить счётчик
+              </button>
+              <button className="btn btn-secondary" onClick={handleFilterCacheUnprocessed}
+                disabled={batchLoading || batchStatus?.status === 'running'}
+                title="Убрать из кэша уже перенесённые сделки — останутся только необработанные"
+                style={{ background: 'rgba(234,179,8,0.15)', borderColor: 'rgba(234,179,8,0.5)', color: '#fcd34d' }}>
+                🔍 Только необработанные
               </button>
             </div>
 

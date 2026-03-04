@@ -717,6 +717,84 @@ router.post('/batch-reset', (req, res) => {
   }
 });
 
+// POST /api/migration/filter-cache-unprocessed
+// Filters amo_data_cache.json to keep ONLY entries not yet in migration_index.json
+router.post('/filter-cache-unprocessed', (req, res) => {
+  try {
+    const cfg = require('../config');
+    const cachePath = path.resolve(cfg.backupDir, 'amo_data_cache.json');
+    const idxPath   = path.resolve(cfg.backupDir, 'migration_index.json');
+
+    if (!fs.existsSync(cachePath)) {
+      return res.status(400).json({ error: 'Кэш AMO не найден. Сначала загрузите данные.' });
+    }
+
+    const cache = fs.readJsonSync(cachePath);
+    const idx   = fs.existsSync(idxPath) ? fs.readJsonSync(idxPath) : {};
+
+    // Set of already-migrated IDs (stored as string keys)
+    const migratedLeadIds    = new Set(Object.keys(idx.leads    || {}).map(Number));
+    const migratedContactIds = new Set(Object.keys(idx.contacts || {}).map(Number));
+    const migratedCompanyIds = new Set(Object.keys(idx.companies || {}).map(Number));
+
+    // Filter leads
+    const filteredLeads = (cache.leads || []).filter(l => !migratedLeadIds.has(l.id));
+
+    // Collect IDs of contacts/companies referenced by remaining leads
+    const neededContactIds = new Set();
+    const neededCompanyIds = new Set();
+    filteredLeads.forEach(l => {
+      (l._embedded?.contacts || []).forEach(c => neededContactIds.add(c.id));
+      (l._embedded?.companies || []).forEach(c => neededCompanyIds.add(c.id));
+    });
+
+    // Filter related entities
+    const filteredContacts     = (cache.contacts  || []).filter(c => neededContactIds.has(c.id) && !migratedContactIds.has(c.id));
+    const filteredCompanies    = (cache.companies  || []).filter(c => neededCompanyIds.has(c.id) && !migratedCompanyIds.has(c.id));
+    const filteredLeadTasks    = (cache.leadTasks  || []).filter(t => !migratedLeadIds.has(t.entity_id));
+    const filteredLeadNotes    = (cache.leadNotes  || []).filter(n => !migratedLeadIds.has(n.entity_id));
+    const filteredContactIds   = new Set(filteredContacts.map(c => c.id));
+    const filteredContactTasks = (cache.contactTasks || []).filter(t => filteredContactIds.has(t.entity_id));
+    const filteredContactNotes = (cache.contactNotes || []).filter(n => filteredContactIds.has(n.entity_id));
+
+    const before = {
+      leads: (cache.leads || []).length, contacts: (cache.contacts || []).length,
+      companies: (cache.companies || []).length, leadTasks: (cache.leadTasks || []).length,
+      leadNotes: (cache.leadNotes || []).length,
+    };
+
+    const newCache = {
+      ...cache,
+      leads:        filteredLeads,
+      contacts:     filteredContacts,
+      companies:    filteredCompanies,
+      leadTasks:    filteredLeadTasks,
+      leadNotes:    filteredLeadNotes,
+      contactTasks: filteredContactTasks,
+      contactNotes: filteredContactNotes,
+      fetchedAt:    cache.fetchedAt,
+      filteredAt:   new Date().toISOString(),
+    };
+
+    fs.writeJsonSync(cachePath, newCache);
+
+    res.json({
+      ok: true,
+      before,
+      after: {
+        leads:     filteredLeads.length,
+        contacts:  filteredContacts.length,
+        companies: filteredCompanies.length,
+        leadTasks: filteredLeadTasks.length,
+        leadNotes: filteredLeadNotes.length,
+      },
+      removed: before.leads - filteredLeads.length,
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // In-memory stage names cache (pipeline_id → { statusId: stageName })
 let _stageNamesCache = {};
 
