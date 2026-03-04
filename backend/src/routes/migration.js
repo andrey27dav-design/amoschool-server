@@ -575,9 +575,29 @@ router.get('/batch-stats', (req, res) => {
 // POST /api/migration/batch-start
 router.post('/batch-start', async (req, res) => {
   try {
-    // Get latest stage mapping from main service
-    const mainState = migrationService.getState();
-    const stageMapping = mainState?.stageMapping || {};
+    const db     = require('../db');
+    const config = require('../config');
+    // Priority 1: stage mapping configured via Pipelines tab (stored in DB)
+    let stageMapping = null;
+    try {
+      const amoPipelineId = parseInt(config.amo.pipelineId);
+      if (amoPipelineId) {
+        stageMapping = db.buildStageMappingFromDB(amoPipelineId);
+        if (stageMapping) {
+          logger.info('[batch-start] Stage mapping loaded from DB: ' +
+            Object.keys(stageMapping).filter(k => k !== '_pipeline').length +
+            ' stages, pipeline ' + JSON.stringify(stageMapping._pipeline));
+        }
+      }
+    } catch (e) {
+      logger.warn('[batch-start] Could not load stage mapping from DB:', e.message);
+    }
+    // Priority 2: fallback to migrationState (used when syncPipelineStages was run)
+    if (!stageMapping || Object.keys(stageMapping).filter(k => k !== '_pipeline').length === 0) {
+      const mainState = migrationService.getState();
+      stageMapping = mainState?.stageMapping || {};
+      logger.info('[batch-start] Stage mapping loaded from migrationState, stages: ' + Object.keys(stageMapping).filter(k => k !== '_pipeline').length);
+    }
     // Start batch in background
     batchService.runBatchMigration(stageMapping).catch(e => {
       logger.error('Background batch error:', e);

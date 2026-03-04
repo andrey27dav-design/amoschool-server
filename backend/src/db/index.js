@@ -201,6 +201,10 @@ const getStageMappingStmt = db.prepare(
 const deleteStageMapping = db.prepare(
   'DELETE FROM stage_mapping WHERE amo_pipeline_id=? AND kommo_pipeline_id=?'
 );
+const getAllStageMappingsForAmoStmt = db.prepare(
+  'SELECT * FROM stage_mapping WHERE amo_pipeline_id=? ORDER BY kommo_pipeline_id, id'
+);
+
 
 // ─── User Mapping ────────────────────────────────────────────────────────────
 const upsertUserMapping = db.prepare(`
@@ -279,6 +283,38 @@ function saveStageMapping(amoPipelineId, kommoPipelineId, stages) {
 function getStageMapping(amoPipelineId, kommoPipelineId) {
   return getStageMappingStmt.all(amoPipelineId, kommoPipelineId);
 }
+/**
+ * Build a stageMapping object { [amoStageId]: kommoStageId, _pipeline: {amo, kommo} }
+ * from the DB stage_mapping table (filled via Pipelines tab in UI).
+ * Picks the Kommo pipeline with most mapped stages for the given AMO pipeline.
+ */
+function buildStageMappingFromDB(amoPipelineId) {
+  const rows = getAllStageMappingsForAmoStmt.all(amoPipelineId);
+  if (!rows || rows.length === 0) return null;
+  // Group by kommo_pipeline_id
+  const byKommo = {};
+  for (const r of rows) {
+    if (!byKommo[r.kommo_pipeline_id]) byKommo[r.kommo_pipeline_id] = [];
+    byKommo[r.kommo_pipeline_id].push(r);
+  }
+  // Pick the pipeline with most mapped stages
+  let bestKommoId = null, bestRows = [];
+  for (const [kId, kRows] of Object.entries(byKommo)) {
+    if (kRows.length > bestRows.length) {
+      bestKommoId = parseInt(kId);
+      bestRows = kRows;
+    }
+  }
+  const mapping = {};
+  for (const r of bestRows) {
+    if (r.kommo_stage_id) mapping[String(r.amo_stage_id)] = r.kommo_stage_id;
+  }
+  mapping['142'] = 142;
+  mapping['143'] = 143;
+  mapping._pipeline = { amo: amoPipelineId, kommo: bestKommoId };
+  return mapping;
+}
+
 
 function saveUserMapping(data) {
   upsertUserMapping.run({
@@ -336,6 +372,7 @@ module.exports = {
   // stage mapping
   saveStageMapping,
   getStageMapping,
+  buildStageMappingFromDB,
   // user mapping
   saveUserMapping,
   getUserMappings,
