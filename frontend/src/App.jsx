@@ -736,10 +736,13 @@ export default function App() {
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {[
-                    { label: 'Сделок',    val: batchStatus.cacheStats.leads,     color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe' },
-                    { label: 'Контактов', val: batchStatus.cacheStats.contacts,   color: '#8b5cf6', bg: '#f5f3ff', border: '#ddd6fe' },
-                    { label: 'Компаний',  val: batchStatus.cacheStats.companies,  color: '#f59e0b', bg: '#fffbeb', border: '#fde68a' },
-                    { label: 'Задач',     val: batchStatus.cacheStats.tasks,      color: '#10b981', bg: '#f0fdf4', border: '#bbf7d0' },
+                    { label: 'Сделок',           val: batchStatus.cacheStats.leads,        color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe' },
+                    { label: 'Контактов',         val: batchStatus.cacheStats.contacts,     color: '#8b5cf6', bg: '#f5f3ff', border: '#ddd6fe' },
+                    { label: 'Компаний',          val: batchStatus.cacheStats.companies,    color: '#f59e0b', bg: '#fffbeb', border: '#fde68a' },
+                    { label: 'Задач (сделки)',    val: batchStatus.cacheStats.leadTasks,    color: '#10b981', bg: '#f0fdf4', border: '#bbf7d0' },
+                    { label: 'Задач (контакты)',  val: batchStatus.cacheStats.contactTasks, color: '#10b981', bg: '#f0fdf4', border: '#bbf7d0' },
+                    { label: 'Комм. (сделки)',    val: batchStatus.cacheStats.leadNotes,    color: '#6366f1', bg: '#eef2ff', border: '#c7d2fe' },
+                    { label: 'Комм. (контакты)',  val: batchStatus.cacheStats.contactNotes, color: '#6366f1', bg: '#eef2ff', border: '#c7d2fe' },
                   ].map(s => (
                     <div key={s.label} style={{ padding: '6px 14px', background: s.bg, border: `1px solid ${s.border}`, borderRadius: 8, textAlign: 'center', minWidth: 70 }}>
                       <div style={{ fontSize: 20, fontWeight: 700, color: s.color }}>{s.val ?? '—'}</div>
@@ -750,34 +753,10 @@ export default function App() {
               </div>
             )}
 
-            {/* ── ПЕРЕНЕСЕНО В KOMMO итого (from migration_index — ground truth, survives crash) ── */}
-            {batchStatus?.migrationTotals && (
-              <div style={{ marginTop: 10, marginBottom: 4 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
-                  ✅ Перенесено в Kommo
-                  <span style={{ fontWeight: 400, fontSize: 11, color: '#94a3b8', marginLeft: 8 }}>
-                    (накопительно, не сбрасывается при сбое)
-                  </span>
-                </div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {[
-                    { label: 'Сделок',       val: batchStatus.migrationTotals.leads,     color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe' },
-                    { label: 'Контактов',    val: batchStatus.migrationTotals.contacts,   color: '#8b5cf6', bg: '#f5f3ff', border: '#ddd6fe' },
-                    { label: 'Компаний',     val: batchStatus.migrationTotals.companies,  color: '#f59e0b', bg: '#fffbeb', border: '#fde68a' },
-                    { label: 'Задач',        val: batchStatus.migrationTotals.tasks,      color: '#10b981', bg: '#f0fdf4', border: '#bbf7d0' },
-                    { label: 'Комментариев', val: batchStatus.migrationTotals.notes,      color: '#6366f1', bg: '#eef2ff', border: '#c7d2fe' },
-                  ].map(s => (
-                    <div key={s.label} style={{ padding: '6px 14px', background: s.bg, border: `1px solid ${s.border}`, borderRadius: 8, textAlign: 'center', minWidth: 70 }}>
-                      <div style={{ fontSize: 20, fontWeight: 700, color: s.color }}>{s.val ?? 0}</div>
-                      <div style={{ fontSize: 11, color: '#6b7280' }}>{s.label}</div>
-                    </div>
-                  ))}
-                  {batchStatus?.batchPosition?.offset > 0 && (
-                    <div style={{ alignSelf: 'center', fontSize: 12, color: '#94a3b8', marginLeft: 4 }}>
-                      Позиция: пакет <b style={{color:'#cbd5e1'}}>{batchStatus.batchPosition.offset}</b> из {batchStatus.cacheStats?.leads ?? '?'}
-                    </div>
-                  )}
-                </div>
+            {/* batch position hint */}
+            {batchStatus?.batchPosition?.offset > 0 && (
+              <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+                Позиция: обработано <b style={{color:'#cbd5e1'}}>{batchStatus.batchPosition.offset}</b> из {batchStatus.cacheStats?.leads ?? '?'} сделок через пакеты
               </div>
             )}
 
@@ -790,7 +769,7 @@ export default function App() {
                 </div>
                 <div className="batch-stat transferred">
                   <div className="batch-stat-val">{batchStats.totalTransferred ?? 0}</div>
-                  <div className="batch-stat-lbl">Перенесено (сделок)</div>
+                  <div className="batch-stat-lbl">Обработано (сделок)</div>
                 </div>
                 <div className="batch-stat remaining">
                   <div className="batch-stat-val">{batchStats.remainingLeads ?? '—'}</div>

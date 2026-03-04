@@ -16,14 +16,14 @@ function getCacheStats() {
     const cachePath = path.resolve(cfg.backupDir, 'amo_data_cache.json');
     if (!fs.existsSync(cachePath)) return null;
     const c = fs.readJsonSync(cachePath);
-    const leads      = (c.leads      || []).length;
-    const contacts   = (c.contacts   || []).length;
-    const companies  = (c.companies  || []).length;
-    const tasks      = (c.leadTasks  || []).length +
-                       (c.contactTasks || []).length +
-                       (c.companyTasks || []).length +
-                       (c.tasks       || []).length;
-    return { leads, contacts, companies, tasks, fetchedAt: c.fetchedAt || null };
+    const leads        = (c.leads        || []).length;
+    const contacts     = (c.contacts     || []).length;
+    const companies    = (c.companies    || []).length;
+    const leadTasks    = (c.leadTasks    || []).length;
+    const contactTasks = (c.contactTasks || []).length;
+    const leadNotes    = (c.leadNotes    || []).length;
+    const contactNotes = (c.contactNotes || []).length;
+    return { leads, contacts, companies, leadTasks, contactTasks, leadNotes, contactNotes, fetchedAt: c.fetchedAt || null };
   } catch { return null; }
 }
 
