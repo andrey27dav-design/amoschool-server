@@ -734,19 +734,20 @@ export default function App() {
                     </span>
                   )}
                 </div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <div className="counters">
                   {[
-                    { label: 'Сделок',           val: batchStatus.cacheStats.leads,        color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe' },
-                    { label: 'Контактов',         val: batchStatus.cacheStats.contacts,     color: '#8b5cf6', bg: '#f5f3ff', border: '#ddd6fe' },
-                    { label: 'Компаний',          val: batchStatus.cacheStats.companies,    color: '#f59e0b', bg: '#fffbeb', border: '#fde68a' },
-                    { label: 'Задач (сделки)',    val: batchStatus.cacheStats.leadTasks,    color: '#10b981', bg: '#f0fdf4', border: '#bbf7d0' },
-                    { label: 'Задач (контакты)',  val: batchStatus.cacheStats.contactTasks, color: '#10b981', bg: '#f0fdf4', border: '#bbf7d0' },
-                    { label: 'Комм. (сделки)',    val: batchStatus.cacheStats.leadNotes,    color: '#6366f1', bg: '#eef2ff', border: '#c7d2fe' },
-                    { label: 'Комм. (контакты)',  val: batchStatus.cacheStats.contactNotes, color: '#6366f1', bg: '#eef2ff', border: '#c7d2fe' },
-                  ].map(s => (
-                    <div key={s.label} style={{ padding: '6px 14px', background: s.bg, border: `1px solid ${s.border}`, borderRadius: 8, textAlign: 'center', minWidth: 70 }}>
-                      <div style={{ fontSize: 20, fontWeight: 700, color: s.color }}>{s.val ?? '—'}</div>
-                      <div style={{ fontSize: 11, color: '#6b7280' }}>{s.label}</div>
+                    { label: 'Сделки',                    key: 'leads',        icon: '📋' },
+                    { label: 'Контакты',                  key: 'contacts',     icon: '👤' },
+                    { label: 'Компании',                  key: 'companies',    icon: '🏢' },
+                    { label: 'Задачи (сделки)',           key: 'leadTasks',    icon: '✅' },
+                    { label: 'Задачи (контакты)',         key: 'contactTasks', icon: '✅' },
+                    { label: 'Комментарии (сделки)',      key: 'leadNotes',    icon: '💬' },
+                    { label: 'Комментарии (контакты)',    key: 'contactNotes', icon: '💬' },
+                  ].map(({ label, key, icon }) => (
+                    <div className="counter" key={key}>
+                      <div className="counter-icon">{icon}</div>
+                      <div className="counter-value">{batchStatus.cacheStats[key] ?? '—'}</div>
+                      <div className="counter-label">{label}</div>
                     </div>
                   ))}
                 </div>
