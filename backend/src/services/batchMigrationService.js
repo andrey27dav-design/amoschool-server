@@ -544,7 +544,7 @@ async function runBatchMigration(stageMapping) {
         const _batchLeadNotePairs = [];
         for (const [kId, notes] of Object.entries(_batchLeadNotesGrouped)) {
           const _amoNoteIds = notes.map(n => n.id);
-          const n = notes.map(note => { const s = sanitizeNoteParams(note); return { entity_id: kId, note_type: s.note_type, params: s.params, created_by: 12739795 }; });
+          const n = notes.map(note => { const s = sanitizeNoteParams(note); return { entity_id: Number(kId), note_type: s.note_type, params: s.params, created_by: 12739795 }; });
           try {
             const created = await kommoApi.createNotesBatch('leads', n);
             created.forEach((cn, idx) => {
@@ -578,7 +578,7 @@ async function runBatchMigration(stageMapping) {
           const { toCreate: _bCNotesToCreate } = safety.filterNotMigrated('notes_contacts', _bCNotesTyped, n => n.id);
           if (_bCNotesToCreate.length > 0) {
             const _bCNoteAmoIds = _bCNotesToCreate.map(n => n.id);
-            const n = _bCNotesToCreate.map(note => { const s = sanitizeNoteParams(note); return { entity_id: kContactId, note_type: s.note_type, params: s.params, created_by: 12739795 }; });
+            const n = _bCNotesToCreate.map(note => { const s = sanitizeNoteParams(note); return { entity_id: Number(kContactId), note_type: s.note_type, params: s.params, created_by: 12739795 }; });
             const created = await kommoApi.createNotesBatch('contacts', n);
             const _bCNotePairs = [];
             created.forEach((cn, idx) => {
