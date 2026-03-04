@@ -452,6 +452,7 @@ async function runBatchMigration(stageMapping) {
     } // end if (newLeads.length > 0)
 
     // leadIdMap declared above (see SAFE dedup block)
+    const leadPairs = [];
     for (let idx = 0; idx < createdLeads.length; idx++) {
       const kLead = createdLeads[idx];
       const aLead = newLeads[idx];       // ← только новые (не skipped)
