@@ -219,7 +219,13 @@ async function runBatchMigration(stageMapping) {
     const allLeads     = cache.leads     || [];
     const allContacts  = cache.contacts  || [];
     const allCompanies = cache.companies || [];
-    const allTasks     = cache.tasks     || [];
+    // Support both new format (leadTasks/contactTasks) and legacy (tasks)
+    const allTasks = [
+      ...(cache.leadTasks    || []),
+      ...(cache.contactTasks || []),
+      ...(cache.companyTasks || []),
+      ...(cache.tasks        || []),
+    ];
 
     /* ── 2. Filter by managers ──────────────────────────────────────── */
     const eligible = getEligibleLeads(allLeads, batchConfig.managerIds);

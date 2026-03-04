@@ -801,6 +801,7 @@ export default function App() {
                   <span>Сделок: <b style={{color:'#fff'}}>{batchStatus.createdIds.leads?.length ?? 0}</b></span>
                   <span>Контактов: <b style={{color:'#fff'}}>{batchStatus.createdIds.contacts?.length ?? 0}</b></span>
                   <span>Компаний: <b style={{color:'#fff'}}>{batchStatus.createdIds.companies?.length ?? 0}</b></span>
+                  <span>Задач: <b style={{color:'#fff'}}>{batchStatus.createdIds.tasks?.length ?? 0}</b></span>
                   <span>Заметок: <b style={{color:'#fff'}}>{batchStatus.createdIds.notes?.length ?? 0}</b></span>
                   <span>⚠️ предупреждений: <b style={{color: batchStatus.warnings?.length > 0 ? '#fbbf24':'#fff'}}>{batchStatus.warnings?.length ?? 0}</b></span>
                   <span>❌ ошибок: <b style={{color: batchStatus.errors?.length > 0 ? '#f87171':'#fff'}}>{batchStatus.errors?.length ?? 0}</b></span>
