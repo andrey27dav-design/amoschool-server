@@ -169,6 +169,7 @@ async function syncPipelineStages(amoPipelineId, kommoPipelineId) {
   // Fallback: map won/lost
   stageMapping[142] = 142;
   stageMapping[143] = 143;
+  stageMapping._pipeline = { amo: amoId, kommo: kommoId };
 
   updateState({ stageMapping });
   // Persist stageMapping to disk so it survives restarts

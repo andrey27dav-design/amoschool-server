@@ -313,6 +313,9 @@ async function createNotesBatch(entityType, notes) {
   for (const chunk of chunks) {
     await rateLimit();
     try {
+      // DEBUG: write chunk to file for inspection
+      try { require('fs').writeFileSync(`/tmp/notes_chunk_${entityType}.json`, JSON.stringify(chunk, null, 2)); } catch(_){}
+      logger.info(`[debug] notes chunk[0] entity_id: ${chunk[0]?.entity_id} (${typeof chunk[0]?.entity_id}), sample: ${JSON.stringify(chunk[0])?.slice(0,200)}`);
       const res = await kommoClient.post(`/api/v4/${entityType}/notes`, chunk);
       const embedded = res.data._embedded?.notes || [];
       logger.info(`Kommo createNotesBatch(${entityType}): HTTP ${res.status}, notes=${embedded.length}`);

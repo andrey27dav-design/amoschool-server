@@ -438,7 +438,7 @@ async function runBatchMigration(stageMapping) {
 
     const leadsToCreate = newLeads.map(lead => {
       const t = transformLead(lead, stageMapping || {}, fieldMappings.leads, userMap);
-      t.pipeline_id = config.kommo.pipelineId;
+      t.pipeline_id = (stageMapping && stageMapping._pipeline && stageMapping._pipeline.kommo) ? stageMapping._pipeline.kommo : config.kommo.pipelineId;
       // Embed contacts + companies directly in lead creation payload (bulk, no separate link calls)
       const embContacts = (lead._embedded?.contacts || [])
         .map(c => contactIdMap[c.id]).filter(Boolean).map(id => ({ id: Number(id) }));
@@ -919,7 +919,7 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
         const { transformLead } = require('../utils/dataTransformer');
         const leadsForKommo = leadsToCreate.map(lead => {
           const t = transformLead(lead, stageMapping || {}, fieldMappings.leads, userMap);
-          t.pipeline_id = config.kommo.pipelineId;
+          t.pipeline_id = (stageMapping && stageMapping._pipeline && stageMapping._pipeline.kommo) ? stageMapping._pipeline.kommo : config.kommo.pipelineId;
           // ── Передаём contacts и companies в _embedded при СОЗДАНИИ сделки ──
           // В Kommo API PATCH _embedded.contacts работает ненадёжно;
           // единственный гарантированный способ — включить их в POST /api/v4/leads
