@@ -833,7 +833,7 @@ export default function App() {
                   ⏸ Пауза
                 </button>
               )}
-              {(batchStatus?.status === 'error' || batchStatus?.status === 'paused') && (
+              {(batchStatus?.status === 'error' || batchStatus?.status === 'paused' || crashDetected) && (
                 <button className="btn btn-primary" onClick={handleResumeBatch}
                   disabled={batchLoading}
                   title="Продолжить с последнего успешного места">
@@ -874,10 +874,16 @@ export default function App() {
                   Счётчик «Перенесено в Kommo» показывает актуальные данные из индекса.<br/>
                   Нажмите «▶ Продолжить пакет» — уже созданные объекты будут пропущены автоматически.
                 </div>
-                <button onClick={() => setCrashDetected(false)}
-                  style={{ marginTop: 8, padding: '4px 12px', background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)', color: '#fca5a5', borderRadius: 6, cursor: 'pointer', fontSize: 12 }}>
-                  Понятно
-                </button>
+                <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'center' }}>
+                  <button onClick={handleResumeBatch} disabled={batchLoading}
+                    style={{ padding: '7px 18px', background: '#3b82f6', border: 'none', color: '#fff', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                    ▶ Продолжить пакет
+                  </button>
+                  <button onClick={() => setCrashDetected(false)}
+                    style={{ padding: '6px 14px', background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)', color: '#fca5a5', borderRadius: 6, cursor: 'pointer', fontSize: 12 }}>
+                    Понятно, не продолжать
+                  </button>
+                </div>
               </div>
             )}
 
