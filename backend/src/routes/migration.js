@@ -30,18 +30,49 @@ function getCacheStats() {
 function getMigrationTotals() {
   try {
     const cfg = require('../config');
-    const idxPath = path.resolve(cfg.backupDir, 'migration_index.json');
+    const idxPath  = path.resolve(cfg.backupDir, 'migration_index.json');
+    const basePath = path.resolve(cfg.backupDir, 'session_baseline.json');
     if (!fs.existsSync(idxPath)) return null;
     const idx = fs.readJsonSync(idxPath);
     const count = (obj) => obj ? Object.keys(obj).length : 0;
+    // Load baseline (saved at last reset); default all zeros if absent
+    let base = { leads: 0, contacts: 0, companies: 0, leadTasks: 0, contactTasks: 0, leadNotes: 0, contactNotes: 0 };
+    if (fs.existsSync(basePath)) {
+      try { base = { ...base, ...fs.readJsonSync(basePath) }; } catch {}
+    }
     return {
-      leads:     count(idx.leads),
-      contacts:  count(idx.contacts),
-      companies: count(idx.companies),
-      tasks:     count(idx.tasks_leads) + count(idx.tasks_contacts) + count(idx.tasks_companies),
-      notes:     count(idx.notes_leads) + count(idx.notes_contacts) + count(idx.notes_companies),
+      leads:        Math.max(0, count(idx.leads)          - (base.leads        || 0)),
+      contacts:     Math.max(0, count(idx.contacts)       - (base.contacts     || 0)),
+      companies:    Math.max(0, count(idx.companies)      - (base.companies    || 0)),
+      leadTasks:    Math.max(0, count(idx.tasks_leads)    - (base.leadTasks    || 0)),
+      contactTasks: Math.max(0, count(idx.tasks_contacts) - (base.contactTasks || 0)),
+      leadNotes:    Math.max(0, count(idx.notes_leads)    - (base.leadNotes    || 0)),
+      contactNotes: Math.max(0, count(idx.notes_contacts) - (base.contactNotes || 0)),
     };
   } catch { return null; }
+}
+
+function saveSessionBaseline() {
+  try {
+    const cfg = require('../config');
+    const idxPath  = path.resolve(cfg.backupDir, 'migration_index.json');
+    const basePath = path.resolve(cfg.backupDir, 'session_baseline.json');
+    const count = (obj) => obj ? Object.keys(obj).length : 0;
+    let baseline = { leads: 0, contacts: 0, companies: 0, leadTasks: 0, contactTasks: 0, leadNotes: 0, contactNotes: 0 };
+    if (fs.existsSync(idxPath)) {
+      const idx = fs.readJsonSync(idxPath);
+      baseline = {
+        leads:        count(idx.leads),
+        contacts:     count(idx.contacts),
+        companies:    count(idx.companies),
+        leadTasks:    count(idx.tasks_leads),
+        contactTasks: count(idx.tasks_contacts),
+        leadNotes:    count(idx.notes_leads),
+        contactNotes: count(idx.notes_contacts),
+      };
+    }
+    fs.writeJsonSync(basePath, baseline);
+  } catch {}
 }
 
 // GET /api/migration/status
@@ -678,6 +709,7 @@ router.post('/batch-pause', (req, res) => {
 // POST /api/migration/batch-reset
 router.post('/batch-reset', (req, res) => {
   try {
+    saveSessionBaseline();   // snapshot current migration_index counts as new zero baseline
     batchService.resetOffset();
     res.json({ ok: true, message: 'Счётчик сброшен' });
   } catch (e) {

@@ -724,7 +724,7 @@ export default function App() {
             })()}
 
             {/* ── ЗАГРУЖЕНО / ПЕРЕНЕСЕНО combined ── */}
-            {(batchStatus?.cacheStats || copyTotals) && (
+            {batchStatus?.cacheStats && (
               <div style={{ marginTop: 12, marginBottom: 4 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
                   <span>📥 Загружено из AMO / ✅ Перенесено в Kommo</span>
@@ -755,7 +755,7 @@ export default function App() {
                         {batchStatus?.cacheStats?.[key] ?? '—'}
                       </div>
                       <div style={{ fontSize: 13, fontWeight: 700, color: '#10b981', marginTop: 2, lineHeight: 1 }}>
-                        ↓ {copyTotals?.[key] ?? 0}
+                        ↓ {batchStatus?.migrationTotals?.[key] ?? 0}
                       </div>
                       <div className="counter-label">{label}</div>
                     </div>
@@ -763,7 +763,7 @@ export default function App() {
                 </div>
                 <div style={{ fontSize: 11, color: '#475569', marginTop: 6, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                   <span style={{ color: '#94a3b8' }}>Серое число — загружено из AMO (последний кэш)</span>
-                  <span style={{ color: '#10b981' }}>↓ зелёное — перенесено в Kommo (накопительно)</span>
+                  <span style={{ color: '#10b981' }}>↓ зелёное — перенесено в Kommo (с последнего сброса счётчика)</span>
                 </div>
               </div>
             )}
