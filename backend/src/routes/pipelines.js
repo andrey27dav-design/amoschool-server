@@ -52,6 +52,8 @@ router.post('/stage-mapping', async (req, res) => {
       return res.status(400).json({ error: 'amoPipelineId, kommoPipelineId and stages[] are required' });
     }
     db.saveStageMapping(parseInt(amoPipelineId), parseInt(kommoPipelineId), stages);
+    // Save as the currently selected pipeline pair for this AMO pipeline
+    db.saveSelectedPipeline(parseInt(amoPipelineId), parseInt(kommoPipelineId));
     res.json({ ok: true, saved: stages.length });
   } catch (e) {
     console.error('POST stage-mapping error:', e);

@@ -90,6 +90,12 @@ db.exec(`
     UNIQUE(amo_user_id)
   );
 
+  CREATE TABLE IF NOT EXISTS pipeline_selection (
+    amo_pipeline_id   INTEGER PRIMARY KEY,
+    kommo_pipeline_id INTEGER NOT NULL,
+    updated_at        TEXT DEFAULT (datetime('now'))
+  );
+
   CREATE INDEX IF NOT EXISTS idx_id_mapping_session ON id_mapping(session_id);  
   CREATE INDEX IF NOT EXISTS idx_id_mapping_amo ON id_mapping(session_id, entity_type, amo_id);
   CREATE INDEX IF NOT EXISTS idx_amo_cache_session ON amo_cache(session_id, entity_type);
@@ -205,6 +211,18 @@ const getAllStageMappingsForAmoStmt = db.prepare(
   'SELECT * FROM stage_mapping WHERE amo_pipeline_id=? ORDER BY kommo_pipeline_id, id'
 );
 
+// ─── Pipeline Selection ──────────────────────────────────────────────────────
+const upsertPipelineSelectionStmt = db.prepare(`
+  INSERT INTO pipeline_selection (amo_pipeline_id, kommo_pipeline_id, updated_at)
+  VALUES (?, ?, datetime('now'))
+  ON CONFLICT(amo_pipeline_id) DO UPDATE SET
+    kommo_pipeline_id=excluded.kommo_pipeline_id,
+    updated_at=datetime('now')
+`);
+const getSelectedKommoPipelineStmt = db.prepare(
+  'SELECT kommo_pipeline_id FROM pipeline_selection WHERE amo_pipeline_id=?'
+);
+
 
 // ─── User Mapping ────────────────────────────────────────────────────────────
 const upsertUserMapping = db.prepare(`
@@ -286,33 +304,51 @@ function getStageMapping(amoPipelineId, kommoPipelineId) {
 /**
  * Build a stageMapping object { [amoStageId]: kommoStageId, _pipeline: {amo, kommo} }
  * from the DB stage_mapping table (filled via Pipelines tab in UI).
- * Picks the Kommo pipeline with most mapped stages for the given AMO pipeline.
+ * Uses the Kommo pipeline that the user explicitly selected (saved via saveSelectedPipeline).
  */
 function buildStageMappingFromDB(amoPipelineId) {
-  const rows = getAllStageMappingsForAmoStmt.all(amoPipelineId);
-  if (!rows || rows.length === 0) return null;
-  // Group by kommo_pipeline_id
-  const byKommo = {};
-  for (const r of rows) {
-    if (!byKommo[r.kommo_pipeline_id]) byKommo[r.kommo_pipeline_id] = [];
-    byKommo[r.kommo_pipeline_id].push(r);
-  }
-  // Pick the pipeline with most mapped stages
-  let bestKommoId = null, bestRows = [];
-  for (const [kId, kRows] of Object.entries(byKommo)) {
-    if (kRows.length > bestRows.length) {
-      bestKommoId = parseInt(kId);
-      bestRows = kRows;
+  // Read which Kommo pipeline the user selected in the Pipelines tab
+  let sel = getSelectedKommoPipelineStmt.get(amoPipelineId);
+
+  // Fallback: no explicit selection yet — pick Kommo pipeline with most stages
+  // and auto-save it as the selection (one-time migration for existing data)
+  if (!sel) {
+    const allRows = getAllStageMappingsForAmoStmt.all(amoPipelineId);
+    if (!allRows || allRows.length === 0) return null;
+    const byKommo = {};
+    for (const r of allRows) {
+      if (!byKommo[r.kommo_pipeline_id]) byKommo[r.kommo_pipeline_id] = [];
+      byKommo[r.kommo_pipeline_id].push(r);
     }
+    let bestKommoId = null, bestCount = 0;
+    for (const [kId, kRows] of Object.entries(byKommo)) {
+      if (kRows.length > bestCount) { bestKommoId = parseInt(kId); bestCount = kRows.length; }
+    }
+    if (!bestKommoId) return null;
+    // Auto-save so next time we use the explicitly stored selection
+    upsertPipelineSelectionStmt.run(amoPipelineId, bestKommoId);
+    sel = { kommo_pipeline_id: bestKommoId };
   }
+
+  const kommoPipelineId = sel.kommo_pipeline_id;
+  const rows = getStageMappingStmt.all(amoPipelineId, kommoPipelineId);
+  if (!rows || rows.length === 0) return null;
+
   const mapping = {};
-  for (const r of bestRows) {
+  for (const r of rows) {
     if (r.kommo_stage_id) mapping[String(r.amo_stage_id)] = r.kommo_stage_id;
   }
   mapping['142'] = 142;
   mapping['143'] = 143;
-  mapping._pipeline = { amo: amoPipelineId, kommo: bestKommoId };
+  mapping._pipeline = { amo: amoPipelineId, kommo: kommoPipelineId };
   return mapping;
+}
+
+/**
+ * Save the user's selected pipeline pair (called when user clicks "Синхронизировать" in Pipelines tab).
+ */
+function saveSelectedPipeline(amoPipelineId, kommoPipelineId) {
+  upsertPipelineSelectionStmt.run(amoPipelineId, kommoPipelineId);
 }
 
 
@@ -373,6 +409,7 @@ module.exports = {
   saveStageMapping,
   getStageMapping,
   buildStageMappingFromDB,
+  saveSelectedPipeline,
   // user mapping
   saveUserMapping,
   getUserMappings,
