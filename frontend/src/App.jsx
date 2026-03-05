@@ -37,7 +37,7 @@ const MIGRATION_PLAN = [
 
 export default function App() {
   const [status, setStatus] = useState(null);
-  const [appVersion, setAppVersion] = useState('V1.5.43'); // auto-updated
+  const [appVersion, setAppVersion] = useState('V1.5.44'); // auto-updated
   const [pipelines, setPipelines] = useState({ amo: [], kommo: [] });
   const [backups, setBackups] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -389,6 +389,8 @@ export default function App() {
           );
           // Refresh saved mapping display
           loadSavedStageMapping(amoPipelineId, kommoPipelineId);
+          // Refresh pipelines list so kommoSt cache reflects any Kommo changes
+          fetchPipelines().catch(() => {});
         }
       }
     } catch (e) {
@@ -1396,7 +1398,11 @@ export default function App() {
             let pairs = [];
             let source = null;
             if (syncResult?.stageMapping) {
-              pairs = buildStagePairs(syncResult, amoSt, kommoSt);
+              // Use fresh stages from API response — cached pipelines.kommo may be stale
+              // if user renamed/deleted stages in Kommo after pipelines were loaded
+              const freshKommoSt = syncResult.kommoPipeline?.statuses || kommoSt;
+              const freshAmoSt   = syncResult.amoPipeline?.statuses   || amoSt;
+              pairs = buildStagePairs(syncResult, freshAmoSt, freshKommoSt);
               source = 'sync';
             } else if (savedStageMapping.length > 0) {
               pairs = savedStageMapping.map((r, i) => ({
