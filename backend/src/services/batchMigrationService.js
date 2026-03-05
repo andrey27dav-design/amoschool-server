@@ -136,11 +136,23 @@ function getStats() {
 
   const leads = cache?.leads || [];
   const eligible = getEligibleLeads(leads, cfg.managerIds);
-  const transferred = cfg.offset;
+
+  // Use migration_index.json as the source of truth for "already migrated"
+  // This counts ALL ever-migrated leads (across all sessions, not just offset of current session)
+  let alreadyMigrated = 0;
+  try {
+    const idxPath = path.resolve(config.backupDir, 'migration_index.json');
+    if (fs.existsSync(idxPath)) {
+      const idx = fs.readJsonSync(idxPath);
+      alreadyMigrated = idx.leads ? Object.keys(idx.leads).length : 0;
+    }
+  } catch {}
+
   return {
     totalEligible: eligible.length,
-    totalTransferred: transferred,
-    remainingLeads: Math.max(0, eligible.length - transferred),
+    totalTransferred: cfg.offset,          // batch cursor for this session (used for paging)
+    alreadyMigrated,                        // total ever migrated (all sessions)
+    remainingLeads: Math.max(0, eligible.length - alreadyMigrated),
     batchSize: cfg.batchSize,
     managerIds: cfg.managerIds,
     dataFetchedAt: cache?.fetchedAt,

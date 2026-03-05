@@ -37,7 +37,7 @@ const MIGRATION_PLAN = [
 
 export default function App() {
   const [status, setStatus] = useState(null);
-  const [appVersion, setAppVersion] = useState('V1.5.46'); // auto-updated
+  const [appVersion, setAppVersion] = useState('V1.5.47'); // auto-updated
   const [pipelines, setPipelines] = useState({ amo: [], kommo: [] });
   const [backups, setBackups] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -909,8 +909,8 @@ export default function App() {
                   <div className="batch-stat-lbl">Доступно для переноса</div>
                 </div>
                 <div className="batch-stat transferred">
-                  <div className="batch-stat-val">{batchStats.totalTransferred ?? 0}</div>
-                  <div className="batch-stat-lbl">Обработано (сделок)</div>
+                  <div className="batch-stat-val">{batchStats.alreadyMigrated ?? batchStats.totalTransferred ?? 0}</div>
+                  <div className="batch-stat-lbl">Перенесено всего</div>
                 </div>
                 <div className="batch-stat remaining">
                   <div className="batch-stat-val">{batchStats.remainingLeads ?? '—'}</div>
