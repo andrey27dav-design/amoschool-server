@@ -63,14 +63,21 @@ function getPendingStats() {
     const c   = fs.readJsonSync(cachePath);
     const idx = fs.existsSync(idxPath) ? fs.readJsonSync(idxPath) : {};
     const count = (obj) => obj ? Object.keys(obj).length : 0;
-    // Already migrated (total ever, not just this session)
-    const alreadyLeads        = count(idx.leads);
-    const alreadyContacts     = count(idx.contacts);
-    const alreadyCompanies    = count(idx.companies);
-    const alreadyLeadTasks    = count(idx.tasks_leads);
-    const alreadyContactTasks = count(idx.tasks_contacts);
-    const alreadyLeadNotes    = count(idx.notes_leads);
-    const alreadyContactNotes = count(idx.notes_contacts);
+    // Load baseline — set when "Сбросить счётчик" is pressed OR when new AMO data is loaded.
+    // Use baseline-relative counts so switching funnels doesn't pollute pending stats.
+    let base2 = { leads: 0, contacts: 0, companies: 0, leadTasks: 0, contactTasks: 0, leadNotes: 0, contactNotes: 0 };
+    const basPath2 = path.resolve(cfg.backupDir, 'session_baseline.json');
+    if (fs.existsSync(basPath2)) {
+      try { base2 = { ...base2, ...fs.readJsonSync(basPath2) }; } catch {}
+    }
+    // already = items indexed SINCE last baseline snapshot (= this funnel session only)
+    const alreadyLeads        = Math.max(0, count(idx.leads)          - (base2.leads        || 0));
+    const alreadyContacts     = Math.max(0, count(idx.contacts)       - (base2.contacts     || 0));
+    const alreadyCompanies    = Math.max(0, count(idx.companies)      - (base2.companies    || 0));
+    const alreadyLeadTasks    = Math.max(0, count(idx.tasks_leads)    - (base2.leadTasks    || 0));
+    const alreadyContactTasks = Math.max(0, count(idx.tasks_contacts) - (base2.contactTasks || 0));
+    const alreadyLeadNotes    = Math.max(0, count(idx.notes_leads)    - (base2.leadNotes    || 0));
+    const alreadyContactNotes = Math.max(0, count(idx.notes_contacts) - (base2.contactNotes || 0));
     return {
       leads:        Math.max(0, (c.leads        || []).length - alreadyLeads),
       contacts:     Math.max(0, (c.contacts     || []).length - alreadyContacts),

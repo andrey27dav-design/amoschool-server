@@ -137,14 +137,21 @@ function getStats() {
   const leads = cache?.leads || [];
   const eligible = getEligibleLeads(leads, cfg.managerIds);
 
-  // Use migration_index.json as the source of truth for "already migrated"
-  // This counts ALL ever-migrated leads (across all sessions, not just offset of current session)
+  // Use migration_index.json minus session baseline to get "already migrated THIS funnel session".
+  // The baseline is snap-shotted when: (1) new AMO data is loaded, (2) "Сбросить счётчик" is pressed.
+  // This prevents stale counts from old funnels leaking into the new funnel display.
   let alreadyMigrated = 0;
   try {
-    const idxPath = path.resolve(config.backupDir, 'migration_index.json');
+    const idxPath  = path.resolve(config.backupDir, 'migration_index.json');
+    const basePath = path.resolve(config.backupDir, 'session_baseline.json');
     if (fs.existsSync(idxPath)) {
       const idx = fs.readJsonSync(idxPath);
-      alreadyMigrated = idx.leads ? Object.keys(idx.leads).length : 0;
+      const totalInIndex = idx.leads ? Object.keys(idx.leads).length : 0;
+      let baseLeads = 0;
+      if (fs.existsSync(basePath)) {
+        try { baseLeads = (fs.readJsonSync(basePath)).leads || 0; } catch {}
+      }
+      alreadyMigrated = Math.max(0, totalInIndex - baseLeads);
     }
   } catch {}
 
