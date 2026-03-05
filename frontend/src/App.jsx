@@ -37,7 +37,7 @@ const MIGRATION_PLAN = [
 
 export default function App() {
   const [status, setStatus] = useState(null);
-  const [appVersion, setAppVersion] = useState('V1.5.44'); // auto-updated
+  const [appVersion, setAppVersion] = useState('V1.5.45'); // auto-updated
   const [pipelines, setPipelines] = useState({ amo: [], kommo: [] });
   const [backups, setBackups] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -1398,10 +1398,19 @@ export default function App() {
             let pairs = [];
             let source = null;
             if (syncResult?.stageMapping) {
-              // Use fresh stages from API response — cached pipelines.kommo may be stale
-              // if user renamed/deleted stages in Kommo after pipelines were loaded
-              const freshKommoSt = syncResult.kommoPipeline?.statuses || kommoSt;
-              const freshAmoSt   = syncResult.amoPipeline?.statuses   || amoSt;
+              // Always use fresh data from the sync API response.
+              // If either is missing — the server returned an error (shown via setMessage).
+              // Never fall back to stale cached pipelines.amo/kommo list.
+              const freshKommoSt = syncResult.kommoPipeline?.statuses;
+              const freshAmoSt   = syncResult.amoPipeline?.statuses;
+              if (!freshAmoSt || !freshKommoSt) {
+                // Sync response incomplete — do not display stale data
+                return (
+                  <div className="warning-banner">
+                    ⚠️ Данные синхронизации неполные. Попробуйте «Синхронизировать этапы» ещё раз.
+                  </div>
+                );
+              }
               pairs = buildStagePairs(syncResult, freshAmoSt, freshKommoSt);
               source = 'sync';
             } else if (savedStageMapping.length > 0) {

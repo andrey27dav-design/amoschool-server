@@ -102,15 +102,18 @@ async function syncPipelineStages(amoPipelineId, kommoPipelineId) {
   const kommoId = kommoPipelineId || config.kommo.pipelineId;
 
   // Fetch amo stages dynamically from the selected pipeline
+  // amoPipelineRaw is stored at outer scope so it can be reused in the return value
   let amoStages;
+  let amoPipelineRaw = null;
   try {
-    const amoPipeline = await amoApi.getPipeline(amoId);
-    amoStages = (amoPipeline._embedded?.statuses || [])
+    amoPipelineRaw = await amoApi.getPipeline(amoId);
+    amoStages = (amoPipelineRaw._embedded?.statuses || [])
       .filter(s => s.id !== 142 && s.id !== 143)   // exclude won/lost
       .sort((a, b) => a.sort - b.sort);
   } catch (e) {
-    logger.warn(`Could not fetch amo pipeline ${amoId} dynamically, falling back to hardcoded list: ${e.message}`);
-    amoStages = AMO_STAGES_ORDERED;
+    // Re-throw so the caller (route handler) returns a 500 error to the frontend
+    // instead of silently using hardcoded AMO stages that may be out of date
+    throw new Error(`Не удалось получить этапы воронки AMO ${amoId}: ${e.message}`);
   }
 
   const kommoStagesBefore = await kommoApi.getPipelineStatuses(kommoId);
@@ -181,16 +184,12 @@ async function syncPipelineStages(amoPipelineId, kommoPipelineId) {
   }
   logger.info('Stage mapping built:', stageMapping);
 
-  // Fetch amo pipeline info for comparison response
-  let amoPipelineInfo = null;
-  try {
-    const raw = await amoApi.getPipeline(amoId);
-    amoPipelineInfo = {
-      id: raw.id,
-      name: raw.name,
-      statuses: (raw._embedded?.statuses || []).sort((a, b) => a.sort - b.sort),
-    };
-  } catch {}
+  // Reuse already-fetched AMO pipeline data — no duplicate API call needed
+  const amoPipelineInfo = {
+    id: amoPipelineRaw.id,
+    name: amoPipelineRaw.name,
+    statuses: (amoPipelineRaw._embedded?.statuses || []).sort((a, b) => a.sort - b.sort),
+  };
 
   return {
     stageMapping,
