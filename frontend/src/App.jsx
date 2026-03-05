@@ -37,7 +37,7 @@ const MIGRATION_PLAN = [
 
 export default function App() {
   const [status, setStatus] = useState(null);
-  const [appVersion, setAppVersion] = useState('V1.5.47'); // auto-updated
+  const [appVersion, setAppVersion] = useState('V1.5.48'); // auto-updated
   const [pipelines, setPipelines] = useState({ amo: [], kommo: [] });
   const [backups, setBackups] = useState([]);
   const [loading, setLoading] = useState(false);

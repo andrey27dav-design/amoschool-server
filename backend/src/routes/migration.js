@@ -683,30 +683,24 @@ router.get('/batch-stats', (req, res) => {
 // POST /api/migration/batch-start
 router.post('/batch-start', async (req, res) => {
   try {
-    const db     = require('../db');
-    const config = require('../config');
-    // Priority 1: stage mapping configured via Pipelines tab (stored in DB)
-    let stageMapping = null;
+    const cfg2 = require('../config');
+    // Always use last saved stage_mapping.json (written by sync in Voronki tab)
+    const stagePath = path.resolve(cfg2.backupDir, 'stage_mapping.json');
+    let stageMapping = {};
+    if (!fs.existsSync(stagePath)) {
+      return res.status(400).json({ error: 'stage_mapping.json не найден. Выполните Синхронизировать этапы во вкладке Воронки.' });
+    }
     try {
-      const amoPipelineId = parseInt(config.amo.pipelineId);
-      if (amoPipelineId) {
-        stageMapping = db.buildStageMappingFromDB(amoPipelineId);
-        if (stageMapping) {
-          logger.info('[batch-start] Stage mapping loaded from DB: ' +
-            Object.keys(stageMapping).filter(k => k !== '_pipeline').length +
-            ' stages, pipeline ' + JSON.stringify(stageMapping._pipeline));
-        }
-      }
+      stageMapping = fs.readJsonSync(stagePath);
     } catch (e) {
-      logger.warn('[batch-start] Could not load stage mapping from DB:', e.message);
+      return res.status(400).json({ error: 'Ошибка чтения stage_mapping.json: ' + e.message });
     }
-    // Priority 2: fallback to migrationState (used when syncPipelineStages was run)
-    if (!stageMapping || Object.keys(stageMapping).filter(k => k !== '_pipeline').length === 0) {
-      const mainState = migrationService.getState();
-      stageMapping = mainState?.stageMapping || {};
-      logger.info('[batch-start] Stage mapping loaded from migrationState, stages: ' + Object.keys(stageMapping).filter(k => k !== '_pipeline').length);
+    const stageCount = Object.keys(stageMapping).filter(k => k !== '_pipeline').length;
+    if (stageCount === 0) {
+      return res.status(400).json({ error: 'stage_mapping.json пуст. Выполните Синхронизировать этапы во вкладке Воронки.' });
     }
-    // Start batch in background
+    logger.info('[batch-start] Stage mapping loaded from disk: ' + stageCount + ' stages, pipeline ' + JSON.stringify(stageMapping._pipeline));
+        // Start batch in background
     batchService.runBatchMigration(stageMapping).catch(e => {
       logger.error('Background batch error:', e);
     });
