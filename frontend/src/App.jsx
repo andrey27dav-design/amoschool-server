@@ -37,7 +37,7 @@ const MIGRATION_PLAN = [
 
 export default function App() {
   const [status, setStatus] = useState(null);
-  const [appVersion, setAppVersion] = useState('V1.5.45'); // auto-updated
+  const [appVersion, setAppVersion] = useState('V1.5.46'); // auto-updated
   const [pipelines, setPipelines] = useState({ amo: [], kommo: [] });
   const [backups, setBackups] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -883,16 +883,20 @@ export default function App() {
                       <div className="counter-value" style={{ fontSize: 22, lineHeight: 1.1 }}>
                         {batchStatus?.cacheStats?.[key] ?? '—'}
                       </div>
-                      <div style={{ fontSize: 22, fontWeight: 700, color: '#10b981', marginTop: 2, lineHeight: 1.1 }}>
-                        ↓ {batchStatus?.migrationTotals?.[key] ?? 0}
+                      <div style={{ fontSize: 20, fontWeight: 700, color: '#f59e0b', marginTop: 2, lineHeight: 1.1 }} title="Новых (ожидают переноса)">
+                        ⏳ {batchStatus?.pendingStats?.[key] ?? '—'}
+                      </div>
+                      <div style={{ fontSize: 20, fontWeight: 700, color: '#10b981', marginTop: 2, lineHeight: 1.1 }} title="Перенесено в этой сессии">
+                        ✅ {batchStatus?.migrationTotals?.[key] ?? 0}
                       </div>
                       <div className="counter-label" style={{ color: '#ffffff' }}>{label}</div>
                     </div>
                   ))}
                 </div>
                 <div style={{ fontSize: 11, color: '#475569', marginTop: 6, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                  <span style={{ color: '#94a3b8' }}>Серое число — загружено из AMO (последний кэш)</span>
-                  <span style={{ color: '#10b981' }}>↓ зелёное — перенесено в Kommo (с последнего сброса счётчика)</span>
+                  <span style={{ color: '#94a3b8' }}>Серое — всего загружено из AMO</span>
+                  <span style={{ color: '#f59e0b' }}>⏳ жёлтое — новых (ожидают переноса)</span>
+                  <span style={{ color: '#10b981' }}>✅ зелёное — перенесено в этой сессии</span>
                 </div>
               </div>
             )}

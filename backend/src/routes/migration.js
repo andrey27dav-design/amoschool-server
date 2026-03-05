@@ -52,6 +52,37 @@ function getMigrationTotals() {
   } catch { return null; }
 }
 
+// pending = items in cache that have NOT been migrated yet (before this session)
+// = total in cache - count already in index before session (baseline)
+function getPendingStats() {
+  try {
+    const cfg = require('../config');
+    const cachePath = path.resolve(cfg.backupDir, 'amo_data_cache.json');
+    const idxPath   = path.resolve(cfg.backupDir, 'migration_index.json');
+    if (!fs.existsSync(cachePath)) return null;
+    const c   = fs.readJsonSync(cachePath);
+    const idx = fs.existsSync(idxPath) ? fs.readJsonSync(idxPath) : {};
+    const count = (obj) => obj ? Object.keys(obj).length : 0;
+    // Already migrated (total ever, not just this session)
+    const alreadyLeads        = count(idx.leads);
+    const alreadyContacts     = count(idx.contacts);
+    const alreadyCompanies    = count(idx.companies);
+    const alreadyLeadTasks    = count(idx.tasks_leads);
+    const alreadyContactTasks = count(idx.tasks_contacts);
+    const alreadyLeadNotes    = count(idx.notes_leads);
+    const alreadyContactNotes = count(idx.notes_contacts);
+    return {
+      leads:        Math.max(0, (c.leads        || []).length - alreadyLeads),
+      contacts:     Math.max(0, (c.contacts     || []).length - alreadyContacts),
+      companies:    Math.max(0, (c.companies    || []).length - alreadyCompanies),
+      leadTasks:    Math.max(0, (c.leadTasks    || []).length - alreadyLeadTasks),
+      contactTasks: Math.max(0, (c.contactTasks || []).length - alreadyContactTasks),
+      leadNotes:    Math.max(0, (c.leadNotes    || []).length - alreadyLeadNotes),
+      contactNotes: Math.max(0, (c.contactNotes || []).length - alreadyContactNotes),
+    };
+  } catch { return null; }
+}
+
 function saveSessionBaseline() {
   try {
     const cfg = require('../config');
@@ -637,6 +668,7 @@ router.get('/batch-status', (req, res) => {
     // Persistent stats — survive server crash/restart (read from files, not in-memory)
     cacheStats:      getCacheStats(),
     migrationTotals: getMigrationTotals(),
+    pendingStats:    getPendingStats(),
     batchPosition:   { offset: cfg.offset, batchSize: cfg.batchSize },
   });
 });
