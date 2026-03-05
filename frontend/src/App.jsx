@@ -356,6 +356,8 @@ export default function App() {
       const result = await api.syncStages(amoPipelineId, kommoPipelineId);
       setSyncResult(result);
       try { sessionStorage.setItem('syncResult', JSON.stringify(result)); } catch {}
+      // Refresh pipelines so newly created Kommo stages appear in the list
+      fetchPipelines();
       const created = result.created?.length ?? 0;
       const skipped = result.skipped?.length ?? 0;
       setMessage(`✅ Синхронизация завершена: создано ${created} этапов, ${skipped} уже существовали`);
@@ -1378,112 +1380,6 @@ export default function App() {
       {tab === 'pipelines' && (
         <div className="pipelines-tab">
 
-          {/* ── Stage mapping table (from sync result OR saved DB) ── */}
-          {(() => {
-            const amoSt = pipelines.amo.find(p => p.id === selectedAmoPipeline)?._embedded?.statuses || [];
-            const kommoSt = pipelines.kommo.find(p => p.id === selectedKommoPipeline)?._embedded?.statuses || [];
-            const amoPipeName = pipelines.amo.find(p => p.id === selectedAmoPipeline)?.name || '';
-            const kommoPipeName = pipelines.kommo.find(p => p.id === selectedKommoPipeline)?.name || '';
-
-            // Use live syncResult if available, otherwise fall back to DB saved mapping
-            let pairs = [];
-            let source = null;
-            if (syncResult?.stageMapping) {
-              pairs = buildStagePairs(syncResult, amoSt, kommoSt);
-              source = 'sync';
-            } else if (savedStageMapping.length > 0) {
-              pairs = savedStageMapping.map((r, i) => ({
-                amoId: r.amo_stage_id,
-                kommoId: r.kommo_stage_id,
-                amoName: r.amo_stage_name || String(r.amo_stage_id),
-                kommoName: r.kommo_stage_name || String(r.kommo_stage_id),
-                isSystem: r.amo_stage_id === 142 || r.amo_stage_id === 143,
-              }));
-              source = 'db';
-            }
-
-            if (pairs.length === 0) return null;
-
-            const mappedCount = pairs.filter(p => p.kommoId).length;
-            const unmappedCount = pairs.filter(p => !p.kommoId).length;
-            const createdSet = new Set((syncResult?.created || []).map(n => n.toLowerCase().trim()));
-
-            return (
-              <div className="sync-result-section">
-                <div className="sync-result-header">
-                  <div className="sync-result-title">
-                    {source === 'sync' ? '✅ Результат синхронизации' : '💾 Сохранённое сопоставление этапов'}
-                  </div>
-                  <div className="sync-result-meta">
-                    {source === 'sync' && <>
-                      <span className="sync-badge created">+{syncResult.created?.length ?? 0} создано</span>
-                      <span className="sync-badge skipped">{syncResult.skipped?.length ?? 0} уже были</span>
-                    </>}
-                    <span className="sync-badge mapped">✅ {mappedCount} сопоставлено</span>
-                    {unmappedCount > 0 && <span className="sync-badge" style={{ background: '#dc2626' }}>❌ {unmappedCount} без пары</span>}
-                    <span className="sync-badge mapped" style={{ background: '#1d4ed8' }}>💾 ID в БД</span>
-                  </div>
-                </div>
-
-                {/* Paired mapping table */}
-                <div className="stage-mapping-table-wrap">
-                  <table className="stage-mapping-table">
-                    <thead>
-                      <tr>
-                        <th style={{ width: 36 }}>#</th>
-                        <th>📥 Этап AMO ({amoPipeName})</th>
-                        <th style={{ width: 32 }}></th>
-                        <th>📤 Этап Kommo ({kommoPipeName})</th>
-                        <th style={{ width: 60 }}>Статус</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {pairs.map((p, i) => {
-                        const isNew = createdSet.has(p.kommoName?.toLowerCase().trim());
-                        return (
-                          <tr key={p.amoId} className={p.isSystem ? 'stage-row-system' : ''}>
-                            <td className="stage-num">{i + 1}</td>
-                            <td className="stage-cell amo-cell">
-                              <span className="stage-name-text">{p.amoName}</span>
-                              <span className="stage-id-badge">{p.amoId}</span>
-                            </td>
-                            <td className="stage-arrow-cell">→</td>
-                            <td className="stage-cell kommo-cell">
-                              {p.kommoId ? (
-                                <>
-                                  <span className="stage-name-text">{p.kommoName}</span>
-                                  <span className="stage-id-badge kommo">{p.kommoId}</span>
-                                  {isNew && <span className="sync-stage-badge" style={{ marginLeft: 6 }}>NEW</span>}
-                                </>
-                              ) : (
-                                <span style={{ color: '#ef4444', fontStyle: 'italic' }}>— не найдено —</span>
-                              )}
-                            </td>
-                            <td className="stage-status-cell">
-                              {p.kommoId ? '✅' : '❌'}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Footnote / CSV download */}
-                <div className="stage-mapping-footnote">
-                  <span className="stage-mapping-footnote-text">
-                    Таблица сопоставления этапов: {amoPipeName} → {kommoPipeName} · {pairs.length} строк · {mappedCount} совпадений
-                  </span>
-                  <button
-                    className="btn btn-secondary btn-sm stage-mapping-download"
-                    onClick={() => downloadMappingCSV(pairs, amoPipeName, kommoPipeName)}>
-                    ⬇ Скачать (.csv)
-                  </button>
-                </div>
-              </div>
-            );
-          })()}
-
           <div className="pipeline-selector-section">
             <div className="pipeline-selector-grid">
               <div className="card pipeline-selector-card">
@@ -1583,6 +1479,109 @@ export default function App() {
               )}
             </div>
           </div>
+
+          {/* ── Stage mapping table (from sync result OR saved DB) ── */}
+          {(() => {
+            const amoSt = pipelines.amo.find(p => p.id === selectedAmoPipeline)?._embedded?.statuses || [];
+            const kommoSt = pipelines.kommo.find(p => p.id === selectedKommoPipeline)?._embedded?.statuses || [];
+            const amoPipeName = pipelines.amo.find(p => p.id === selectedAmoPipeline)?.name || '';
+            const kommoPipeName = pipelines.kommo.find(p => p.id === selectedKommoPipeline)?.name || '';
+
+            let pairs = [];
+            let source = null;
+            if (syncResult?.stageMapping) {
+              pairs = buildStagePairs(syncResult, amoSt, kommoSt);
+              source = 'sync';
+            } else if (savedStageMapping.length > 0) {
+              pairs = savedStageMapping.map((r, i) => ({
+                amoId: r.amo_stage_id,
+                kommoId: r.kommo_stage_id,
+                amoName: r.amo_stage_name || String(r.amo_stage_id),
+                kommoName: r.kommo_stage_name || String(r.kommo_stage_id),
+                isSystem: r.amo_stage_id === 142 || r.amo_stage_id === 143,
+              }));
+              source = 'db';
+            }
+
+            if (pairs.length === 0) return null;
+
+            const mappedCount = pairs.filter(p => p.kommoId).length;
+            const unmappedCount = pairs.filter(p => !p.kommoId).length;
+            const createdSet = new Set((syncResult?.created || []).map(n => n.toLowerCase().trim()));
+
+            return (
+              <div className="sync-result-section">
+                <div className="sync-result-header">
+                  <div className="sync-result-title">
+                    {source === 'sync' ? '✅ Результат синхронизации' : '💾 Сохранённое сопоставление этапов'}
+                  </div>
+                  <div className="sync-result-meta">
+                    {source === 'sync' && <>
+                      <span className="sync-badge created">+{syncResult.created?.length ?? 0} создано</span>
+                      <span className="sync-badge skipped">{syncResult.skipped?.length ?? 0} уже были</span>
+                    </>}
+                    <span className="sync-badge mapped">✅ {mappedCount} сопоставлено</span>
+                    {unmappedCount > 0 && <span className="sync-badge" style={{ background: '#dc2626' }}>❌ {unmappedCount} без пары</span>}
+                    <span className="sync-badge mapped" style={{ background: '#1d4ed8' }}>💾 ID в БД</span>
+                  </div>
+                </div>
+
+                <div className="stage-mapping-table-wrap">
+                  <table className="stage-mapping-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: 36 }}>#</th>
+                        <th>📥 Этап AMO ({amoPipeName})</th>
+                        <th style={{ width: 32 }}></th>
+                        <th>📤 Этап Kommo ({kommoPipeName})</th>
+                        <th style={{ width: 60 }}>Статус</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pairs.map((p, i) => {
+                        const isNew = createdSet.has(p.kommoName?.toLowerCase().trim());
+                        return (
+                          <tr key={p.amoId} className={p.isSystem ? 'stage-row-system' : ''}>
+                            <td className="stage-num">{i + 1}</td>
+                            <td className="stage-cell amo-cell">
+                              <span className="stage-name-text">{p.amoName}</span>
+                              <span className="stage-id-badge">{p.amoId}</span>
+                            </td>
+                            <td className="stage-arrow-cell">→</td>
+                            <td className="stage-cell kommo-cell">
+                              {p.kommoId ? (
+                                <>
+                                  <span className="stage-name-text">{p.kommoName}</span>
+                                  <span className="stage-id-badge kommo">{p.kommoId}</span>
+                                  {isNew && <span className="sync-stage-badge" style={{ marginLeft: 6 }}>NEW</span>}
+                                </>
+                              ) : (
+                                <span style={{ color: '#ef4444', fontStyle: 'italic' }}>— не найдено —</span>
+                              )}
+                            </td>
+                            <td className="stage-status-cell">
+                              {p.kommoId ? '✅' : '❌'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="stage-mapping-footnote">
+                  <span className="stage-mapping-footnote-text">
+                    Таблица сопоставления этапов: {amoPipeName} → {kommoPipeName} · {pairs.length} строк · {mappedCount} совпадений
+                  </span>
+                  <button
+                    className="btn btn-secondary btn-sm stage-mapping-download"
+                    onClick={() => downloadMappingCSV(pairs, amoPipeName, kommoPipeName)}>
+                    ⬇ Скачать (.csv)
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
