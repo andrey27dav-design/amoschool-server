@@ -525,6 +525,7 @@ async function runBatchMigration(stageMapping) {
         const tt = transformTask(t, userMap, entityKommoUser);
         tt.entity_id = leadIdMap[t.entity_id];
         tt.entity_type = 'leads';
+        tt._wasCompleted = !!t.is_completed;
         tt._amoTaskId = t.id;
         return tt;
       }).filter(t => t.entity_id);
@@ -538,15 +539,114 @@ async function runBatchMigration(stageMapping) {
       try {
         const created = await kommoApi.createTasksBatch(tasksToCreate);
         const _batchTaskPairs = [];
+        const _completedBatchLeadTaskIds = [];
         created.forEach((k, idx) => {
           if (k) {
             batchState.createdIds.tasks.push(k.id);
+            if (tasksToCreate[idx]?._wasCompleted) _completedBatchLeadTaskIds.push(k.id);
             if (tasksToCreate[idx]?._amoTaskId) _batchTaskPairs.push({ amoId: Number(tasksToCreate[idx]._amoTaskId), kommoId: k.id });
           }
         });
+        if (_completedBatchLeadTaskIds.length > 0) await kommoApi.completeTasksBatch(_completedBatchLeadTaskIds);
         if (_batchTaskPairs.length > 0) safety.registerMigratedBatch('tasks_leads', _batchTaskPairs);
       } catch (e) {
         addWarning(`Ошибка переноса задач: ${e.message}`, 'Попробуйте повторить пакет или добавьте задачи вручную.');
+      }
+    }
+
+    /* -- 10b. Batch: Contact tasks ----------------------------------------- */
+    {
+      const _batchContactIdsSet = new Set(Object.keys(contactIdMap).map(Number));
+      const _batchContactTasksRaw = allTasks.filter(
+        t => t.entity_type === 'contacts' && _batchContactIdsSet.has(Number(t.entity_id))
+      );
+      const { toCreate: _batchContactTasksFiltered } = safety.filterNotMigrated('tasks_contacts', _batchContactTasksRaw, t => t.id);
+      if (_batchContactTasksFiltered.length > 0) {
+        updateState({ step: 'Перенос задач контактов (' + _batchContactTasksFiltered.length + ')...' });
+        const { transformTask: _transformTaskCT } = require('../utils/dataTransformer');
+        const _ctKommoUserById = {};
+        for (const contact of allContacts) {
+          const uid = contact.responsible_user_id;
+          const kuid = uid ? (userMap[uid] || userMap[String(uid)]) : null;
+          if (kuid) _ctKommoUserById[contact.id] = Number(kuid);
+        }
+        const _ctTasksToCreate = _batchContactTasksFiltered.map(t => {
+          const kContactId = contactIdMap[String(t.entity_id)];
+          if (!kContactId) return null;
+          const entityUser = _ctKommoUserById[t.entity_id] || null;
+          const tt = _transformTaskCT(t, userMap, entityUser);
+          tt.entity_id = Number(kContactId);
+          tt.entity_type = 'contacts';
+          tt._wasCompleted = !!t.is_completed;
+          tt._amoTaskId = t.id;
+          return tt;
+        }).filter(Boolean);
+        if (_ctTasksToCreate.length > 0) {
+          try {
+            const _createdCT = await kommoApi.createTasksBatch(_ctTasksToCreate);
+            const _completedCTIds = [];
+            const _ctPairs = [];
+            _createdCT.forEach((k, idx) => {
+              if (k) {
+                batchState.createdIds.tasks.push(k.id);
+                if (_ctTasksToCreate[idx]?._wasCompleted) _completedCTIds.push(k.id);
+                if (_ctTasksToCreate[idx]?._amoTaskId) _ctPairs.push({ amoId: Number(_ctTasksToCreate[idx]._amoTaskId), kommoId: k.id });
+              }
+            });
+            if (_completedCTIds.length > 0) await kommoApi.completeTasksBatch(_completedCTIds);
+            if (_ctPairs.length > 0) safety.registerMigratedBatch('tasks_contacts', _ctPairs);
+          } catch (e) {
+            addWarning('Ошибка переноса задач контактов: ' + e.message, 'Повторите пакет.');
+          }
+        }
+      }
+    }
+
+    /* -- 10c. Batch: Company tasks ----------------------------------------- */
+    {
+      const _batchCompanyIdsSet = new Set(Object.keys(companyIdMap).map(Number));
+      const _batchCompanyTasksRaw = allTasks.filter(
+        t => t.entity_type === 'companies' && _batchCompanyIdsSet.has(Number(t.entity_id))
+      );
+      const { toCreate: _batchCompanyTasksFiltered } = safety.filterNotMigrated('tasks_companies', _batchCompanyTasksRaw, t => t.id);
+      if (_batchCompanyTasksFiltered.length > 0) {
+        updateState({ step: 'Перенос задач компаний (' + _batchCompanyTasksFiltered.length + ')...' });
+        const { transformTask: _transformTaskCo } = require('../utils/dataTransformer');
+        const _coKommoUserById = {};
+        for (const company of allCompanies) {
+          const uid = company.responsible_user_id;
+          const kuid = uid ? (userMap[uid] || userMap[String(uid)]) : null;
+          if (kuid) _coKommoUserById[company.id] = Number(kuid);
+        }
+        const _coTasksToCreate = _batchCompanyTasksFiltered.map(t => {
+          const kCompanyId = companyIdMap[String(t.entity_id)];
+          if (!kCompanyId) return null;
+          const entityUser = _coKommoUserById[t.entity_id] || null;
+          const tt = _transformTaskCo(t, userMap, entityUser);
+          tt.entity_id = Number(kCompanyId);
+          tt.entity_type = 'companies';
+          tt._wasCompleted = !!t.is_completed;
+          tt._amoTaskId = t.id;
+          return tt;
+        }).filter(Boolean);
+        if (_coTasksToCreate.length > 0) {
+          try {
+            const _createdCo = await kommoApi.createTasksBatch(_coTasksToCreate);
+            const _completedCoIds = [];
+            const _coPairs = [];
+            _createdCo.forEach((k, idx) => {
+              if (k) {
+                batchState.createdIds.tasks.push(k.id);
+                if (_coTasksToCreate[idx]?._wasCompleted) _completedCoIds.push(k.id);
+                if (_coTasksToCreate[idx]?._amoTaskId) _coPairs.push({ amoId: Number(_coTasksToCreate[idx]._amoTaskId), kommoId: k.id });
+              }
+            });
+            if (_completedCoIds.length > 0) await kommoApi.completeTasksBatch(_completedCoIds);
+            if (_coPairs.length > 0) safety.registerMigratedBatch('tasks_companies', _coPairs);
+          } catch (e) {
+            addWarning('Ошибка переноса задач компаний: ' + e.message, 'Повторите пакет.');
+          }
+        }
       }
     }
 
