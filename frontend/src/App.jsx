@@ -37,7 +37,7 @@ const MIGRATION_PLAN = [
 
 export default function App() {
   const [status, setStatus] = useState(null);
-  const [appVersion, setAppVersion] = useState('V1.5.4'); // auto-updated
+  const [appVersion, setAppVersion] = useState('V1.5.43'); // auto-updated
   const [pipelines, setPipelines] = useState({ amo: [], kommo: [] });
   const [backups, setBackups] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -104,7 +104,11 @@ export default function App() {
   const [syncResult, setSyncResult] = useState(() => {
     try {
       const s = sessionStorage.getItem('syncResult');
-      return s ? JSON.parse(s) : null;
+      if (!s) return null;
+      const parsed = JSON.parse(s);
+      // Remove _pipeline metadata key (object value causes React crash when rendered as JSX child)
+      if (parsed?.stageMapping) delete parsed.stageMapping._pipeline;
+      return parsed;
     } catch { return null; }
   });
   const [syncLoading, setSyncLoading] = useState(false);
@@ -186,7 +190,9 @@ export default function App() {
   // Build paired rows from syncResult stageMapping
   const buildStagePairs = (syncRes, amoSt, kommoSt) => {
     if (!syncRes?.stageMapping) return [];
-    return Object.entries(syncRes.stageMapping).map(([amoIdStr, kommoId]) => {
+    return Object.entries(syncRes.stageMapping)
+      .filter(([k]) => k !== '_pipeline') // skip backend metadata key — its object value crashes React render
+      .map(([amoIdStr, kommoId]) => {
       const amoId = parseInt(amoIdStr);
       const amoStage = amoSt.find(s => s.id === amoId);
       const kommoStage = kommoSt.find(s => s.id === kommoId);
@@ -354,6 +360,8 @@ export default function App() {
     setMessage('');
     try {
       const result = await api.syncStages(amoPipelineId, kommoPipelineId);
+      // Remove _pipeline metadata key — its object value crashes React render if passed as JSX child
+      if (result?.stageMapping) delete result.stageMapping._pipeline;
       setSyncResult(result);
       try { sessionStorage.setItem('syncResult', JSON.stringify(result)); } catch {}
       const created = result.created?.length ?? 0;
