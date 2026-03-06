@@ -38,7 +38,7 @@ const MIGRATION_PLAN = [
 export default function App() {
   const [status, setStatus] = useState(null);
   const [appVersion, setAppVersion] = useState('V1.5.48'); // auto-updated
-  const [versionDesc, setVersionDesc] = useState('');
+  const [versionHistory, setVersionHistory] = useState([]);
   const [pipelines, setPipelines] = useState({ amo: [], kommo: [] });
   const [backups, setBackups] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -49,8 +49,12 @@ export default function App() {
   useEffect(() => {
     fetch('/api/version')
       .then(r => r.json())
-      .then(d => { if (d.version) setAppVersion(d.version); if (d.description) setVersionDesc(d.description); })
-      .catch(() => {}); // keep fallback value on error
+      .then(d => { if (d.version) setAppVersion(d.version); })
+      .catch(() => {});
+    fetch('/api/version/changelog')
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setVersionHistory(d); })
+      .catch(() => {});
   }, []);
 
   // Fetch copy totals from DB on mount and expose refresh function
@@ -638,16 +642,14 @@ export default function App() {
       case 'fields':    return '🔧 Поля';
       case 'copy':      return '🚀 Копирование';
       case 'backups':   return '💾 Бэкапы';
+      case 'versions':  return '📋 Версии';
       default: return t;
     }
   };
 
   return (
     <div className="app">
-      <div title={versionDesc} style={{ position: 'fixed', top: 8, left: 8, zIndex: 9999, background: 'rgba(30,30,40,0.78)', color: '#a5b4fc', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6, letterSpacing: '0.05em', pointerEvents: 'none', backdropFilter: 'blur(4px)', border: '1px solid rgba(165,180,252,0.2)', maxWidth: 420 }}>
-        <span>{appVersion}</span>
-        {versionDesc && <span style={{ fontWeight: 400, color: '#8b9bd4', marginLeft: 6, fontSize: 10 }}>— {versionDesc}</span>}
-      </div>
+      <div style={{ position: 'fixed', top: 8, left: 8, zIndex: 9999, background: 'rgba(30,30,40,0.85)', color: '#fff', fontSize: 13, fontWeight: 700, padding: '4px 12px', borderRadius: 6, letterSpacing: '0.05em', pointerEvents: 'none', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.15)' }}>{appVersion}</div>
       <header className="header">
         <div className="header-logo">
           <span className="logo-amo">amo CRM</span>
@@ -813,7 +815,7 @@ export default function App() {
       )}
 
       <nav className="tabs">
-        {['dashboard', 'pipelines', 'managers', 'fields', 'backups'].map(t => (
+        {['dashboard', 'pipelines', 'managers', 'fields', 'backups', 'versions'].map(t => (
           <button key={t} className={`tab${tab === t ? ' active' : ''}`} onClick={() => setTab(t)}>
             {tabLabel(t)}
           </button>
@@ -1851,6 +1853,35 @@ export default function App() {
                 ))}
               </tbody>
             </table>
+          )}
+        </div>
+      )}
+      {tab === 'versions' && (
+        <div className="card versions-tab">
+          <h2>📋 История версий</h2>
+          <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--text-muted,#999)' }}>
+            Хронология изменений системы миграции AMO → Kommo CRM. Текущая версия: <strong style={{ color: '#fff' }}>{appVersion}</strong>
+          </p>
+          {versionHistory.length === 0 ? (
+            <div className="no-data">Загрузка истории версий...</div>
+          ) : (
+            <div className="version-timeline">
+              {versionHistory.map((v, i) => (
+                <div key={v.version} className={`version-entry${i === 0 ? ' version-current' : ''}`}>
+                  <div className="version-header">
+                    <span className="version-badge">{v.version}</span>
+                    <span className="version-date">{v.date}</span>
+                    {i === 0 && <span className="version-current-label">текущая</span>}
+                  </div>
+                  <div className="version-title">{v.title}</div>
+                  <ul className="version-changes">
+                    {v.changes.map((c, j) => (
+                      <li key={j}>{c}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}

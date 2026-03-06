@@ -71,8 +71,15 @@ app.get('/api/version', (req, res) => {
       ver = fs.readFileSync(path.join(__dirname, '../../VERSION'), 'utf8').trim();
     } catch (_) {}
   }
-  const description = VERSIONS[ver] || null;
-  res.json({ version: ver, description });
+  res.json({ version: ver });
+});
+
+// Changelog endpoint — returns full version history for "Версии" tab
+app.get('/api/version/changelog', (req, res) => {
+  const VERSIONS = require('./versions');
+  // Clear require cache so versions.js changes take effect on restart
+  delete require.cache[require.resolve('./versions')];
+  res.json(require('./versions'));
 });
 
 app.get('/api/health', (req, res) => {

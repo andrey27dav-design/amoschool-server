@@ -809,3 +809,114 @@ header h1 {
 .managers-tab { display: flex; flex-direction: column; gap: 0; }
 .mapped-item { opacity: .7; }
 .mapped-item .pipeline-radio-name { color: #86efac !important; }
+
+/* ═══ Versions tab ═══════════════════════════════════════════════════════ */
+.versions-tab {
+  max-width: 800px;
+}
+
+.version-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.version-entry {
+  position: relative;
+  padding: 16px 20px 16px 28px;
+  border-left: 3px solid #333;
+  margin-left: 12px;
+}
+
+.version-entry::before {
+  content: '';
+  position: absolute;
+  left: -7px;
+  top: 22px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #555;
+  border: 2px solid #222;
+}
+
+.version-entry.version-current {
+  border-left-color: #6366f1;
+  background: rgba(99, 102, 241, 0.06);
+  border-radius: 0 8px 8px 0;
+}
+
+.version-entry.version-current::before {
+  background: #6366f1;
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
+}
+
+.version-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.version-badge {
+  background: #6366f1;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 2px 10px;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+}
+
+.version-entry:not(.version-current) .version-badge {
+  background: #444;
+}
+
+.version-date {
+  color: #888;
+  font-size: 12px;
+}
+
+.version-current-label {
+  background: rgba(99, 102, 241, 0.18);
+  color: #a5b4fc;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.version-title {
+  color: #e5e7eb;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.version-changes {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.version-changes li {
+  position: relative;
+  padding-left: 18px;
+  color: #b0b8c8;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.version-changes li::before {
+  content: '•';
+  position: absolute;
+  left: 4px;
+  color: #6366f1;
+  font-weight: 700;
+}
+
+.version-entry:not(.version-current) .version-changes li::before {
+  color: #555;
+}
