@@ -7,7 +7,7 @@
 # Что делает:
 #   1. Обновляет /var/www/amoschool/VERSION
 #   2. Собирает фронтенд (npm run build)
-#   3. Перезапускает бэкенд (pm2 restart 8)
+#   3. Перезапускает бэкенд (pm2 restart 7)
 #   4. git add . && git commit && git push
 # =============================================================
 
@@ -46,7 +46,7 @@ echo "✅ Фронтенд собран"
 # 3. Перезапустить бэкенд
 echo ""
 echo "🔄 Перезапуск PM2 (id=8)..."
-pm2 restart 8 --update-env
+pm2 restart 7 --update-env
 echo "✅ Бэкенд перезапущен"
 
 # 4. Git commit + push
