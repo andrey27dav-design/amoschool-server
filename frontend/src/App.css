@@ -678,6 +678,23 @@ header h1 {
 
 .warning-rec-msg { color: #fcd34d; font-size: 13px; }
 .warning-rec-tip { color: #86efac; font-size: 12px; margin-top: 3px; padding-left: 12px; }
+
+.warning-details { margin-top: 6px; }
+.warning-details summary {
+  cursor: pointer; font-size: 12px; color: #94a3b8;
+  user-select: none; padding: 2px 0;
+}
+.warning-details summary:hover { color: #cbd5e1; }
+.warning-details-list {
+  margin-top: 4px; padding: 6px 8px;
+  background: rgba(0,0,0,.2); border-radius: 6px;
+  max-height: 200px; overflow-y: auto;
+}
+.warning-details-row {
+  font-size: 12px; color: #e2e8f0; font-family: 'Consolas', 'Courier New', monospace;
+  padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,.04);
+}
+.warning-details-row:last-child { border-bottom: none; }
 .error-rec-msg   { color: #fca5a5; font-size: 13px; }
 .error-rec-tip   { color: #6ee7b7; font-size: 12px; margin-top: 3px; padding-left: 12px; }
 

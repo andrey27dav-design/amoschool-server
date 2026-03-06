@@ -68,8 +68,10 @@ function addError(message, recommendation) {
   logger.error(`[batch] ${message}`);
 }
 
-function addWarning(message, recommendation) {
-  batchState.warnings.push({ timestamp: new Date().toISOString(), message, recommendation: recommendation || null });
+function addWarning(message, recommendation, details) {
+  const entry = { timestamp: new Date().toISOString(), message, recommendation: recommendation || null };
+  if (details && details.length > 0) entry.details = details;
+  batchState.warnings.push(entry);
   logger.warn(`[batch] ${message}`);
 }
 
@@ -304,11 +306,13 @@ async function runBatchMigration(stageMapping) {
     }
 
     /* ── 5. Validate contacts ───────────────────────────────────────── */
-    const noContact = batchLeads.filter(l => !l._embedded?.contacts?.length).length;
-    if (noContact > 0) {
+    const leadsNoContact = batchLeads.filter(l => !l._embedded?.contacts?.length);
+    if (leadsNoContact.length > 0) {
+      const _ncDetails = leadsNoContact.map(l => `Сделка AMO#${l.id} (${(l.name || 'без названия').substring(0, 40)})`);
       addWarning(
-        `${noContact} сделок не имеют привязанных контактов.`,
-        'Убедитесь, что это корректно. Сделки без контактов будут перенесены как есть.'
+        `${leadsNoContact.length} сделок не имеют привязанных контактов.`,
+        'Убедитесь, что это корректно. Сделки без контактов будут перенесены как есть.',
+        _ncDetails
       );
     }
 
@@ -353,9 +357,22 @@ async function runBatchMigration(stageMapping) {
       const { toCreate: companiesToCreate, skipped: companiesSkipped } =
         safety.filterNotMigrated('companies', batchCompanies, c => c.id);
       if (companiesSkipped.length > 0) {
+        // Строим карту «компания → сделки» для информативности
+        const _compLeadMap = {};
+        batchLeads.forEach(l => {
+          (l._embedded?.companies || []).forEach(c => {
+            if (!_compLeadMap[c.id]) _compLeadMap[c.id] = [];
+            _compLeadMap[c.id].push(l.id);
+          });
+        });
+        const _csDetails = companiesSkipped.map(({ amoId, kommoId }) => {
+          const linkedLeads = (_compLeadMap[amoId] || []).map(lid => `AMO#${lid}`).join(', ');
+          return `Компания AMO#${amoId} → Kommo#${kommoId}` + (linkedLeads ? ` (привязана к сделкам: ${linkedLeads})` : '');
+        });
         addWarning(
           `▶️ ${companiesSkipped.length} компаний уже перенесены ранее — пропущены (перезапись запрещена).`,
-          'Данные в Kommo не изменены. Если перенес нужно повторить — сбросьте индекс через вкладку Бэкапы.'
+          'Данные в Kommo не изменены. Если перенос нужно повторить — сбросьте индекс через вкладку Бэкапы.',
+          _csDetails
         );
         // Добавляем уже известные пары в idMap из индекса
         companiesSkipped.forEach(({ amoId, kommoId }) => { companyIdMap[amoId] = kommoId; });
@@ -405,9 +422,22 @@ async function runBatchMigration(stageMapping) {
       const { toCreate: contactsToCreate, skipped: contactsSkipped } =
         safety.filterNotMigrated('contacts', batchContacts, c => c.id);
       if (contactsSkipped.length > 0) {
+        // Строим карту «контакт → сделки текущего пакета» для информативности
+        const _contLeadMap = {};
+        batchLeads.forEach(l => {
+          (l._embedded?.contacts || []).forEach(c => {
+            if (!_contLeadMap[c.id]) _contLeadMap[c.id] = [];
+            _contLeadMap[c.id].push(l.id);
+          });
+        });
+        const _ctDetails = contactsSkipped.map(({ amoId, kommoId }) => {
+          const linkedLeads = (_contLeadMap[amoId] || []).map(lid => `AMO#${lid}`).join(', ');
+          return `Контакт AMO#${amoId} → Kommo#${kommoId}` + (linkedLeads ? ` (нужен для сделок: ${linkedLeads})` : '');
+        });
         addWarning(
           `▶️ ${contactsSkipped.length} контактов уже перенесены ранее — пропущены (перезапись запрещена).`,
-          'Данные в Kommo не изменены.'
+          'Данные в Kommo не изменены. Контакт остаётся привязан к ранее перенесённым сделкам и будет также привязан к новым.',
+          _ctDetails
         );
         contactsSkipped.forEach(({ amoId, kommoId }) => { contactIdMap[amoId] = kommoId; });
       }

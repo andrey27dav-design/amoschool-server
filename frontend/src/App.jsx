@@ -1095,6 +1095,14 @@ export default function App() {
                   <div key={i} className="warning-rec-item">
                     <div className="warning-rec-msg">⚠ {w.message}</div>
                     {w.recommendation && <div className="warning-rec-tip">💡 {w.recommendation}</div>}
+                    {w.details?.length > 0 && (
+                      <details className="warning-details">
+                        <summary>Подробности ({w.details.length})</summary>
+                        <div className="warning-details-list">
+                          {w.details.map((d, j) => <div key={j} className="warning-details-row">{d}</div>)}
+                        </div>
+                      </details>
+                    )}
                   </div>
                 ))}
                 {batchStatus.warnings.length > 8 && (
