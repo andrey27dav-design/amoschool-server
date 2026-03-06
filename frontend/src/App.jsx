@@ -103,7 +103,7 @@ export default function App() {
   });
   const [syncResult, setSyncResult] = useState(() => {
     try {
-      const s = sessionStorage.getItem('syncResult');
+      const s = localStorage.getItem('syncResult');
       if (!s) return null;
       const parsed = JSON.parse(s);
       // Remove _pipeline metadata key (object value causes React crash when rendered as JSX child)
@@ -168,6 +168,20 @@ export default function App() {
     // Initial batch status load — gets cacheStats + migrationTotals from files
     api.getBatchStatus().then(d => { if (d) setBatchStatusData(d); }).catch(() => {});
     api.getBatchStats().then(setBatchStats).catch(() => {});
+
+    // Auto-load manager mapping and user lists on mount (persist across reloads)
+    api.getManagerMapping().then(res => {
+      const mappings = res.mappings || [];
+      setManagerMapping(mappings);
+    }).catch(() => {});
+    Promise.all([
+      api.getAmoManagers().catch(() => ({ managers: [] })),
+      api.getKommoUsers().catch(() => ({ users: [] })),
+    ]).then(([amoRes, kommoRes]) => {
+      setAmoManagersList(amoRes.managers || []);
+      setKommoUsers(kommoRes.users || []);
+      setManagersLoaded(true);
+    }).catch(() => {});
   }, []);
 
   // Load saved stage mapping from DB whenever pipeline pair changes
@@ -182,10 +196,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (tab === 'pipelines' && selectedAmoPipeline && selectedKommoPipeline) {
+    if (selectedAmoPipeline && selectedKommoPipeline) {
       loadSavedStageMapping(selectedAmoPipeline, selectedKommoPipeline);
     }
-  }, [tab, selectedAmoPipeline, selectedKommoPipeline]);
+  }, [selectedAmoPipeline, selectedKommoPipeline]);
 
   // Build paired rows from syncResult stageMapping
   const buildStagePairs = (syncRes, amoSt, kommoSt) => {
@@ -363,7 +377,7 @@ export default function App() {
       // Remove _pipeline metadata key — its object value crashes React render if passed as JSX child
       if (result?.stageMapping) delete result.stageMapping._pipeline;
       setSyncResult(result);
-      try { sessionStorage.setItem('syncResult', JSON.stringify(result)); } catch {}
+      try { localStorage.setItem('syncResult', JSON.stringify(result)); } catch {}
       const created = result.created?.length ?? 0;
       const skipped = result.skipped?.length ?? 0;
       setMessage(`✅ Синхронизация завершена: создано ${created} этапов, ${skipped} уже существовали`);
@@ -480,8 +494,18 @@ export default function App() {
   };
 
   const handleStartBatch = async () => {
-    if (selectedManagers.length === 0) {
-      if (!confirm('Менеджеры не выбраны — перенести сделки ВСЕХ менеджеров?')) return;
+    // Менеджеры определяются из managerMapping (вкладка "Менеджеры")
+    let mapping = managerMapping;
+    if (mapping.length === 0) {
+      try {
+        const res = await api.getManagerMapping();
+        mapping = res.mappings || [];
+        if (mapping.length > 0) setManagerMapping(mapping);
+      } catch {}
+    }
+    const hasMappedManagers = mapping.length > 0;
+    if (!hasMappedManagers) {
+      if (!confirm('Сопоставление менеджеров не настроено — перенести сделки без привязки к менеджерам?')) return;
     }
     setBatchLoading(true);
     setMessage('');
@@ -1544,7 +1568,7 @@ export default function App() {
                           setSelectedAmoPipeline(p.id);
                           localStorage.setItem('pipeline_amo', p.id);
                           setSyncResult(null);
-                          sessionStorage.removeItem('syncResult');
+                          localStorage.removeItem('syncResult');
                           setSavedStageMapping([]);
                         }
                       }} />
@@ -1584,7 +1608,7 @@ export default function App() {
                           setSelectedKommoPipeline(p.id);
                           localStorage.setItem('pipeline_kommo', p.id);
                           setSyncResult(null);
-                          sessionStorage.removeItem('syncResult');
+                          localStorage.removeItem('syncResult');
                           setSavedStageMapping([]);
                         }
                       }} />
