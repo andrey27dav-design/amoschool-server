@@ -45,6 +45,7 @@ export const startBatch = () => api.post('/migration/batch-start').then(r => r.d
 export const pauseBatch = () => api.post('/migration/batch-pause').then(r => r.data);
 export const rollbackBatch = () => api.post('/migration/batch-rollback').then(r => r.data);
 export const resetBatchOffset = () => api.post('/migration/batch-reset').then(r => r.data);
+export const retryBatch = () => api.post('/migration/batch-retry').then(r => r.data);
 export const filterCacheUnprocessed = () => api.post('/migration/filter-cache-unprocessed').then(r => r.data);
 
 // ── Manager matching ─────────────────────────────────────────────────────────

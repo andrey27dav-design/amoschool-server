@@ -333,7 +333,7 @@ async function migrateLeads(amoLeads, contactIdMap, companyIdMap) {
         try {
           await kommoApi.linkContactToLead(kommoLead.id, kommoContactId);
         } catch (e) {
-          addWarning(`Could not link contact ${kommoContactId} to lead ${kommoLead.id}: ${e.message}`);
+          addWarning(`Could not link contact Kommo#${kommoContactId} (AMO#${amoContactId}) to lead Kommo#${kommoLead.id} (AMO#${amoLead.id}): ${e.message}`);
         }
       }
     }
@@ -346,7 +346,7 @@ async function migrateLeads(amoLeads, contactIdMap, companyIdMap) {
         try {
           await kommoApi.linkCompanyToLead(kommoLead.id, kommoCompanyId);
         } catch (e) {
-          addWarning(`Could not link company ${kommoCompanyId} to lead ${kommoLead.id}: ${e.message}`);
+          addWarning(`Could not link company Kommo#${kommoCompanyId} (AMO#${amoCompanyId}) to lead Kommo#${kommoLead.id} (AMO#${amoLead.id}): ${e.message}`);
         }
       }
     }
@@ -413,7 +413,7 @@ async function migrateNotes(amoLeads, leadIdMap) {
         created.forEach((n) => { if (n) migrationState.createdIds.notes.push(n.id); });
       }
     } catch (e) {
-      addWarning(`Could not migrate notes for lead ${amoLead.id}: ${e.message}`);
+      addWarning(`Could not migrate notes for lead AMO#${amoLead.id} (Kommo#${kommoLeadId}): ${e.message}`);
     }
 
     incrementProgress();

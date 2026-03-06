@@ -583,6 +583,23 @@ export default function App() {
     }
   };
 
+  const handleRetryBatch = async () => {
+    if (!confirm('Повторить последний пакет? Уже перенесённые данные не будут дублироваться, но пропущенные заметки/задачи будут повторно отправлены.')) return;
+    setBatchLoading(true);
+    setMessage('');
+    try {
+      await api.retryBatch();
+      setMessage('🔄 Повтор последнего пакета запущен...');
+      setTimeout(async () => {
+        const d = await api.getBatchStatus().catch(() => null);
+        if (d) setBatchStatusData(d);
+      }, 800);
+    } catch (e) {
+      setMessage('❌ ' + (e.response?.data?.error || e.message));
+    }
+    setBatchLoading(false);
+  };
+
   const isRunning = status?.status === 'running' || status?.status === 'rolling_back';
   const progressPct = status?.progress?.total > 0
     ? Math.round((status.progress.current / status.progress.total) * 100)
@@ -969,6 +986,12 @@ export default function App() {
                 title="Убрать из кэша уже перенесённые сделки — останутся только необработанные"
                 style={{ background: 'rgba(234,179,8,0.15)', borderColor: 'rgba(234,179,8,0.5)', color: '#fcd34d' }}>
                 🔍 Только необработанные
+              </button>
+              <button className="btn btn-secondary" onClick={handleRetryBatch}
+                disabled={batchLoading || batchStatus?.status === 'running' || !batchStatus?.lastBatch}
+                title="Повторить последний пакет — пропущенные заметки/задачи будут перенесены повторно"
+                style={{ background: 'rgba(168,85,247,0.15)', borderColor: 'rgba(168,85,247,0.5)', color: '#c4b5fd' }}>
+                🔄 Повтор пакета
               </button>
             </div>
 

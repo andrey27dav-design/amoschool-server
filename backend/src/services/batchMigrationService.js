@@ -498,6 +498,10 @@ async function runBatchMigration(stageMapping) {
     // Регистрируем все перенесённые сделки в индексе безопасности
     if (leadPairs.length > 0) safety.registerMigratedBatch('leads', leadPairs);
 
+    // Reverse map: Kommo lead ID -> AMO lead ID (for warning messages)
+    const kommoToAmoLead = {};
+    for (const [aId, kId] of Object.entries(leadIdMap)) kommoToAmoLead[kId] = aId;
+
 
     // Pause check after leads (saves offset, stops before tasks)
     if (pauseRequestedFlag) {
@@ -687,7 +691,7 @@ async function runBatchMigration(stageMapping) {
               }
             });
           } catch (e) {
-            addWarning(`Не удалось перенести заметки сделки (kommo#${kId}).`, 'Добавьте заметки вручную в Kommo CRM.');
+            addWarning(`Не удалось перенести заметки сделки Kommo#${kId} (AMO#${kommoToAmoLead[kId] || '?'}).`, 'Добавьте заметки вручную в Kommo CRM.');
           }
         }
         if (_batchLeadNotePairs.length > 0) safety.registerMigratedBatch('notes_leads', _batchLeadNotePairs);
@@ -723,7 +727,7 @@ async function runBatchMigration(stageMapping) {
             if (_bCNotePairs.length > 0) safety.registerMigratedBatch('notes_contacts', _bCNotePairs);
           }
         } catch (e) {
-          addWarning(`Не удалось перенести заметки контакта #${aContactId}.`, 'Добавьте заметки вручную в Kommo CRM.');
+          addWarning(`Не удалось перенести заметки контакта AMO#${aContactId} (Kommo#${kContactId}).`, 'Добавьте заметки вручную в Kommo CRM.');
         }
       }
     }
@@ -732,6 +736,8 @@ async function runBatchMigration(stageMapping) {
     batchConfig.offset = from + batchLeads.length;
     batchState.stats.totalTransferred = batchConfig.offset;
     batchState.stats.remainingLeads   = Math.max(0, eligible.length - batchConfig.offset);
+    // Save last batch position for retry feature
+    batchState.lastBatch = { from, size: batchLeads.length };
     saveBatchConfig();
 
     updateState({
@@ -1336,7 +1342,8 @@ async function runSingleDealsTransfer(leadIds, stageMapping) {
                 }
               });
             } catch (e) {
-              result.warnings.push(`Заметки сделки (kommo#${kId}): ${e.message}`);
+              const _amoLIdSingle = Object.entries(leadIdMap).find(([,v]) => v == kId)?.[0] || '?';
+              result.warnings.push(`Заметки сделки Kommo#${kId} (AMO#${_amoLIdSingle}): ${e.message}`);
               logger.error(`[transfer] ошибка заметок kommo#${kId}:`, e.message);
             }
           }
@@ -1444,4 +1451,19 @@ function pauseBatch() {
   return { ok: true, message: 'Пауза будет применена на ближайшей контрольной точке' };
 }
 
-module.exports = { getBatchConfig, setBatchConfig, getBatchState, analyzeManagers, getStats, runBatchMigration, rollbackBatch, resetOffset, loadBatchConfig, loadAmoCache, runSingleDealsTransfer, pauseBatch };
+async function retryLastBatch() {
+  if (batchState.status === 'running') throw new Error('Миграция уже выполняется');
+  const last = batchState.lastBatch;
+  if (!last || last.from === undefined) throw new Error('Нет данных о последнем пакете. Сначала выполните обычный перенос.');
+  loadBatchConfig();
+  batchConfig.offset = last.from;
+  saveBatchConfig();
+  logger.info('[retry] Retrying last batch from offset ' + last.from);
+  const cfg2 = require('../config');
+  const stagePath = path.resolve(cfg2.backupDir, 'stage_mapping.json');
+  let stageMapping = {};
+  if (fs.existsSync(stagePath)) stageMapping = fs.readJsonSync(stagePath);
+  return runBatchMigration(stageMapping);
+}
+
+module.exports = { getBatchConfig, setBatchConfig, getBatchState, analyzeManagers, getStats, runBatchMigration, rollbackBatch, resetOffset, loadBatchConfig, loadAmoCache, runSingleDealsTransfer, pauseBatch, retryLastBatch };

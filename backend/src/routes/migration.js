@@ -739,6 +739,18 @@ router.post('/batch-pause', (req, res) => {
   }
 });
 
+// POST /api/migration/batch-retry
+router.post('/batch-retry', async (req, res) => {
+  try {
+    batchService.retryLastBatch().catch(e => {
+      logger.error('Background batch-retry error:', e);
+    });
+    res.json({ message: 'Batch retry started', status: 'running' });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
 // POST /api/migration/batch-reset
 router.post('/batch-reset', (req, res) => {
   try {
