@@ -263,19 +263,54 @@ async function createTasksBatch(tasks) {
   for (let i = 0; i < tasks.length; i += 50) chunks.push(tasks.slice(i, i + 50));
   const created = [];
   for (const chunk of chunks) {
+    // ── Попытка 1: отправляем чанк целиком ──
     await rateLimit();
     try {
       const res = await kommoClient.post('/api/v4/tasks', chunk);
       const embedded = res.data._embedded?.tasks || [];
       logger.info(`Kommo createTasksBatch: HTTP ${res.status}, tasks=${embedded.length}, resp_keys=${Object.keys(res.data||{}).join(',')}`);
       created.push(...embedded);
-    } catch (e) {
-      const body = e.response?.data ? JSON.stringify(e.response.data).slice(0,300) : e.message;
-      logger.error(`Kommo createTasksBatch error: ${body}`);
-      throw e;
+      continue; // чанк OK
+    } catch (e1) {
+      const body1 = e1.response?.data ? JSON.stringify(e1.response.data).slice(0,300) : e1.message;
+      logger.warn(`Kommo createTasksBatch попытка 1 провалена: ${body1}`);
+    }
+
+    // ── Попытка 2: ждём 1 сек и повторяем чанк ──
+    await new Promise(r => setTimeout(r, 1000));
+    await rateLimit();
+    try {
+      const res2 = await kommoClient.post('/api/v4/tasks', chunk);
+      const embedded2 = res2.data._embedded?.tasks || [];
+      logger.info(`Kommo createTasksBatch retry OK: tasks=${embedded2.length}`);
+      created.push(...embedded2);
+      continue;
+    } catch (e2) {
+      const body2 = e2.response?.data ? JSON.stringify(e2.response.data).slice(0,300) : e2.message;
+      logger.warn(`Kommo createTasksBatch попытка 2 провалена: ${body2}. Переключаемся на поштучный режим.`);
+    }
+
+    // ── Попытка 3: отправляем по одной задаче ──
+    for (let ti = 0; ti < chunk.length; ti++) {
+      const singleTask = chunk[ti];
+      await rateLimit();
+      try {
+        const res3 = await kommoClient.post('/api/v4/tasks', [singleTask]);
+        const embedded3 = res3.data._embedded?.tasks || [];
+        if (embedded3.length > 0) {
+          created.push(embedded3[0]);
+          logger.info(`Kommo createTasksBatch single[${ti}]: OK (id=${embedded3[0].id})`);
+        } else {
+          created.push(null); // пустой ответ
+        }
+      } catch (e3) {
+        const body3 = e3.response?.data ? JSON.stringify(e3.response.data).slice(0,300) : e3.message;
+        logger.warn(`Kommo createTasksBatch single[${ti}] пропуск: ${body3} | entity_id=${singleTask.entity_id}, type=${singleTask.entity_type}`);
+        created.push(null); // сохраняем позицию для корректного idx-маппинга
+      }
     }
   }
-  logger.info(`Kommo createTasksBatch: returning ${created.length} total`);
+  logger.info(`Kommo createTasksBatch: returning ${created.length} of ${tasks.length} total`);
   return created;
 }
 
@@ -311,22 +346,56 @@ async function createNotesBatch(entityType, notes) {
   for (let i = 0; i < notes.length; i += 50) chunks.push(notes.slice(i, i + 50));
   const created = [];
   for (const chunk of chunks) {
+    // ── Попытка 1: отправляем чанк целиком ──
     await rateLimit();
     try {
-      // DEBUG: write chunk to file for inspection
       try { require('fs').writeFileSync(`/tmp/notes_chunk_${entityType}.json`, JSON.stringify(chunk, null, 2)); } catch(_){}
       logger.info(`[debug] notes chunk[0] entity_id: ${chunk[0]?.entity_id} (${typeof chunk[0]?.entity_id}), sample: ${JSON.stringify(chunk[0])?.slice(0,200)}`);
       const res = await kommoClient.post(`/api/v4/${entityType}/notes`, chunk);
       const embedded = res.data._embedded?.notes || [];
       logger.info(`Kommo createNotesBatch(${entityType}): HTTP ${res.status}, notes=${embedded.length}`);
       created.push(...embedded);
-    } catch (e) {
-      const body = e.response?.data ? JSON.stringify(e.response.data).slice(0,300) : e.message;
-      logger.error(`Kommo createNotesBatch(${entityType}) error: ${body}`);
-      throw e;
+      continue; // чанк OK — идём к следующему
+    } catch (e1) {
+      const body1 = e1.response?.data ? JSON.stringify(e1.response.data).slice(0,300) : e1.message;
+      logger.warn(`Kommo createNotesBatch(${entityType}) попытка 1 провалена: ${body1}`);
+    }
+
+    // ── Попытка 2: ждём 1 сек и повторяем чанк целиком ──
+    await new Promise(r => setTimeout(r, 1000));
+    await rateLimit();
+    try {
+      const res2 = await kommoClient.post(`/api/v4/${entityType}/notes`, chunk);
+      const embedded2 = res2.data._embedded?.notes || [];
+      logger.info(`Kommo createNotesBatch(${entityType}) retry OK: notes=${embedded2.length}`);
+      created.push(...embedded2);
+      continue; // retry помог — идём к следующему чанку
+    } catch (e2) {
+      const body2 = e2.response?.data ? JSON.stringify(e2.response.data).slice(0,300) : e2.message;
+      logger.warn(`Kommo createNotesBatch(${entityType}) попытка 2 провалена: ${body2}. Переключаемся на поштучный режим.`);
+    }
+
+    // ── Попытка 3: отправляем по одной заметке ──
+    for (let ni = 0; ni < chunk.length; ni++) {
+      const singleNote = chunk[ni];
+      await rateLimit();
+      try {
+        const res3 = await kommoClient.post(`/api/v4/${entityType}/notes`, [singleNote]);
+        const embedded3 = res3.data._embedded?.notes || [];
+        if (embedded3.length > 0) {
+          created.push(embedded3[0]);
+          logger.info(`Kommo createNotesBatch(${entityType}) single[${ni}]: OK (id=${embedded3[0].id})`);
+        } else {
+          created.push(null); // пустой ответ
+        }
+      } catch (e3) {
+        const body3 = e3.response?.data ? JSON.stringify(e3.response.data).slice(0,300) : e3.message;
+        logger.warn(`Kommo createNotesBatch(${entityType}) single[${ni}] пропуск: ${body3} | entity_id=${singleNote.entity_id}, type=${singleNote.note_type}`);
+        created.push(null); // сохраняем позицию для корректного idx-маппинга
+      }
     }
   }
-  logger.info(`Kommo createNotesBatch(${entityType}): returning ${created.length} total`);
+  logger.info(`Kommo createNotesBatch(${entityType}): returning ${created.length} of ${notes.length} total`);
   return created;
 }
 

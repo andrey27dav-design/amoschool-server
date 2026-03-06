@@ -560,8 +560,13 @@ async function runBatchMigration(stageMapping) {
         });
         if (_completedBatchLeadTaskIds.length > 0) await kommoApi.completeTasksBatch(_completedBatchLeadTaskIds);
         if (_batchTaskPairs.length > 0) safety.registerMigratedBatch('tasks_leads', _batchTaskPairs);
+        const _ltSuccessCount = created.filter(x => x !== null).length;
+        if (_ltSuccessCount < tasksToCreate.length) {
+          logger.warn(`[batch] Задачи лидов: перенесено ${_ltSuccessCount}/${tasksToCreate.length}`);
+          if (_ltSuccessCount === 0) addWarning('Задачи лидов: 0 перенесено после retry.', 'Попробуйте повтор пакета.');
+        }
       } catch (e) {
-        addWarning(`Ошибка переноса задач: ${e.message}`, 'Попробуйте повторить пакет или добавьте задачи вручную.');
+        logger.error('[batch] Неожиданная ошибка задач лидов: ' + e.message);
       }
     }
 
@@ -606,8 +611,13 @@ async function runBatchMigration(stageMapping) {
             });
             if (_completedCTIds.length > 0) await kommoApi.completeTasksBatch(_completedCTIds);
             if (_ctPairs.length > 0) safety.registerMigratedBatch('tasks_contacts', _ctPairs);
+            const _ctSuccessCount = _createdCT.filter(x => x !== null).length;
+            if (_ctSuccessCount < _ctTasksToCreate.length) {
+              logger.warn(`[batch] Задачи контактов: перенесено ${_ctSuccessCount}/${_ctTasksToCreate.length}`);
+              if (_ctSuccessCount === 0) addWarning('Задачи контактов: 0 перенесено после retry.', 'Попробуйте повтор пакета.');
+            }
           } catch (e) {
-            addWarning('Ошибка переноса задач контактов: ' + e.message, 'Повторите пакет.');
+            logger.error('[batch] Неожиданная ошибка задач контактов: ' + e.message);
           }
         }
       }
@@ -690,8 +700,13 @@ async function runBatchMigration(stageMapping) {
                 if (_amoNoteIds[idx]) _batchLeadNotePairs.push({ amoId: Number(_amoNoteIds[idx]), kommoId: cn.id });
               }
             });
+            const _leadSuccessCount = created.filter(x => x !== null).length;
+            if (_leadSuccessCount < n.length) {
+              logger.warn(`[batch] Заметки сделки Kommo#${kId} (AMO#${kommoToAmoLead[kId] || '?'}): перенесено ${_leadSuccessCount}/${n.length}`);
+              if (_leadSuccessCount === 0) addWarning(`Заметки сделки Kommo#${kId} (AMO#${kommoToAmoLead[kId] || '?'}): 0 из ${n.length} перенесено после retry.`, 'Попробуйте повтор пакета.');
+            }
           } catch (e) {
-            addWarning(`Не удалось перенести заметки сделки Kommo#${kId} (AMO#${kommoToAmoLead[kId] || '?'}).`, 'Добавьте заметки вручную в Kommo CRM.');
+            logger.error(`[batch] Неожиданная ошибка заметок сделки Kommo#${kId}: ${e.message}`);
           }
         }
         if (_batchLeadNotePairs.length > 0) safety.registerMigratedBatch('notes_leads', _batchLeadNotePairs);
@@ -725,9 +740,14 @@ async function runBatchMigration(stageMapping) {
               }
             });
             if (_bCNotePairs.length > 0) safety.registerMigratedBatch('notes_contacts', _bCNotePairs);
+          const _cSuccessCount = created.filter(x => x !== null).length;
+          if (_cSuccessCount < n.length) {
+            logger.warn(`[batch] Заметки контакта AMO#${aContactId} (Kommo#${kContactId}): перенесено ${_cSuccessCount}/${n.length}`);
+            if (_cSuccessCount === 0) addWarning(`Заметки контакта AMO#${aContactId} (Kommo#${kContactId}): 0 из ${n.length} перенесено после retry.`, 'Попробуйте повтор пакета.');
+          }
           }
         } catch (e) {
-          addWarning(`Не удалось перенести заметки контакта AMO#${aContactId} (Kommo#${kContactId}).`, 'Добавьте заметки вручную в Kommo CRM.');
+          logger.error(`[batch] Неожиданная ошибка заметок контакта AMO#${aContactId}: ${e.message}`);
         }
       }
     }
