@@ -9,6 +9,10 @@ const logger = require('../utils/logger');
 const amoApi = require('../services/amoApi');
 const kommoApi = require('../services/kommoApi');
 
+// Note types excluded from dashboard counts (not transferable via API)
+const SKIP_NOTE_TYPES = new Set([10, 11, 'amomail_message', 'extended_service_message', 'lead_auto_created', 'attachment', 'link_followed']);
+const filterEligibleNotes = (notes) => (notes || []).filter(n => !SKIP_NOTE_TYPES.has(n.note_type)).length;
+
 // ─── Helpers for persistent stats (survive server crash) ─────────────────────
 function getCacheStats() {
   try {
@@ -21,8 +25,8 @@ function getCacheStats() {
     const companies    = (c.companies    || []).length;
     const leadTasks    = (c.leadTasks    || []).length;
     const contactTasks = (c.contactTasks || []).length;
-    const leadNotes    = (c.leadNotes    || []).length;
-    const contactNotes = (c.contactNotes || []).length;
+    const leadNotes    = filterEligibleNotes(c.leadNotes);
+    const contactNotes = filterEligibleNotes(c.contactNotes);
     return { leads, contacts, companies, leadTasks, contactTasks, leadNotes, contactNotes, fetchedAt: c.fetchedAt || null };
   } catch { return null; }
 }
@@ -84,8 +88,8 @@ function getPendingStats() {
       companies:    Math.max(0, (c.companies    || []).length - alreadyCompanies),
       leadTasks:    Math.max(0, (c.leadTasks    || []).length - alreadyLeadTasks),
       contactTasks: Math.max(0, (c.contactTasks || []).length - alreadyContactTasks),
-      leadNotes:    Math.max(0, (c.leadNotes    || []).length - alreadyLeadNotes),
-      contactNotes: Math.max(0, (c.contactNotes || []).length - alreadyContactNotes),
+      leadNotes:    Math.max(0, filterEligibleNotes(c.leadNotes) - alreadyLeadNotes),
+      contactNotes: Math.max(0, filterEligibleNotes(c.contactNotes) - alreadyContactNotes),
     };
   } catch { return null; }
 }
