@@ -38,6 +38,7 @@ const MIGRATION_PLAN = [
 export default function App() {
   const [status, setStatus] = useState(null);
   const [appVersion, setAppVersion] = useState('V1.5.48'); // auto-updated
+  const [versionDesc, setVersionDesc] = useState('');
   const [pipelines, setPipelines] = useState({ amo: [], kommo: [] });
   const [backups, setBackups] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -48,7 +49,7 @@ export default function App() {
   useEffect(() => {
     fetch('/api/version')
       .then(r => r.json())
-      .then(d => { if (d.version) setAppVersion(d.version); })
+      .then(d => { if (d.version) setAppVersion(d.version); if (d.description) setVersionDesc(d.description); })
       .catch(() => {}); // keep fallback value on error
   }, []);
 
@@ -643,7 +644,10 @@ export default function App() {
 
   return (
     <div className="app">
-      <div style={{ position: 'fixed', top: 8, left: 8, zIndex: 9999, background: 'rgba(30,30,40,0.78)', color: '#a5b4fc', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6, letterSpacing: '0.05em', pointerEvents: 'none', backdropFilter: 'blur(4px)', border: '1px solid rgba(165,180,252,0.2)' }}>{appVersion}</div>
+      <div title={versionDesc} style={{ position: 'fixed', top: 8, left: 8, zIndex: 9999, background: 'rgba(30,30,40,0.78)', color: '#a5b4fc', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6, letterSpacing: '0.05em', pointerEvents: 'none', backdropFilter: 'blur(4px)', border: '1px solid rgba(165,180,252,0.2)', maxWidth: 420 }}>
+        <span>{appVersion}</span>
+        {versionDesc && <span style={{ fontWeight: 400, color: '#8b9bd4', marginLeft: 6, fontSize: 10 }}>— {versionDesc}</span>}
+      </div>
       <header className="header">
         <div className="header-logo">
           <span className="logo-amo">amo CRM</span>
