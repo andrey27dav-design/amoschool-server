@@ -308,7 +308,12 @@ async function runBatchMigration(stageMapping) {
     /* ── 5. Validate contacts ───────────────────────────────────────── */
     const leadsNoContact = batchLeads.filter(l => !l._embedded?.contacts?.length);
     if (leadsNoContact.length > 0) {
-      const _ncDetails = leadsNoContact.map(l => `Сделка AMO#${l.id} (${(l.name || 'без названия').substring(0, 40)})`);
+      const _safetyIdx = safety.loadIndex();
+      const _ncDetails = leadsNoContact.map(l => {
+        const _kId = (_safetyIdx.leads || {})[String(l.id)];
+        const _kPart = _kId ? ' \u2192 Kommo#' + _kId : '';
+        return 'Сделка AMO#' + l.id + _kPart + ' (' + (l.name || 'без названия').substring(0, 40) + ')';
+      });
       addWarning(
         `${leadsNoContact.length} сделок не имеют привязанных контактов.`,
         'Убедитесь, что это корректно. Сделки без контактов будут перенесены как есть.',
@@ -366,7 +371,11 @@ async function runBatchMigration(stageMapping) {
           });
         });
         const _csDetails = companiesSkipped.map(({ amoId, kommoId }) => {
-          const linkedLeads = (_compLeadMap[amoId] || []).map(lid => `AMO#${lid}`).join(', ');
+          const _cIdx = safety.loadIndex();
+          const linkedLeads = (_compLeadMap[amoId] || []).map(lid => {
+            const _kLid = (_cIdx.leads || {})[String(lid)];
+            return 'AMO#' + lid + (_kLid ? '/Kommo#' + _kLid : '');
+          }).join(', ');
           return `Компания AMO#${amoId} → Kommo#${kommoId}` + (linkedLeads ? ` (привязана к сделкам: ${linkedLeads})` : '');
         });
         addWarning(
@@ -431,7 +440,11 @@ async function runBatchMigration(stageMapping) {
           });
         });
         const _ctDetails = contactsSkipped.map(({ amoId, kommoId }) => {
-          const linkedLeads = (_contLeadMap[amoId] || []).map(lid => `AMO#${lid}`).join(', ');
+          const _ctIdx = safety.loadIndex();
+          const linkedLeads = (_contLeadMap[amoId] || []).map(lid => {
+            const _kLid = (_ctIdx.leads || {})[String(lid)];
+            return 'AMO#' + lid + (_kLid ? '/Kommo#' + _kLid : '');
+          }).join(', ');
           return `Контакт AMO#${amoId} → Kommo#${kommoId}` + (linkedLeads ? ` (нужен для сделок: ${linkedLeads})` : '');
         });
         addWarning(
@@ -479,9 +492,14 @@ async function runBatchMigration(stageMapping) {
     const { toCreate: newLeads, skipped: skippedLeads } =
       safety.filterNotMigrated('leads', batchLeads, l => l.id);
     if (skippedLeads.length > 0) {
+      const _slDetails = skippedLeads.map(({ item, amoId, kommoId }) => {
+        const _name = (item && item.name) ? ' (' + item.name.substring(0, 40) + ')' : '';
+        return 'Сделка AMO#' + amoId + ' \u2192 Kommo#' + kommoId + _name;
+      });
       addWarning(
         `▶️ ${skippedLeads.length} сделок уже перенесены ранее — пропущены (перезапись запрещена).`,
-        'Данные в Kommo не изменены. Чтобы перенести повторно — сбросьте индекс через вкладку Бэкап.'
+        'Данные в Kommo не изменены. Чтобы перенести повторно — сбросьте индекс через вкладку Бэкап.',
+        _slDetails
       );
     }
     // Pre-populate leadIdMap для skipped сделок (нужно для задач/заметок)
