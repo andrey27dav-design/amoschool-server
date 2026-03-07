@@ -362,18 +362,11 @@ async function runBatchMigration(stageMapping) {
       const { toCreate: companiesToCreate, skipped: companiesSkipped } =
         safety.filterNotMigrated('companies', batchCompanies, c => c.id);
       if (companiesSkipped.length > 0) {
-        // Строим карту «компания → сделки» для информативности
-        const _compLeadMap = {};
-        batchLeads.forEach(l => {
-          (l._embedded?.companies || []).forEach(c => {
-            if (!_compLeadMap[c.id]) _compLeadMap[c.id] = [];
-            _compLeadMap[c.id].push(l.id);
-          });
-        });
-        const _csDetails = companiesSkipped.map(({ amoId, kommoId }) => {
-          const _cIdx = safety.loadIndex();
-          const linkedLeads = (_compLeadMap[amoId] || []).map(lid => {
-            const _kLid = (_cIdx.leads || {})[String(lid)];
+        const _csIdx = safety.loadIndex();
+        const _csDetails = companiesSkipped.map(({ item, amoId, kommoId }) => {
+          const allLinkedLeads = (item && item._embedded && item._embedded.leads) ? item._embedded.leads.map(l => l.id) : [];
+          const linkedLeads = allLinkedLeads.map(lid => {
+            const _kLid = (_csIdx.leads || {})[String(lid)];
             return 'AMO#' + lid + (_kLid ? '/Kommo#' + _kLid : '');
           }).join(', ');
           return `Компания AMO#${amoId} → Kommo#${kommoId}` + (linkedLeads ? ` (привязана к сделкам: ${linkedLeads})` : '');
@@ -431,17 +424,10 @@ async function runBatchMigration(stageMapping) {
       const { toCreate: contactsToCreate, skipped: contactsSkipped } =
         safety.filterNotMigrated('contacts', batchContacts, c => c.id);
       if (contactsSkipped.length > 0) {
-        // Строим карту «контакт → сделки текущего пакета» для информативности
-        const _contLeadMap = {};
-        batchLeads.forEach(l => {
-          (l._embedded?.contacts || []).forEach(c => {
-            if (!_contLeadMap[c.id]) _contLeadMap[c.id] = [];
-            _contLeadMap[c.id].push(l.id);
-          });
-        });
-        const _ctDetails = contactsSkipped.map(({ amoId, kommoId }) => {
-          const _ctIdx = safety.loadIndex();
-          const linkedLeads = (_contLeadMap[amoId] || []).map(lid => {
+        const _ctIdx = safety.loadIndex();
+        const _ctDetails = contactsSkipped.map(({ item, amoId, kommoId }) => {
+          const allLinkedLeads = (item && item._embedded && item._embedded.leads) ? item._embedded.leads.map(l => l.id) : [];
+          const linkedLeads = allLinkedLeads.map(lid => {
             const _kLid = (_ctIdx.leads || {})[String(lid)];
             return 'AMO#' + lid + (_kLid ? '/Kommo#' + _kLid : '');
           }).join(', ');
