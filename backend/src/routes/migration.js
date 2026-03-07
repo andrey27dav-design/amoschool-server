@@ -25,9 +25,10 @@ function getCacheStats() {
     const companies    = (c.companies    || []).length;
     const leadTasks    = (c.leadTasks    || []).length;
     const contactTasks = (c.contactTasks || []).length;
+    const companyTasks = (c.companyTasks || []).length;
     const leadNotes    = filterEligibleNotes(c.leadNotes);
     const contactNotes = filterEligibleNotes(c.contactNotes);
-    return { leads, contacts, companies, leadTasks, contactTasks, leadNotes, contactNotes, fetchedAt: c.fetchedAt || null };
+    return { leads, contacts, companies, leadTasks, contactTasks, companyTasks, leadNotes, contactNotes, fetchedAt: c.fetchedAt || null };
   } catch { return null; }
 }
 
@@ -50,6 +51,7 @@ function getMigrationTotals() {
       companies:    Math.max(0, count(idx.companies)      - (base.companies    || 0)),
       leadTasks:    Math.max(0, count(idx.tasks_leads)    - (base.leadTasks    || 0)),
       contactTasks: Math.max(0, count(idx.tasks_contacts) - (base.contactTasks || 0)),
+      companyTasks: Math.max(0, count(idx.tasks_companies) - (base.companyTasks || 0)),
       leadNotes:    Math.max(0, count(idx.notes_leads)    - (base.leadNotes    || 0)),
       contactNotes: Math.max(0, count(idx.notes_contacts) - (base.contactNotes || 0)),
     };
@@ -74,6 +76,7 @@ function getPendingStats() {
       companies:    (c.companies    || []).filter(x => !has('companies', x.id)).length,
       leadTasks:    (c.leadTasks    || []).filter(x => !has('tasks_leads', x.id)).length,
       contactTasks: (c.contactTasks || []).filter(x => !has('tasks_contacts', x.id)).length,
+      companyTasks: (c.companyTasks || []).filter(x => !has('tasks_companies', x.id)).length,
       leadNotes:    eligibleNotes(c.leadNotes).filter(x => !has('notes_leads', x.id)).length,
       contactNotes: eligibleNotes(c.contactNotes).filter(x => !has('notes_contacts', x.id)).length,
     };
@@ -95,6 +98,7 @@ function saveSessionBaseline() {
         companies:    count(idx.companies),
         leadTasks:    count(idx.tasks_leads),
         contactTasks: count(idx.tasks_contacts),
+        companyTasks: count(idx.tasks_companies),
         leadNotes:    count(idx.notes_leads),
         contactNotes: count(idx.notes_contacts),
       };

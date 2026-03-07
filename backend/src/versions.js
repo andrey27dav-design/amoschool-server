@@ -2,6 +2,16 @@
 // Each version: { date, title, changes[] }
 const VERSIONS = [
   {
+    version: 'V1.6.12',
+    date: '2026-03-07',
+    title: 'Счётчик задач компаний в дашборде',
+    changes: [
+      'Добавлены серый/жёлтый/зелёный счётчики companyTasks в дашборд',
+      'getCacheStats, getMigrationTotals, getPendingStats обновлены',
+      'Логика переноса не затронута — задачи компаний уже переносились',
+    ],
+  },
+  {
     version: 'V1.6.11',
     date: '2026-03-07',
     title: 'Исправление жёлтых счётчиков (pending)',

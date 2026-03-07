@@ -884,7 +884,7 @@ export default function App() {
             {fetchSt?.status === 'loading' && (() => {
               const LABELS = {
                 leads: 'Сделки', contacts: 'Контакты', companies: 'Компании',
-                leadTasks: 'Задачи (сделки)', contactTasks: 'Задачи (контакты)',
+                leadTasks: 'Задачи (сделки)', contactTasks: 'Задачи (контакты)', companyTasks: 'Задачи (компании)',
                 leadNotes: 'Комм. (сделки)', contactNotes: 'Комм. (контакты)',
               };
               return (
@@ -922,6 +922,7 @@ export default function App() {
                     { label: 'Компании',               key: 'companies',    icon: '🏢' },
                     { label: 'Задачи (сделки)',        key: 'leadTasks',    icon: '✅' },
                     { label: 'Задачи (контакты)',      key: 'contactTasks', icon: '✅' },
+                    { label: 'Задачи (компании)',      key: 'companyTasks', icon: '✅' },
                     { label: 'Комм. (сделки)',         key: 'leadNotes',    icon: '💬' },
                     { label: 'Комм. (контакты)',       key: 'contactNotes', icon: '💬' },
                   ].map(({ label, key, icon }) => (
