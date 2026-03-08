@@ -577,6 +577,42 @@ export default function App() {
     }
   };
 
+  const handleStartAutoRun = async () => {
+    if (batchSize === 0 || !batchSize) {
+      setMessage('❌ Выберите размер пакета (1–200) перед запуском автозапуска');
+      return;
+    }
+    if (!confirm(`Запустить автозапуск? Пакеты по ${batchSize} сделок будут переноситься автоматически с паузой 60 сек между ними. Нажмите «⏹ Стоп» для остановки.`)) return;
+    setBatchLoading(true);
+    setMessage('');
+    try {
+      await api.setBatchConfig({ managerIds: selectedManagers, batchSize });
+      await api.startAutoRun();
+      setMessage('🔄 Автозапуск активирован — пакеты по ' + batchSize + ' сделок будут переноситься автоматически');
+      setTimeout(async () => {
+        const d = await api.getBatchStatus().catch(() => null);
+        if (d) setBatchStatusData(d);
+      }, 800);
+    } catch (e) {
+      setMessage(`❌ Ошибка: ${e.response?.data?.error || e.message}`);
+    }
+    setBatchLoading(false);
+  };
+
+  const handleStopAutoRun = async () => {
+    try {
+      await api.stopAutoRun();
+      setMessage('⏹ Запрос остановки автозапуска отправлен. Текущий пакет завершится.');
+      setTimeout(async () => {
+        const [d, s] = await Promise.all([api.getBatchStatus(), api.getBatchStats()]).catch(() => [null, null]);
+        if (d) setBatchStatusData(d);
+        if (s) setBatchStats(s);
+      }, 2000);
+    } catch (e) {
+      setMessage('❌ ' + (e.response?.data?.error || e.message));
+    }
+  };
+
   const handleBatchReset = async () => {
     if (!confirm('Сбросить счётчик? Следующий пакет начнётся с первой сделки. Зелёный счётчик «Перенесено» обнулится и будет считать с нуля.')) return;
     try {
@@ -1014,26 +1050,33 @@ export default function App() {
                     {sz}
                   </button>
                 ))}
-                <button
-                  className={`batch-size-btn${batchSize === 0 ? ' active' : ''}`}
-                  onClick={() => handleBatchSizeChange(0)}
-                  disabled={batchStatus?.status === 'running'}>
-                  ВСЕ
-                </button>
               </div>
               <button className="btn btn-primary" onClick={handleStartBatch}
-                disabled={batchLoading || batchStatus?.status === 'running' || batchStats?.remainingLeads === 0}>
+                disabled={batchLoading || batchStatus?.status === 'running' || batchStatus?.status === 'auto-waiting' || batchStatus?.autoRunActive || batchStats?.remainingLeads === 0}>
                 {batchStatus?.status === 'running'
                   ? `⏳ ${batchStatus.step || 'Выполняется...'}`
-                  : batchSize === 0
-                    ? '🚀 Перенести ВСЕ сделки'
-                    : `🚀 Перенести первые ${batchSize} неотработанных`}
+                  : batchStatus?.status === 'auto-waiting'
+                    ? `⏳ Пауза ${batchStatus.autoRunCountdown || ''}с...`
+                    : `🚀 Перенести ${batchSize || 10} сделок`}
               </button>
-              {batchStatus?.status === 'running' && (
+              <button className="btn btn-primary" onClick={handleStartAutoRun}
+                disabled={batchLoading || batchStatus?.status === 'running' || batchStatus?.status === 'auto-waiting' || batchStatus?.autoRunActive || batchStats?.remainingLeads === 0}
+                title="Автоматически переносить пакеты один за другим с паузой 60 сек между ними"
+                style={{ background: 'rgba(16,185,129,0.25)', borderColor: 'rgba(16,185,129,0.6)', color: '#6ee7b7' }}>
+                🔄 Авто ВСЕ
+              </button>
+              {(batchStatus?.status === 'running' && !batchStatus?.autoRunActive) && (
                 <button className="btn btn-warn" onClick={handleBatchPause}
                   disabled={batchLoading}
                   title="Остановить на ближайшей контрольной точке">
                   ⏸ Пауза
+                </button>
+              )}
+              {(batchStatus?.autoRunActive || batchStatus?.status === 'auto-waiting') && (
+                <button className="btn btn-warn" onClick={handleStopAutoRun}
+                  title="Остановить автозапуск (текущий пакет завершится)"
+                  style={{ background: 'rgba(239,68,68,0.3)', borderColor: 'rgba(239,68,68,0.7)', color: '#fca5a5' }}>
+                  ⏹ Стоп
                 </button>
               )}
               {(batchStatus?.status === 'error' || batchStatus?.status === 'paused' || crashDetected) && (
@@ -1061,8 +1104,28 @@ export default function App() {
               </button>
             </div>
 
+            {/* Auto-run countdown banner */}
+            {batchStatus?.status === 'auto-waiting' && (
+              <div style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.45)', borderRadius: 8, padding: '10px 14px', marginTop: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 22 }}>🔄</span>
+                <span style={{ fontSize: 13, color: '#6ee7b7' }}>
+                  Автозапуск: пауза {batchStatus.autoRunCountdown || '...'} сек до следующего пакета. Нажмите «⏹ Стоп» чтобы остановить.
+                </span>
+              </div>
+            )}
+
+            {/* Auto-stopped banner */}
+            {batchStatus?.status === 'auto-stopped' && (
+              <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 8, padding: '10px 14px', marginTop: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 22 }}>⚠️</span>
+                <span style={{ fontSize: 13, color: '#fca5a5' }}>
+                  {batchStatus.step || 'Автозапуск остановлен из-за расхождения счётчиков. Проверьте данные.'}
+                </span>
+              </div>
+            )}
+
             {/* Time estimate */}
-            {batchStatus?.status !== 'running' && batchSize > 0 && (
+            {batchStatus?.status !== 'running' && batchStatus?.status !== 'auto-waiting' && batchSize > 0 && (
               <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6, marginBottom: 2 }}>
                 ⏱ Прогноз: ~{Math.max(1, Math.round(batchSize * 1.5 * 1.3 / 60))} мин для {batchSize} сделок
                 {batchStats?.remainingLeads > 0 && ` · Осталось: ${batchStats.remainingLeads}`}

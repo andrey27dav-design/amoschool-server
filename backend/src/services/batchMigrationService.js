@@ -17,9 +17,11 @@ const BATCH_CONFIG_FILE = path.resolve(config.backupDir, 'batch_config.json');
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let pauseRequestedFlag = false;
+let autoRunEnabled = false;    // auto-run cycle active
+let autoRunStopFlag = false;   // user pressed stop during countdown
 
 let batchState = {
-  status: 'idle', // idle | running | completed | error | rolling_back | paused
+  status: 'idle', // idle | running | completed | error | rolling_back | paused | auto-waiting
   step: null,
   progress: { current: 0, total: 0 },
   errors: [],
@@ -1534,4 +1536,145 @@ async function retryLastBatch() {
   return runBatchMigration(stageMapping);
 }
 
-module.exports = { getBatchConfig, setBatchConfig, getBatchState, analyzeManagers, getStats, runBatchMigration, rollbackBatch, resetOffset, loadBatchConfig, loadAmoCache, runSingleDealsTransfer, pauseBatch, retryLastBatch };
+// ─── Auto-run cycle ───────────────────────────────────────────────────────────
+/**
+ * Starts an auto-run cycle: runs batches one after another with a 60-second
+ * pause between them (to allow the user to review and press Stop).
+ * The migration logic itself (runBatchMigration) is NOT changed.
+ */
+async function startAutoRun() {
+  if (autoRunEnabled) throw new Error('Автозапуск уже работает');
+  if (batchState.status === 'running') throw new Error('Пакетная миграция уже выполняется');
+
+  autoRunEnabled = true;
+  autoRunStopFlag = false;
+  logger.info('[auto-run] Auto-run cycle started, batchSize=' + batchConfig.batchSize);
+
+  // Load stage mapping once
+  const cfg2 = require('../config');
+  const stagePath = path.resolve(cfg2.backupDir, 'stage_mapping.json');
+  let stageMapping = {};
+  if (fs.existsSync(stagePath)) stageMapping = fs.readJsonSync(stagePath);
+
+  try {
+    while (autoRunEnabled && !autoRunStopFlag) {
+      loadBatchConfig();
+      const cache = loadAmoCache();
+      const eligible = getEligibleLeads(cache.leads || [], batchConfig.managerIds);
+      const remaining = eligible.length - batchConfig.offset;
+
+      if (remaining <= 0) {
+        logger.info('[auto-run] All deals migrated. Stopping auto-run.');
+        updateState({
+          status: 'completed',
+          step: `✅ Автозапуск завершён: все ${eligible.length} сделок перенесены`,
+          completedAt: new Date().toISOString(),
+        });
+        break;
+      }
+
+      // ── Run one batch ──
+      const offsetBefore = batchConfig.offset;
+      await runBatchMigration(stageMapping);
+
+      // ── Check result ──
+      loadBatchConfig();
+      const offsetAfter = batchConfig.offset;
+      const transferred = offsetAfter - offsetBefore;
+      const expectedSize = Math.min(batchConfig.batchSize || remaining, remaining);
+
+      if (batchState.status === 'error') {
+        logger.warn('[auto-run] Batch ended with error. Stopping auto-run.');
+        autoRunEnabled = false;
+        break;
+      }
+
+      if (batchState.status === 'paused') {
+        logger.info('[auto-run] Batch was paused manually. Stopping auto-run.');
+        autoRunEnabled = false;
+        break;
+      }
+
+      // Counter verification: transferred must match expected batch size
+      if (transferred !== expectedSize) {
+        logger.warn(`[auto-run] Counter mismatch! Expected ${expectedSize}, got ${transferred}. Stopping.`);
+        updateState({
+          status: 'auto-stopped',
+          step: `⚠️ Расхождение счётчиков: ожидалось ${expectedSize}, перенесено ${transferred}. Автозапуск остановлен.`,
+          completedAt: new Date().toISOString(),
+        });
+        autoRunEnabled = false;
+        break;
+      }
+
+      // Check if all done after this batch
+      const remainingAfter = eligible.length - offsetAfter;
+      if (remainingAfter <= 0) {
+        logger.info('[auto-run] All deals migrated after this batch. Done.');
+        updateState({
+          status: 'completed',
+          step: `✅ Автозапуск завершён: все ${eligible.length} сделок перенесены`,
+          completedAt: new Date().toISOString(),
+        });
+        break;
+      }
+
+      // ── 60-second countdown (check stop every second) ──
+      logger.info(`[auto-run] Batch done (+${transferred}). Waiting 60s before next batch. Remaining: ${remainingAfter}`);
+      updateState({
+        status: 'auto-waiting',
+        step: `⏳ Пауза 60 сек перед следующим пакетом. Перенесено: ${offsetAfter}/${eligible.length}. Нажмите «Стоп» для отмены.`,
+        autoRunCountdown: 60,
+      });
+
+      let stopped = false;
+      for (let sec = 60; sec > 0; sec--) {
+        if (autoRunStopFlag || !autoRunEnabled) {
+          stopped = true;
+          break;
+        }
+        batchState.autoRunCountdown = sec;
+        await new Promise(r => setTimeout(r, 1000));
+      }
+
+      if (stopped || autoRunStopFlag || !autoRunEnabled) {
+        logger.info('[auto-run] Stopped by user during countdown.');
+        updateState({
+          status: 'completed',
+          step: `⏹ Автозапуск остановлен пользователем. Перенесено: ${offsetAfter}/${eligible.length}`,
+          completedAt: new Date().toISOString(),
+          autoRunCountdown: 0,
+        });
+        break;
+      }
+    }
+  } catch (err) {
+    logger.error('[auto-run] Fatal error:', err);
+    updateState({
+      status: 'error',
+      step: `❌ Автозапуск: критическая ошибка: ${err.message}`,
+      completedAt: new Date().toISOString(),
+    });
+  } finally {
+    autoRunEnabled = false;
+    autoRunStopFlag = false;
+    batchState.autoRunCountdown = 0;
+  }
+}
+
+function stopAutoRun() {
+  if (!autoRunEnabled) throw new Error('Автозапуск не активен');
+  autoRunStopFlag = true;
+  // If batch is currently running, also pause it
+  if (batchState.status === 'running') {
+    pauseRequestedFlag = true;
+  }
+  logger.info('[auto-run] Stop requested by user');
+  return { ok: true, message: 'Автозапуск будет остановлен' };
+}
+
+function isAutoRunActive() {
+  return autoRunEnabled;
+}
+
+module.exports = { getBatchConfig, setBatchConfig, getBatchState, analyzeManagers, getStats, runBatchMigration, rollbackBatch, resetOffset, loadBatchConfig, loadAmoCache, runSingleDealsTransfer, pauseBatch, retryLastBatch, startAutoRun, stopAutoRun, isAutoRunActive };
