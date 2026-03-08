@@ -925,7 +925,12 @@ export default function App() {
                     { label: 'Задачи (компании)',      key: 'companyTasks', icon: '✅' },
                     { label: 'Комм. (сделки)',         key: 'leadNotes',    icon: '💬' },
                     { label: 'Комм. (контакты)',       key: 'contactNotes', icon: '💬' },
-                  ].map(({ label, key, icon }) => (
+                  ].map(({ label, key, icon }) => {
+                    const _cache = batchStatus?.cacheStats?.[key] ?? 0;
+                    const _migrated = batchStatus?.migrationTotals?.[key] ?? 0;
+                    const _pending = batchStatus?.pendingStats?.[key] ?? 0;
+                    const _prior = Math.max(0, _cache - _migrated - _pending);
+                    return (
                     <div className="counter" key={key}>
                       <div className="counter-icon">{icon}</div>
                       <div className="counter-value" style={{ fontSize: 22, lineHeight: 1.1 }}>
@@ -937,14 +942,44 @@ export default function App() {
                       <div style={{ fontSize: 20, fontWeight: 700, color: '#10b981', marginTop: 2, lineHeight: 1.1 }} title="Перенесено в этой сессии">
                         ✅ {batchStatus?.migrationTotals?.[key] ?? 0}
                       </div>
+                      {_prior > 0 && (
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#a78bfa', marginTop: 1, lineHeight: 1.1 }} title="Перенесено ранее (до текущей сессии, общие для нескольких воронок)">
+                          ↩ {_prior} ранее
+                        </div>
+                      )}
                       <div className="counter-label" style={{ color: '#ffffff' }}>{label}</div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
+                {/* ── Info: dedup explanation when prior counts exist ── */}
+                {(() => {
+                  const _keys = ['contacts', 'companies', 'contactNotes'];
+                  const _priors = {};
+                  let _anyPrior = false;
+                  _keys.forEach(k => {
+                    const c = batchStatus?.cacheStats?.[k] ?? 0;
+                    const m = batchStatus?.migrationTotals?.[k] ?? 0;
+                    const p = batchStatus?.pendingStats?.[k] ?? 0;
+                    const v = Math.max(0, c - m - p);
+                    if (v > 0) { _priors[k] = v; _anyPrior = true; }
+                  });
+                  if (!_anyPrior) return null;
+                  return (
+                    <div style={{ marginTop: 8, padding: '8px 12px', background: 'rgba(167,139,250,0.12)', border: '1px solid rgba(167,139,250,0.3)', borderRadius: 8, fontSize: 12, color: '#c4b5fd', lineHeight: 1.5 }}>
+                      <strong>ℹ️ Расхождение счётчиков:</strong>{' '}
+                      {_priors.contacts && <span>Контактов: <b>{_priors.contacts}</b> уже перенесены ранее (общие для нескольких воронок). </span>}
+                      {_priors.companies && <span>Компаний: <b>{_priors.companies}</b> перенесены ранее. </span>}
+                      {_priors.contactNotes && <span>Комм. контактов: <b>{_priors.contactNotes}</b> перенесены ранее. </span>}
+                      <span style={{ color: '#94a3b8' }}>Эти элементы пропускаются при переносе (дубли запрещены), но привязки к сделкам сохраняются корректно.</span>
+                    </div>
+                  );
+                })()}
                 <div style={{ fontSize: 11, color: '#475569', marginTop: 6, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                   <span style={{ color: '#94a3b8' }}>Серое — всего загружено из AMO</span>
                   <span style={{ color: '#f59e0b' }}>⏳ жёлтое — новых (ожидают переноса)</span>
                   <span style={{ color: '#10b981' }}>✅ зелёное — перенесено в этой сессии</span>
+                  <span style={{ color: '#a78bfa' }}>↩ фиолетовое — перенесено ранее (до сессии)</span>
                 </div>
               </div>
             )}
