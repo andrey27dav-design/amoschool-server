@@ -750,39 +750,56 @@ async function runBatchMigration(stageMapping) {
     }
 
     updateState({ step: 'Перенос комментариев контактов...' });
-    const batchTransferredContactIds = new Set();
-    for (const aLead of batchLeads) {
-      for (const c of (aLead._embedded?.contacts || [])) {
-        const aContactId = c.id;
-        const kContactId = contactIdMap[aContactId];
-        if (!kContactId || batchTransferredContactIds.has(aContactId)) continue;
-        batchTransferredContactIds.add(aContactId);
-        try {
-          const _bCNotes = await amoApi.getContactNotes(aContactId);
-          // Dedup by note ID
-          const _bCNotesTyped = _bCNotes.filter(note => !SKIP_NOTE_TYPES.has(note.note_type));
-          const { toCreate: _bCNotesToCreate } = safety.filterNotMigrated('notes_contacts', _bCNotesTyped, n => n.id);
-          if (_bCNotesToCreate.length > 0) {
-            const _bCNoteAmoIds = _bCNotesToCreate.map(n => n.id);
-            const n = _bCNotesToCreate.map(note => { const s = sanitizeNoteParams(note); return { entity_id: Number(kContactId), note_type: s.note_type, params: s.params, created_by: 12739795 }; });
+    {
+      // Collect unique contact IDs from this batch
+      const batchContactAmoIds = [];
+      const seenContactIds = new Set();
+      for (const aLead of batchLeads) {
+        for (const c of (aLead._embedded?.contacts || [])) {
+          const aContactId = c.id;
+          if (!contactIdMap[aContactId] || seenContactIds.has(aContactId)) continue;
+          seenContactIds.add(aContactId);
+          batchContactAmoIds.push(aContactId);
+        }
+      }
+      try {
+        // Bulk-fetch all contact notes in one API call (batches of 50 inside)
+        const allContactNotes = await amoApi.getContactNotesByEntityIds(batchContactAmoIds);
+        // Filter out skipped types + dedup via safety
+        const _bCNotesTyped = allContactNotes.filter(note => !SKIP_NOTE_TYPES.has(note.note_type));
+        const { toCreate: _bCNotesToCreate } = safety.filterNotMigrated('notes_contacts', _bCNotesTyped, n => n.id);
+        // Group by kommo contact ID
+        const _bCNotesGrouped = {};
+        for (const note of _bCNotesToCreate) {
+          const kId = contactIdMap[note.entity_id];
+          if (!kId) continue;
+          if (!_bCNotesGrouped[kId]) _bCNotesGrouped[kId] = [];
+          _bCNotesGrouped[kId].push(note);
+        }
+        const _batchContactNotePairs = [];
+        for (const [kId, notes] of Object.entries(_bCNotesGrouped)) {
+          const _amoNoteIds = notes.map(n => n.id);
+          const n = notes.map(note => { const s = sanitizeNoteParams(note); return { entity_id: Number(kId), note_type: s.note_type, params: s.params, created_by: 12739795 }; });
+          try {
             const created = await kommoApi.createNotesBatch('contacts', n);
-            const _bCNotePairs = [];
             created.forEach((cn, idx) => {
               if (cn) {
                 batchState.createdIds.notes.push(cn.id);
-                if (_bCNoteAmoIds[idx]) _bCNotePairs.push({ amoId: Number(_bCNoteAmoIds[idx]), kommoId: cn.id });
+                if (_amoNoteIds[idx]) _batchContactNotePairs.push({ amoId: Number(_amoNoteIds[idx]), kommoId: cn.id });
               }
             });
-            if (_bCNotePairs.length > 0) safety.registerMigratedBatch('notes_contacts', _bCNotePairs);
-          const _cSuccessCount = created.filter(x => x !== null).length;
-          if (_cSuccessCount < n.length) {
-            logger.warn(`[batch] Заметки контакта AMO#${aContactId} (Kommo#${kContactId}): перенесено ${_cSuccessCount}/${n.length}`);
-            if (_cSuccessCount === 0) addWarning(`Заметки контакта AMO#${aContactId} (Kommo#${kContactId}): 0 из ${n.length} перенесено после retry.`, 'Попробуйте повтор пакета.');
+            const _cSuccessCount = created.filter(x => x !== null).length;
+            if (_cSuccessCount < n.length) {
+              logger.warn(`[batch] Заметки контакта Kommo#${kId}: перенесено ${_cSuccessCount}/${n.length}`);
+              if (_cSuccessCount === 0) addWarning(`Заметки контакта Kommo#${kId}: 0 из ${n.length} перенесено после retry.`, 'Попробуйте повтор пакета.');
+            }
+          } catch (e) {
+            logger.error(`[batch] Неожиданная ошибка заметок контакта Kommo#${kId}: ${e.message}`);
           }
-          }
-        } catch (e) {
-          logger.error(`[batch] Неожиданная ошибка заметок контакта AMO#${aContactId}: ${e.message}`);
         }
+        if (_batchContactNotePairs.length > 0) safety.registerMigratedBatch('notes_contacts', _batchContactNotePairs);
+      } catch (e) {
+        addWarning('Не удалось загрузить заметки контактов: ' + e.message, 'Попробуйте повторить пакет.');
       }
     }
 
