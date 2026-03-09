@@ -1,8 +1,9 @@
 // CHANGELOG data — version history for "Версии" tab
 // Each version: { date, title, changes[] }
 const VERSIONS = [
+  { version: " V1.6.20, date: 2025-03-09, changes: [Countdown + poll interval: 5 seconds] },
   {
-    version: 'V1.6.19',
+    version: 'V1.6.20',
     date: '2026-03-09',
     title: 'Плавный обратный отсчёт + мгновенный счётчик',
     changes: [

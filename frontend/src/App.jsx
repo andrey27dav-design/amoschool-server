@@ -298,12 +298,12 @@ export default function App() {
       countdownTimer = setInterval(() => {
         setBatchStatusData(prev => {
           if (!prev || prev.status !== 'auto-waiting' || !prev.autoRunCountdown || prev.autoRunCountdown <= 0) return prev;
-          return { ...prev, autoRunCountdown: prev.autoRunCountdown - 1 };
+          return { ...prev, autoRunCountdown: prev.autoRunCountdown - 5 };
         });
-      }, 1000);
+      }, 5000);
     }
 
-    // Server poll every 2s: sync real state + counters
+    // Server poll every 5s: sync real state + counters
     let polling = true;
     const poll = async () => {
       while (polling) {
@@ -329,8 +329,8 @@ export default function App() {
             break;
           }
         } catch {}
-        // Wait 2s between polls
-        await new Promise(r => setTimeout(r, 2000));
+        // Wait 5s between polls
+        await new Promise(r => setTimeout(r, 5000));
       }
     };
     poll();
