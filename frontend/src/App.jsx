@@ -289,7 +289,7 @@ export default function App() {
 
   // Poll batch status when batch is running
   useEffect(() => {
-    if (batchStatus?.status !== 'running' && batchStatus?.status !== 'rolling_back') return;
+    if (batchStatus?.status !== 'running' && batchStatus?.status !== 'rolling_back' && batchStatus?.status !== 'auto-waiting') return;
     const iv = setInterval(async () => {
       try {
         const d = await api.getBatchStatus();
@@ -299,7 +299,7 @@ export default function App() {
         }
         prevBatchStatusRef.current = d.status;
         setBatchStatusData(d);
-        if (d.status !== 'running' && d.status !== 'rolling_back') {
+        if (d.status !== 'running' && d.status !== 'rolling_back' && d.status !== 'auto-waiting') {
           clearInterval(iv);
           api.getBatchStats().then(setBatchStats).catch(() => {});
         }
