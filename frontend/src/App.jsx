@@ -299,12 +299,14 @@ export default function App() {
         }
         prevBatchStatusRef.current = d.status;
         setBatchStatusData(d);
-        if (d.status !== 'running' && d.status !== 'rolling_back' && d.status !== 'auto-waiting') {
-          clearInterval(iv);
+        if (d.status === 'auto-waiting' || d.status === 'completed' || d.status === 'idle' || d.status === 'auto-stopped') {
           api.getBatchStats().then(setBatchStats).catch(() => {});
         }
+        if (d.status !== 'running' && d.status !== 'rolling_back' && d.status !== 'auto-waiting') {
+          clearInterval(iv);
+        }
       } catch {}
-    }, 1500);
+    }, 1000);
     return () => clearInterval(iv);
   }, [batchStatus?.status]);
 
