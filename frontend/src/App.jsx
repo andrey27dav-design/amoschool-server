@@ -603,8 +603,18 @@ export default function App() {
 
   const handleStopAutoRun = async () => {
     try {
-      await api.stopAutoRun();
-      setMessage('⏹ Запрос остановки автозапуска отправлен. Текущий пакет завершится.');
+      const result = await api.stopAutoRun();
+      const t = result.transferred || 0;
+      const r = result.remaining || 0;
+      if (result.wasRunning) {
+        setMessage('⏹ Стоп принят. Текущий пакет завершится, затем цикл остановится.\n' +
+          '📊 Перенесено: ' + t + ' сделок. Осталось: ' + r + '.\n' +
+          '▶ Чтобы продолжить: нажмите «Авто ВСЕ» для автоцикла или «Перенести» для одного пакета.');
+      } else {
+        setMessage('⏹ Автозапуск остановлен.\n' +
+          '📊 Перенесено: ' + t + ' сделок. Осталось: ' + r + '.\n' +
+          '▶ Чтобы продолжить: нажмите «Авто ВСЕ» для автоцикла или «Перенести» для одного пакета.');
+      }
       setTimeout(async () => {
         const [d, s] = await Promise.all([api.getBatchStatus(), api.getBatchStats()]).catch(() => [null, null]);
         if (d) setBatchStatusData(d);

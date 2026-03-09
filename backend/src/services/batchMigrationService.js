@@ -222,6 +222,10 @@ const SKIP_NOTE_TYPES = new Set([10, 11, 'amomail_message', 'extended_service_me
 async function runBatchMigration(stageMapping) {
   if (batchState.status === 'running') throw new Error('Пакетная миграция уже выполняется');
 
+  // Reset stale flags from previous stop (prevents phantom pause on new batch)
+  pauseRequestedFlag = false;
+  if (!autoRunEnabled) autoRunStopFlag = false;
+
   loadBatchConfig();
 
   updateState({
@@ -1548,6 +1552,7 @@ async function startAutoRun() {
 
   autoRunEnabled = true;
   autoRunStopFlag = false;
+  pauseRequestedFlag = false;
   logger.info('[auto-run] Auto-run cycle started, batchSize=' + batchConfig.batchSize);
 
   // Load stage mapping once
@@ -1663,14 +1668,25 @@ async function startAutoRun() {
 }
 
 function stopAutoRun() {
-  if (!autoRunEnabled) throw new Error('Автозапуск не активен');
+  if (!autoRunEnabled) {
+    // Idempotent: double-click or stale state — just clean up flags
+    pauseRequestedFlag = false;
+    autoRunStopFlag = false;
+    return { ok: true, wasRunning: false,
+      transferred: batchState.stats?.totalTransferred || 0,
+      remaining: batchState.stats?.remainingLeads || 0,
+      lastStep: batchState.step || '' };
+  }
   autoRunStopFlag = true;
-  // If batch is currently running, also pause it
-  if (batchState.status === 'running') {
+  const wasRunning = batchState.status === 'running';
+  if (wasRunning) {
     pauseRequestedFlag = true;
   }
-  logger.info('[auto-run] Stop requested by user');
-  return { ok: true, message: 'Автозапуск будет остановлен' };
+  logger.info('[auto-run] Stop requested by user, wasRunning=' + wasRunning);
+  return { ok: true, wasRunning,
+    transferred: batchState.stats?.totalTransferred || 0,
+    remaining: batchState.stats?.remainingLeads || 0,
+    lastStep: batchState.step || '' };
 }
 
 function isAutoRunActive() {
