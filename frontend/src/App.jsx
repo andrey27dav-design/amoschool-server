@@ -298,6 +298,10 @@ export default function App() {
           setCrashDetected(true);
         }
         prevBatchStatusRef.current = d.status;
+        // Instant counter sync from embedded stats — updates BEFORE status render
+        if (d.stats) {
+          setBatchStats(prev => ({ ...(prev || {}), ...d.stats }));
+        }
         setBatchStatusData(d);
         if (d.status === 'auto-waiting' || d.status === 'completed' || d.status === 'idle' || d.status === 'auto-stopped') {
           api.getBatchStats().then(setBatchStats).catch(() => {});
