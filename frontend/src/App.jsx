@@ -350,6 +350,10 @@ export default function App() {
             setCrashDetected(true);
           }
           prevBatchStatusRef.current = d.status;
+          // Auto-dismiss crash banner when normal operation resumes
+          if (d.status === 'running' || d.status === 'auto-waiting') {
+            setCrashDetected(false);
+          }
           // Sync counters instantly from embedded stats
           if (d.stats) {
             setBatchStats(prev => ({
@@ -652,6 +656,7 @@ export default function App() {
 
   const handleStartAutoRun = async () => {
     continueSignalSentRef.current = false;
+    setCrashDetected(false);
     setLastBatchResult(null); // clear previous results for fresh start
     if (batchSize === 0 || !batchSize) {
       setMessage('❌ Выберите размер пакета (1–200) перед запуском автозапуска');
