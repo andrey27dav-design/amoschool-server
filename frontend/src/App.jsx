@@ -80,6 +80,7 @@ export default function App() {
   // Crash detection: if server restarts while running, status goes idle without completing
   const prevBatchStatusRef = useRef(null);
   const [crashDetected, setCrashDetected] = useState(false);
+  const [lastBatchResult, setLastBatchResult] = useState(null); // persists across status changes
 
   // Single deals transfer state
   const [dealsList, setDealsList] = useState([]);
@@ -336,6 +337,14 @@ export default function App() {
             }));
           }
           setBatchStatusData(d);
+          // Save batch results whenever we have them (persists during auto-waiting)
+          if (d.createdIds) {
+            setLastBatchResult({
+              createdIds: d.createdIds,
+              warnings: d.warnings || [],
+              errors: d.errors || [],
+            });
+          }
           // Terminal states: fetch full stats and stop polling
           if (d.status !== 'running' && d.status !== 'rolling_back') {
             api.getBatchStats().then(setBatchStats).catch(() => {});
@@ -620,6 +629,7 @@ export default function App() {
   };
 
   const handleStartAutoRun = async () => {
+    setLastBatchResult(null); // clear previous results for fresh start
     if (batchSize === 0 || !batchSize) {
       setMessage('❌ Выберите размер пакета (1–200) перед запуском автозапуска');
       return;
@@ -1214,21 +1224,26 @@ export default function App() {
               </div>
             )}
 
-            {/* Completion stats */}
-            {batchStatus?.status === 'completed' && batchStatus?.createdIds && (
+            {/* Completion stats — visible during completed AND auto-waiting */}
+            {(() => {
+              const res = batchStatus?.createdIds ? batchStatus : lastBatchResult;
+              const show = res?.createdIds && (batchStatus?.status === 'completed' || batchStatus?.status === 'auto-waiting' || batchStatus?.status === 'auto-stopped');
+              if (!show) return null;
+              return (
               <div style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 8, padding: '10px 14px', marginTop: 8 }}>
                 <div style={{ fontWeight: 700, fontSize: 13, color: '#86efac', marginBottom: 6 }}>✅ Пакет завершён</div>
                 <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: 12, color: '#cbd5e1' }}>
-                  <span>Сделок: <b style={{color:'#fff'}}>{batchStatus.createdIds.leads?.length ?? 0}</b></span>
-                  <span>Контактов: <b style={{color:'#fff'}}>{batchStatus.createdIds.contacts?.length ?? 0}</b></span>
-                  <span>Компаний: <b style={{color:'#fff'}}>{batchStatus.createdIds.companies?.length ?? 0}</b></span>
-                  <span>Задач: <b style={{color:'#fff'}}>{batchStatus.createdIds.tasks?.length ?? 0}</b></span>
-                  <span>Заметок: <b style={{color:'#fff'}}>{batchStatus.createdIds.notes?.length ?? 0}</b></span>
-                  <span>⚠️ предупреждений: <b style={{color: batchStatus.warnings?.length > 0 ? '#fbbf24':'#fff'}}>{batchStatus.warnings?.length ?? 0}</b></span>
-                  <span>❌ ошибок: <b style={{color: batchStatus.errors?.length > 0 ? '#f87171':'#fff'}}>{batchStatus.errors?.length ?? 0}</b></span>
+                  <span>Сделок: <b style={{color:'#fff'}}>{res.createdIds.leads?.length ?? 0}</b></span>
+                  <span>Контактов: <b style={{color:'#fff'}}>{res.createdIds.contacts?.length ?? 0}</b></span>
+                  <span>Компаний: <b style={{color:'#fff'}}>{res.createdIds.companies?.length ?? 0}</b></span>
+                  <span>Задач: <b style={{color:'#fff'}}>{res.createdIds.tasks?.length ?? 0}</b></span>
+                  <span>Заметок: <b style={{color:'#fff'}}>{res.createdIds.notes?.length ?? 0}</b></span>
+                  <span>⚠️ предупреждений: <b style={{color: (res.warnings?.length || 0) > 0 ? '#fbbf24':'#fff'}}>{res.warnings?.length ?? 0}</b></span>
+                  <span>❌ ошибок: <b style={{color: (res.errors?.length || 0) > 0 ? '#f87171':'#fff'}}>{res.errors?.length ?? 0}</b></span>
                 </div>
               </div>
-            )}
+              );
+            })()}
 
             {/* Batch progress */}
             {batchStatus?.status === 'running' && batchStatus.progress?.total > 0 && (
@@ -1242,10 +1257,10 @@ export default function App() {
             )}
 
             {/* Batch warnings */}
-            {batchStatus?.warnings?.length > 0 && (
+            {(batchStatus?.warnings?.length > 0 || (batchStatus?.status === 'auto-waiting' && lastBatchResult?.warnings?.length > 0)) && (
               <div className="batch-warnings">
-                <div className="batch-section-title">⚠️ Предупреждения ({batchStatus.warnings.length})</div>
-                {batchStatus.warnings.slice(0, 8).map((w, i) => (
+                <div className="batch-section-title">⚠️ Предупреждения ({batchStatus?.warnings?.length || lastBatchResult?.warnings?.length || 0})</div>
+                {(batchStatus?.warnings?.length > 0 ? batchStatus.warnings : lastBatchResult?.warnings || []).slice(0, 8).map((w, i) => (
                   <div key={i} className="warning-rec-item">
                     <div className="warning-rec-msg">⚠ {w.message}</div>
                     {w.recommendation && <div className="warning-rec-tip">💡 {w.recommendation}</div>}
@@ -1259,8 +1274,8 @@ export default function App() {
                     )}
                   </div>
                 ))}
-                {batchStatus.warnings.length > 8 && (
-                  <div className="more">...и ещё {batchStatus.warnings.length - 8} предупреждений</div>
+                {(batchStatus?.warnings?.length || lastBatchResult?.warnings?.length || 0) > 8 && (
+                  <div className="more">...и ещё {(batchStatus?.warnings?.length || lastBatchResult?.warnings?.length || 0) - 8} предупреждений</div>
                 )}
               </div>
             )}
