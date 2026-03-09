@@ -79,6 +79,7 @@ export default function App() {
   const [batchLoading, setBatchLoading] = useState(false);
   // Crash detection: if server restarts while running, status goes idle without completing
   const prevBatchStatusRef = useRef(null);
+  const continueSignalSentRef = useRef(false); // prevents countdown restart after continue signal
   const [crashDetected, setCrashDetected] = useState(false);
   const [lastBatchResult, setLastBatchResult] = useState(null); // persists across status changes
 
@@ -295,6 +296,26 @@ export default function App() {
 
     // ── auto-waiting: pure client-side countdown 60→0, then signal server ──
     if (st === 'auto-waiting') {
+      // If continue was already sent, skip countdown — wait for server to switch to 'running'
+      if (continueSignalSentRef.current) {
+        let polling = true;
+        const waitForRunning = async () => {
+          while (polling) {
+            try {
+              const d = await api.getBatchStatus();
+              if (!polling) break;
+              setBatchStatusData(d);
+              if (d.status === 'running' || d.status === 'idle' || d.status === 'completed' || d.status === 'error') {
+                continueSignalSentRef.current = false;
+                break;
+              }
+            } catch {}
+            await new Promise(r => setTimeout(r, 1000));
+          }
+        };
+        waitForRunning();
+        return () => { polling = false; };
+      }
       let cancelled = false;
       const countdownTimer = setInterval(() => {
         if (cancelled) return;
@@ -303,6 +324,7 @@ export default function App() {
           const next = (prev.autoRunCountdown || 60) - 1;
           if (next <= 0) {
             // Countdown done — tell server to start next batch
+            continueSignalSentRef.current = true;
             api.continueAutoRun().then(() => {
               // After continue, fetch fresh status to transition to 'running'
               api.getBatchStatus().then(d => {
@@ -629,6 +651,7 @@ export default function App() {
   };
 
   const handleStartAutoRun = async () => {
+    continueSignalSentRef.current = false;
     setLastBatchResult(null); // clear previous results for fresh start
     if (batchSize === 0 || !batchSize) {
       setMessage('❌ Выберите размер пакета (1–200) перед запуском автозапуска');
@@ -652,6 +675,7 @@ export default function App() {
   };
 
   const handleStopAutoRun = async () => {
+    continueSignalSentRef.current = false;
     try {
       const result = await api.stopAutoRun();
       const t = result.transferred || 0;
