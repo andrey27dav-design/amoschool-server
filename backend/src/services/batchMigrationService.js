@@ -19,6 +19,7 @@ const BATCH_CONFIG_FILE = path.resolve(config.backupDir, 'batch_config.json');
 let pauseRequestedFlag = false;
 let autoRunEnabled = false;    // auto-run cycle active
 let autoRunStopFlag = false;   // user pressed stop during countdown
+let autoRunContinueFlag = false; // frontend signals: countdown done, start next batch
 
 let batchState = {
   status: 'idle', // idle | running | completed | error | rolling_back | paused | auto-waiting
@@ -1624,22 +1625,23 @@ async function startAutoRun() {
         break;
       }
 
-      // ── 60-second countdown (check stop every second) ──
-      logger.info(`[auto-run] Batch done (+${transferred}). Waiting 60s before next batch. Remaining: ${remainingAfter}`);
+      // ── Wait for frontend to signal "continue" (client-side 60s countdown) ──
+      logger.info(`[auto-run] Batch done (+${transferred}). Waiting for frontend continue signal. Remaining: ${remainingAfter}`);
+      autoRunContinueFlag = false;
       updateState({
         status: 'auto-waiting',
-        step: `⏳ Пауза 60 сек перед следующим пакетом. Перенесено: ${offsetAfter}/${eligible.length}. Нажмите «Стоп» для отмены.`,
+        step: `⏳ Пауза перед следующим пакетом. Перенесено: ${offsetAfter}/${eligible.length}. Нажмите «Стоп» для отмены.`,
         autoRunCountdown: 60,
       });
 
+      // Poll every 500ms for stop or continue signal (no heavy work — just flag checks)
       let stopped = false;
-      for (let sec = 60; sec > 0; sec--) {
+      while (!autoRunContinueFlag) {
         if (autoRunStopFlag || !autoRunEnabled) {
           stopped = true;
           break;
         }
-        batchState.autoRunCountdown = sec;
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 500));
       }
 
       if (stopped || autoRunStopFlag || !autoRunEnabled) {
@@ -1652,6 +1654,7 @@ async function startAutoRun() {
         });
         break;
       }
+      logger.info('[auto-run] Continue signal received, starting next batch.');
     }
   } catch (err) {
     logger.error('[auto-run] Fatal error:', err);
@@ -1663,6 +1666,7 @@ async function startAutoRun() {
   } finally {
     autoRunEnabled = false;
     autoRunStopFlag = false;
+    autoRunContinueFlag = false;
     batchState.autoRunCountdown = 0;
   }
 }
@@ -1692,5 +1696,20 @@ function stopAutoRun() {
 function isAutoRunActive() {
   return autoRunEnabled;
 }
+  // ─── Continue auto-run (called by frontend after client-side countdown) ─────
+  function continueAutoRun() {
+    if (!autoRunEnabled) {
+      return { ok: false, error: 'Автозапуск не активен' };
+    }
+    if (batchState.status !== 'auto-waiting') {
+      return { ok: false, error: 'Не в состоянии ожидания' };
+    }
+    autoRunContinueFlag = true;
+    logger.info('[auto-run] Continue signal received from frontend.');
+    return { ok: true };
+  }
 
-module.exports = { getBatchConfig, setBatchConfig, getBatchState, analyzeManagers, getStats, runBatchMigration, rollbackBatch, resetOffset, loadBatchConfig, loadAmoCache, runSingleDealsTransfer, pauseBatch, retryLastBatch, startAutoRun, stopAutoRun, isAutoRunActive };
+
+
+module.exports = { getBatchConfig, setBatchConfig, getBatchState, analyzeManagers, getStats, runBatchMigration, rollbackBatch, resetOffset, loadBatchConfig, loadAmoCache, runSingleDealsTransfer, pauseBatch, retryLastBatch, startAutoRun, stopAutoRun,
+    continueAutoRun, isAutoRunActive };

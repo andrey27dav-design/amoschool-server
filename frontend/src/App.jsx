@@ -287,23 +287,36 @@ export default function App() {
     }
   }, [status?.status]);
 
-  // Poll batch status + client-side countdown
+  // Poll batch status (only when running/rolling_back) + pure client countdown (auto-waiting)
   useEffect(() => {
     const st = batchStatus?.status;
     if (st !== 'running' && st !== 'rolling_back' && st !== 'auto-waiting') return;
 
-    // Client-side countdown: smooth 1s decrement (no network dependency)
-    let countdownTimer = null;
+    // ── auto-waiting: pure client-side countdown 60→0, then signal server ──
     if (st === 'auto-waiting') {
-      countdownTimer = setInterval(() => {
+      let cancelled = false;
+      const countdownTimer = setInterval(() => {
+        if (cancelled) return;
         setBatchStatusData(prev => {
-          if (!prev || prev.status !== 'auto-waiting' || !prev.autoRunCountdown || prev.autoRunCountdown <= 0) return prev;
-          return { ...prev, autoRunCountdown: prev.autoRunCountdown - 5 };
+          if (!prev || prev.status !== 'auto-waiting') return prev;
+          const next = (prev.autoRunCountdown || 60) - 1;
+          if (next <= 0) {
+            // Countdown done — tell server to start next batch
+            api.continueAutoRun().then(() => {
+              // After continue, fetch fresh status to transition to 'running'
+              api.getBatchStatus().then(d => {
+                if (!cancelled) setBatchStatusData(d);
+              }).catch(() => {});
+            }).catch(() => {});
+            return { ...prev, autoRunCountdown: 0, status: 'running', step: '🔄 Запуск следующего пакета...' };
+          }
+          return { ...prev, autoRunCountdown: next };
         });
-      }, 5000);
+      }, 1000);
+      return () => { cancelled = true; clearInterval(countdownTimer); };
     }
 
-    // Server poll every 5s: sync real state + counters
+    // ── running/rolling_back: poll server for progress ──
     let polling = true;
     const poll = async () => {
       while (polling) {
@@ -324,18 +337,17 @@ export default function App() {
           }
           setBatchStatusData(d);
           // Terminal states: fetch full stats and stop polling
-          if (d.status !== 'running' && d.status !== 'rolling_back' && d.status !== 'auto-waiting') {
+          if (d.status !== 'running' && d.status !== 'rolling_back') {
             api.getBatchStats().then(setBatchStats).catch(() => {});
             break;
           }
         } catch {}
-        // Wait 5s between polls
-        await new Promise(r => setTimeout(r, 5000));
+        await new Promise(r => setTimeout(r, 2000));
       }
     };
     poll();
 
-    return () => { polling = false; if (countdownTimer) clearInterval(countdownTimer); };
+    return () => { polling = false; };
   }, [batchStatus?.status]);
 
   const handleStart = async () => {

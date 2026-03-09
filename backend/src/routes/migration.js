@@ -746,6 +746,13 @@ router.post('/batch-auto-start', async (req, res) => {
   }
 });
 
+
+// POST /api/migration/batch-auto-continue — frontend signals: countdown done, start next batch
+router.post('/batch-auto-continue', (req, res) => {
+  const result = batchService.continueAutoRun();
+  res.json(result);
+});
+
 // POST /api/migration/batch-auto-stop — stop auto-run cycle
 router.post('/batch-auto-stop', (req, res) => {
   try {

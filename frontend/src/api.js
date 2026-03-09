@@ -44,6 +44,7 @@ export const getBatchStats = () => api.get('/migration/batch-stats').then(r => r
 export const startBatch = () => api.post('/migration/batch-start').then(r => r.data);
 export const startAutoRun = () => api.post('/migration/batch-auto-start').then(r => r.data);
 export const stopAutoRun = () => api.post('/migration/batch-auto-stop').then(r => r.data);
+export const continueAutoRun = () => api.post('/migration/batch-auto-continue').then(r => r.data);
 export const pauseBatch = () => api.post('/migration/batch-pause').then(r => r.data);
 export const rollbackBatch = () => api.post('/migration/batch-rollback').then(r => r.data);
 export const resetBatchOffset = () => api.post('/migration/batch-reset').then(r => r.data);
