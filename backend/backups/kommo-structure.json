@@ -1,0 +1,2390 @@
+{
+  "_meta": {
+    "description": "Kommo CRM migration structure - full pipeline, stage, field, and manager mappings",
+    "generatedAt": "2026-03-10T11:53:48.915Z",
+    "version": "2.0",
+    "source": "migration.db + field_mapping.json"
+  },
+  "summary": {
+    "totalPipelines": 6,
+    "totalStages": 79,
+    "totalManagers": 1,
+    "totalFieldMappings": {
+      "leads": 144,
+      "contacts": 33,
+      "companies": 6
+    },
+    "primaryPipelines": [
+      {
+        "label": "Школа/Репетиторство → RussianLanguage Department",
+        "amoPipelineId": 3456421,
+        "kommoPipelineId": 12856848
+      },
+      {
+        "label": "Прогрев Маркетинг МШ → Diferred",
+        "amoPipelineId": 4790248,
+        "kommoPipelineId": 13165640
+      }
+    ]
+  },
+  "pipelines": [
+    {
+      "amoPipelineId": 3456421,
+      "kommoPipelineId": 12856848,
+      "amoPipelineName": null,
+      "kommoPipelineName": null,
+      "stageCount": 14,
+      "stages": [
+        {
+          "amoStageId": 142,
+          "kommoStageId": 142,
+          "amoStageName": "Успешно реализовано",
+          "kommoStageName": "Closed - won"
+        },
+        {
+          "amoStageId": 143,
+          "kommoStageId": 143,
+          "amoStageName": "Закрыто не реализовано",
+          "kommoStageName": "Closed - lost"
+        },
+        {
+          "amoStageId": 34305358,
+          "kommoStageId": 101658696,
+          "amoStageName": "Неразобранное",
+          "kommoStageName": "Неразобранное"
+        },
+        {
+          "amoStageId": 34305361,
+          "kommoStageId": 101658712,
+          "amoStageName": "Взят в работу",
+          "kommoStageName": "Взят в работу"
+        },
+        {
+          "amoStageId": 34305370,
+          "kommoStageId": 101658780,
+          "amoStageName": "Оплата Получена",
+          "kommoStageName": "Оплата Получена"
+        },
+        {
+          "amoStageId": 34336828,
+          "kommoStageId": 101658764,
+          "amoStageName": "Проведено Пробное",
+          "kommoStageName": "Проведено Пробное"
+        },
+        {
+          "amoStageId": 34486387,
+          "kommoStageId": 101658760,
+          "amoStageName": "Назначено Пробное",
+          "kommoStageName": "Назначено Пробное"
+        },
+        {
+          "amoStageId": 34506946,
+          "kommoStageId": 101658776,
+          "amoStageName": "Счет выставлен",
+          "kommoStageName": "Счет выставлен"
+        },
+        {
+          "amoStageId": 43874146,
+          "kommoStageId": 101658704,
+          "amoStageName": "Новое обращение",
+          "kommoStageName": "Новое обращение"
+        },
+        {
+          "amoStageId": 44960335,
+          "kommoStageId": 101658756,
+          "amoStageName": "Клиент классифицирован",
+          "kommoStageName": "Клиент классифицирован"
+        },
+        {
+          "amoStageId": 69395438,
+          "kommoStageId": 101658708,
+          "amoStageName": "Распределение",
+          "kommoStageName": "Распределение"
+        },
+        {
+          "amoStageId": 82359846,
+          "kommoStageId": 101658716,
+          "amoStageName": "Вышли на связь",
+          "kommoStageName": "Вышли на связь"
+        },
+        {
+          "amoStageId": 82359850,
+          "kommoStageId": 101658768,
+          "amoStageName": "Предложение сделано",
+          "kommoStageName": "Предложение сделано"
+        },
+        {
+          "amoStageId": 82359854,
+          "kommoStageId": 101658772,
+          "amoStageName": "Потенциал на сделку",
+          "kommoStageName": "Потенциал на сделку"
+        }
+      ]
+    },
+    {
+      "amoPipelineId": 4790248,
+      "kommoPipelineId": 13165640,
+      "amoPipelineName": null,
+      "kommoPipelineName": null,
+      "stageCount": 10,
+      "stages": [
+        {
+          "amoStageId": 142,
+          "kommoStageId": 142,
+          "amoStageName": "Успешно реализовано",
+          "kommoStageName": "Closed - won"
+        },
+        {
+          "amoStageId": 143,
+          "kommoStageId": 143,
+          "amoStageName": "Закрыто и не реализовано",
+          "kommoStageName": "Closed - lost"
+        },
+        {
+          "amoStageId": 43636687,
+          "kommoStageId": 101518192,
+          "amoStageName": "Неразобранное",
+          "kommoStageName": "НЕРАЗОБРАННОЕ"
+        },
+        {
+          "amoStageId": 43636690,
+          "kommoStageId": 101660176,
+          "amoStageName": "назначена задача на перезвон",
+          "kommoStageName": "НАЗНАЧЕНА ЗАДАЧА НА ПЕРЕЗВОН"
+        },
+        {
+          "amoStageId": 44264839,
+          "kommoStageId": 101518196,
+          "amoStageName": "Передано стажеру",
+          "kommoStageName": "ПЕРЕДАНО СТАЖЕРУ"
+        },
+        {
+          "amoStageId": 47623945,
+          "kommoStageId": 101660192,
+          "amoStageName": "на удаление",
+          "kommoStageName": "НА УДАЛЕНИЕ"
+        },
+        {
+          "amoStageId": 47626504,
+          "kommoStageId": 101518200,
+          "amoStageName": "Не россия",
+          "kommoStageName": "НЕ РОССИЯ"
+        },
+        {
+          "amoStageId": 52723711,
+          "kommoStageId": 101660184,
+          "amoStageName": "для рассылки",
+          "kommoStageName": "ДЛЯ РАССЫЛКИ"
+        },
+        {
+          "amoStageId": 59112690,
+          "kommoStageId": 101660180,
+          "amoStageName": "передано в Отдел продаж",
+          "kommoStageName": "ПЕРЕДАНО В ОТДЕЛ ПРОДАЖ"
+        },
+        {
+          "amoStageId": 80945898,
+          "kommoStageId": 101660188,
+          "amoStageName": "Бот тг",
+          "kommoStageName": "БОТ ТГ"
+        }
+      ]
+    },
+    {
+      "amoPipelineId": 7601638,
+      "kommoPipelineId": 13165644,
+      "amoPipelineName": null,
+      "kommoPipelineName": null,
+      "stageCount": 19,
+      "stages": [
+        {
+          "amoStageId": 142,
+          "kommoStageId": 142,
+          "amoStageName": "Успешно реализовано",
+          "kommoStageName": "12 МЕСЯЦЕВ"
+        },
+        {
+          "amoStageId": 143,
+          "kommoStageId": 143,
+          "amoStageName": "Закрыто и не реализовано",
+          "kommoStageName": "Closed - lost"
+        },
+        {
+          "amoStageId": 62915462,
+          "kommoStageId": 101518220,
+          "amoStageName": "2 недели",
+          "kommoStageName": "2 НЕДЕЛИ"
+        },
+        {
+          "amoStageId": 62915466,
+          "kommoStageId": 101660064,
+          "amoStageName": "1 месяц",
+          "kommoStageName": "1 МЕСЯЦ"
+        },
+        {
+          "amoStageId": 62915470,
+          "kommoStageId": 101660108,
+          "amoStageName": "Принимают решение",
+          "kommoStageName": "ПРИНИМАЮТ РЕШЕНИЕ"
+        },
+        {
+          "amoStageId": 62923490,
+          "kommoStageId": 101660072,
+          "amoStageName": "3 месяца",
+          "kommoStageName": "3 МЕСЯЦА"
+        },
+        {
+          "amoStageId": 62923494,
+          "kommoStageId": 101660080,
+          "amoStageName": "5 месяцев",
+          "kommoStageName": "5 МЕСЯЦЕВ"
+        },
+        {
+          "amoStageId": 62923498,
+          "kommoStageId": 101660088,
+          "amoStageName": "7 месяцев",
+          "kommoStageName": "7 МЕСЯЦЕВ"
+        },
+        {
+          "amoStageId": 62923502,
+          "kommoStageId": 101660096,
+          "amoStageName": "9 месяцев",
+          "kommoStageName": "9 МЕСЯЦЕВ"
+        },
+        {
+          "amoStageId": 62923506,
+          "kommoStageId": 142,
+          "amoStageName": "12 месяцев",
+          "kommoStageName": "12 МЕСЯЦЕВ"
+        },
+        {
+          "amoStageId": 77082254,
+          "kommoStageId": 101518216,
+          "amoStageName": "Отписался от рассылки",
+          "kommoStageName": "ОТПИСАЛСЯ ОТ РАССЫЛКИ"
+        },
+        {
+          "amoStageId": 77082294,
+          "kommoStageId": 101660068,
+          "amoStageName": "2 месяца",
+          "kommoStageName": "2 МЕСЯЦА"
+        },
+        {
+          "amoStageId": 77083010,
+          "kommoStageId": 101660076,
+          "amoStageName": "4 месяца",
+          "kommoStageName": "4 МЕСЯЦА"
+        },
+        {
+          "amoStageId": 77083014,
+          "kommoStageId": 101660084,
+          "amoStageName": "6 месяцев",
+          "kommoStageName": "6 МЕСЯЦЕВ"
+        },
+        {
+          "amoStageId": 77083018,
+          "kommoStageId": 101660092,
+          "amoStageName": "8 месяцев",
+          "kommoStageName": "8 МЕСЯЦЕВ"
+        },
+        {
+          "amoStageId": 77083022,
+          "kommoStageId": 101660100,
+          "amoStageName": "10 месяцев",
+          "kommoStageName": "10 МЕСЯЦЕВ"
+        },
+        {
+          "amoStageId": 62915458,
+          "kommoStageId": 101518208,
+          "amoStageName": "Incoming leads",
+          "kommoStageName": "Incoming leads"
+        },
+        {
+          "amoStageId": 77083026,
+          "kommoStageId": 102390252,
+          "amoStageName": "11 месяцев",
+          "kommoStageName": "11 МЕСЯЦЕВ"
+        },
+        {
+          "amoStageId": 66227986,
+          "kommoStageId": 102406816,
+          "amoStageName": "ОТЛОЖЕННЫЙ ИНТЕРЕС",
+          "kommoStageName": "ОТЛОЖЕННЫЙ ИНТЕРЕС"
+        }
+      ]
+    },
+    {
+      "amoPipelineId": 9407742,
+      "kommoPipelineId": 13165644,
+      "amoPipelineName": null,
+      "kommoPipelineName": null,
+      "stageCount": 2,
+      "stages": [
+        {
+          "amoStageId": 142,
+          "kommoStageId": 142,
+          "amoStageName": "декабрь",
+          "kommoStageName": "12 МЕСЯЦЕВ"
+        },
+        {
+          "amoStageId": 143,
+          "kommoStageId": 143,
+          "amoStageName": "Закрыто и не реализовано",
+          "kommoStageName": "Closed - lost"
+        }
+      ]
+    },
+    {
+      "amoPipelineId": 9408314,
+      "kommoPipelineId": 13165644,
+      "amoPipelineName": null,
+      "kommoPipelineName": null,
+      "stageCount": 16,
+      "stages": [
+        {
+          "amoStageId": 142,
+          "kommoStageId": 142,
+          "amoStageName": "12 месяцев",
+          "kommoStageName": "12 МЕСЯЦЕВ"
+        },
+        {
+          "amoStageId": 143,
+          "kommoStageId": 143,
+          "amoStageName": "Закрыто и не реализовано",
+          "kommoStageName": "Closed - lost"
+        },
+        {
+          "amoStageId": 75340146,
+          "kommoStageId": 101518220,
+          "amoStageName": "2 недели",
+          "kommoStageName": "2 НЕДЕЛИ"
+        },
+        {
+          "amoStageId": 75340150,
+          "kommoStageId": 101660064,
+          "amoStageName": "1 месяц",
+          "kommoStageName": "1 МЕСЯЦ"
+        },
+        {
+          "amoStageId": 75340154,
+          "kommoStageId": 101660072,
+          "amoStageName": "3 месяца",
+          "kommoStageName": "3 МЕСЯЦА"
+        },
+        {
+          "amoStageId": 75340430,
+          "kommoStageId": 101660080,
+          "amoStageName": "5 месяцев",
+          "kommoStageName": "5 МЕСЯЦЕВ"
+        },
+        {
+          "amoStageId": 75340434,
+          "kommoStageId": 101660088,
+          "amoStageName": "7 месяцев",
+          "kommoStageName": "7 МЕСЯЦЕВ"
+        },
+        {
+          "amoStageId": 77120330,
+          "kommoStageId": 101660068,
+          "amoStageName": "2 месяца",
+          "kommoStageName": "2 МЕСЯЦА"
+        },
+        {
+          "amoStageId": 77121210,
+          "kommoStageId": 101660076,
+          "amoStageName": "4 месяца",
+          "kommoStageName": "4 МЕСЯЦА"
+        },
+        {
+          "amoStageId": 77121214,
+          "kommoStageId": 101660084,
+          "amoStageName": "6 месяцев",
+          "kommoStageName": "6 МЕСЯЦЕВ"
+        },
+        {
+          "amoStageId": 77121218,
+          "kommoStageId": 101660092,
+          "amoStageName": "8 месяцев",
+          "kommoStageName": "8 МЕСЯЦЕВ"
+        },
+        {
+          "amoStageId": 77121222,
+          "kommoStageId": 101660096,
+          "amoStageName": "9 месяцев",
+          "kommoStageName": "9 МЕСЯЦЕВ"
+        },
+        {
+          "amoStageId": 77121226,
+          "kommoStageId": 101660100,
+          "amoStageName": "10 месяцев",
+          "kommoStageName": "10 МЕСЯЦЕВ"
+        },
+        {
+          "amoStageId": 77121278,
+          "kommoStageId": 101518216,
+          "amoStageName": "Отписался от рассылки",
+          "kommoStageName": "ОТПИСАЛСЯ ОТ РАССЫЛКИ"
+        },
+        {
+          "amoStageId": 75340142,
+          "kommoStageId": 101518208,
+          "amoStageName": "Incoming leads",
+          "kommoStageName": "Incoming leads"
+        },
+        {
+          "amoStageId": 77121234,
+          "kommoStageId": 102390252,
+          "amoStageName": "11 месяцев",
+          "kommoStageName": "11 МЕСЯЦЕВ"
+        }
+      ]
+    },
+    {
+      "amoPipelineId": 9554242,
+      "kommoPipelineId": 13165644,
+      "amoPipelineName": null,
+      "kommoPipelineName": null,
+      "stageCount": 5,
+      "stages": [
+        {
+          "amoStageId": 142,
+          "kommoStageId": 142,
+          "amoStageName": "Успешно реализовано",
+          "kommoStageName": "12 МЕСЯЦЕВ"
+        },
+        {
+          "amoStageId": 143,
+          "kommoStageId": 143,
+          "amoStageName": "Закрыто и не реализовано",
+          "kommoStageName": "Closed - lost"
+        },
+        {
+          "amoStageId": 76339538,
+          "kommoStageId": 102406872,
+          "amoStageName": "Февраль РФ",
+          "kommoStageName": "Февраль РФ"
+        },
+        {
+          "amoStageId": 76339542,
+          "kommoStageId": 102406876,
+          "amoStageName": "Март РФ",
+          "kommoStageName": "Март РФ"
+        },
+        {
+          "amoStageId": 76391126,
+          "kommoStageId": 101518216,
+          "amoStageName": "Отписался от рассылки",
+          "kommoStageName": "ОТПИСАЛСЯ ОТ РАССЫЛКИ"
+        }
+      ]
+    }
+  ],
+  "managers": [
+    {
+      "amoUserId": 11199542,
+      "kommoUserId": 14867352,
+      "amoUserName": "Варвара",
+      "kommoUserName": "Varvara",
+      "amoEmail": "Manager15@houch-school.ru",
+      "kommoEmail": "vvarvaravv7@gmail.com"
+    }
+  ],
+  "fieldMappings": {
+    "leads": [
+      {
+        "amoFieldId": "64361",
+        "kommoFieldId": 708010,
+        "amoFieldName": "TRANID",
+        "kommoFieldName": "TRANID",
+        "amoFieldType": "textarea",
+        "kommoFieldType": "textarea",
+        "amoGroup": "тех_поля",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "64363",
+        "kommoFieldId": 708016,
+        "amoFieldName": "FORMID",
+        "kommoFieldName": "FORMID",
+        "amoFieldType": "textarea",
+        "kommoFieldType": "textarea",
+        "amoGroup": "тех_поля",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "64365",
+        "kommoFieldId": 708018,
+        "amoFieldName": "REFERER1",
+        "kommoFieldName": "REFERER",
+        "amoFieldType": "url",
+        "kommoFieldType": "url",
+        "amoGroup": "тех_поля",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "66265",
+        "kommoFieldId": 200312,
+        "amoFieldName": "UTM_SOURCE",
+        "kommoFieldName": "utm_source",
+        "amoFieldType": "tracking_data",
+        "kommoFieldType": "tracking_data",
+        "amoGroup": "статистика",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "66267",
+        "kommoFieldId": 200310,
+        "amoFieldName": "UTM_CAMPAIGN",
+        "kommoFieldName": "utm_campaign",
+        "amoFieldType": "tracking_data",
+        "kommoFieldType": "tracking_data",
+        "amoGroup": "статистика",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "66269",
+        "kommoFieldId": 200308,
+        "amoFieldName": "UTM_MEDIUM",
+        "kommoFieldName": "utm_medium",
+        "amoFieldType": "tracking_data",
+        "kommoFieldType": "tracking_data",
+        "amoGroup": "статистика",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "66271",
+        "kommoFieldId": 200306,
+        "amoFieldName": "UTM_CONTENT",
+        "kommoFieldName": "utm_content",
+        "amoFieldType": "tracking_data",
+        "kommoFieldType": "tracking_data",
+        "amoGroup": "статистика",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "171265",
+        "kommoFieldId": 708014,
+        "amoFieldName": "FORMNAME",
+        "kommoFieldName": "FORMNAME",
+        "amoFieldType": "textarea",
+        "kommoFieldType": "textarea",
+        "amoGroup": "тех_поля",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "174757",
+        "kommoFieldId": 200314,
+        "amoFieldName": "UTM_TERM",
+        "kommoFieldName": "utm_term",
+        "amoFieldType": "tracking_data",
+        "kommoFieldType": "tracking_data",
+        "amoGroup": "статистика",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "184243",
+        "kommoFieldId": 918501,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "184245",
+        "kommoFieldId": 918499,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "184247",
+        "kommoFieldId": 918495,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "184249",
+        "kommoFieldId": 918489,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "184251",
+        "kommoFieldId": 918497,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "184253",
+        "kommoFieldId": 918493,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "184255",
+        "kommoFieldId": 918503,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "184267",
+        "kommoFieldId": 918491,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "219937",
+        "kommoFieldId": 918511,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "219939",
+        "kommoFieldId": 918507,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "219941",
+        "kommoFieldId": 918513,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "219943",
+        "kommoFieldId": 918515,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "228287",
+        "kommoFieldId": 918487,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "228289",
+        "kommoFieldId": 918505,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "661771",
+        "kommoFieldId": 200316,
+        "amoFieldName": "utm_referrer",
+        "kommoFieldName": "utm_referrer",
+        "amoFieldType": "tracking_data",
+        "kommoFieldType": "tracking_data",
+        "amoGroup": "статистика",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "661773",
+        "kommoFieldId": 918571,
+        "kommoFieldType": "tracking_data",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "661775",
+        "kommoFieldId": 918551,
+        "kommoFieldType": "tracking_data",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "661777",
+        "kommoFieldId": 918553,
+        "kommoFieldType": "tracking_data",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "661779",
+        "kommoFieldId": 200318,
+        "amoFieldName": "referrer",
+        "kommoFieldName": "referrer",
+        "amoFieldType": "tracking_data",
+        "kommoFieldType": "tracking_data",
+        "amoGroup": "статистика",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "661781",
+        "kommoFieldId": 918549,
+        "kommoFieldType": "tracking_data",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "661783",
+        "kommoFieldId": 918557,
+        "kommoFieldType": "tracking_data",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "661785",
+        "kommoFieldId": 918559,
+        "kommoFieldType": "tracking_data",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "661787",
+        "kommoFieldId": 918555,
+        "kommoFieldType": "tracking_data",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "661789",
+        "kommoFieldId": 918561,
+        "kommoFieldType": "tracking_data",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "661791",
+        "kommoFieldId": 200320,
+        "amoFieldName": "gclientid",
+        "kommoFieldName": "gclientid",
+        "amoFieldType": "tracking_data",
+        "kommoFieldType": "tracking_data",
+        "amoGroup": "статистика",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "661793",
+        "kommoFieldId": 200322,
+        "amoFieldName": "gclid",
+        "kommoFieldName": "gclid",
+        "amoFieldType": "tracking_data",
+        "kommoFieldType": "tracking_data",
+        "amoGroup": "статистика",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "661795",
+        "kommoFieldId": 918563,
+        "kommoFieldType": "tracking_data",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "661797",
+        "kommoFieldId": 200324,
+        "amoFieldName": "fbclid",
+        "kommoFieldName": "fbclid",
+        "amoFieldType": "tracking_data",
+        "kommoFieldType": "tracking_data",
+        "amoGroup": "статистика",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "685679",
+        "kommoFieldId": 918509,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "685683",
+        "kommoFieldId": 918483,
+        "kommoFieldType": "text",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "685695",
+        "kommoFieldId": 918547,
+        "kommoFieldType": "tracking_data",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "693669",
+        "kommoFieldId": 918485,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "698289",
+        "kommoFieldId": 919073,
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {
+          "399205": 763107,
+          "412341": 763109,
+          "412343": 763111,
+          "417771": 763113,
+          "433221": 763115,
+          "433917": 763117,
+          "436121": 763119,
+          "436123": 763121,
+          "447279": 763123,
+          "450407": 763125
+        }
+      },
+      {
+        "amoFieldId": "698769",
+        "kommoFieldId": 871440,
+        "amoFieldName": "Дата и время пробного урока",
+        "kommoFieldName": "Date and time of demo",
+        "amoFieldType": "date_time",
+        "kommoFieldType": "date_time",
+        "amoGroup": null,
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "698771",
+        "kommoFieldId": 871448,
+        "amoFieldName": "Дата оплаты",
+        "kommoFieldName": "Payment date",
+        "amoFieldType": "date",
+        "kommoFieldType": "date",
+        "amoGroup": null,
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "698898",
+        "kommoFieldId": 871446,
+        "amoFieldName": "Оценка после пробного",
+        "kommoFieldName": "Grade recived after demo",
+        "amoFieldType": "text",
+        "kommoFieldType": "text",
+        "amoGroup": null,
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "699551",
+        "kommoFieldId": 918363,
+        "kommoFieldType": "textarea",
+        "amoGroup": "emfy",
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "701093",
+        "kommoFieldId": 918477,
+        "kommoFieldType": "text",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "701095",
+        "kommoFieldId": 918523,
+        "kommoFieldType": "text",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "701563",
+        "kommoFieldId": 918479,
+        "kommoFieldType": "numeric",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "701571",
+        "kommoFieldId": 918481,
+        "kommoFieldType": "numeric",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "703419",
+        "kommoFieldId": 871430,
+        "amoFieldName": "Имя ребенка",
+        "kommoFieldName": "Student's name",
+        "amoFieldType": "text",
+        "kommoFieldType": "text",
+        "amoGroup": null,
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "703421",
+        "kommoFieldId": 918583,
+        "kommoFieldType": "numeric",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "703425",
+        "kommoFieldId": 918595,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "703925",
+        "kommoFieldId": 871436,
+        "amoFieldName": "Предмет",
+        "kommoFieldName": "Subject",
+        "amoFieldType": "multiselect",
+        "kommoFieldType": "select",
+        "amoGroup": null,
+        "transferMode": "first_value",
+        "enumMap": {
+          "404917": 762293,
+          "404919": 733074,
+          "404921": 733098,
+          "404923": 733100,
+          "404925": 762271,
+          "404927": 733106,
+          "404929": 733108,
+          "404931": 733110,
+          "404933": 733090,
+          "404935": 733092,
+          "404937": 762281,
+          "404939": 762263,
+          "404943": 733078,
+          "404949": 762285
+        }
+      },
+      {
+        "amoFieldId": "704081",
+        "kommoFieldId": 871432,
+        "amoFieldName": "Возраст ребенка",
+        "kommoFieldName": "Student's age",
+        "amoFieldType": "numeric",
+        "kommoFieldType": "numeric",
+        "amoGroup": null,
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "706695",
+        "kommoFieldId": 918713,
+        "amoFieldName": "Причина закрытия",
+        "kommoFieldName": "Cause of loss",
+        "amoFieldType": "multiselect",
+        "kommoFieldType": "select",
+        "amoGroup": null,
+        "transferMode": "first_value",
+        "enumMap": {
+          "417739": 762301,
+          "417741": 762331,
+          "417743": 762303,
+          "417745": 762305,
+          "417747": 762333,
+          "417749": 762307,
+          "417751": 762335,
+          "417753": 762309,
+          "417755": 762337,
+          "417757": 762311,
+          "417759": 762313,
+          "417761": 762315,
+          "417763": 762317,
+          "418039": 762319,
+          "433523": 762339,
+          "433713": 762321,
+          "444309": 762323,
+          "444311": 762325,
+          "453884": 762341,
+          "454251": 762343,
+          "454253": 762345
+        }
+      },
+      {
+        "amoFieldId": "706983",
+        "kommoFieldId": 918353,
+        "kommoFieldType": "text",
+        "amoGroup": "контроль_качества",
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "706987",
+        "kommoFieldId": 918355,
+        "kommoFieldType": "checkbox",
+        "amoGroup": "контроль_качества",
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "706989",
+        "kommoFieldId": 918357,
+        "kommoFieldType": "text",
+        "amoGroup": "контроль_качества",
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "707307",
+        "kommoFieldId": 918447,
+        "kommoFieldType": "text",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "707309",
+        "kommoFieldId": 918385,
+        "kommoFieldType": "url",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "707323",
+        "kommoFieldId": 918367,
+        "kommoFieldType": "text",
+        "amoGroup": "emfy",
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "707325",
+        "kommoFieldId": 918365,
+        "kommoFieldType": "numeric",
+        "amoGroup": "emfy",
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "709163",
+        "kommoFieldId": 918391,
+        "kommoFieldType": "text",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "709781",
+        "kommoFieldId": 871438,
+        "amoFieldName": "Страна проживания",
+        "kommoFieldName": "Student's country",
+        "amoFieldType": "select",
+        "kommoFieldType": "text",
+        "amoGroup": null,
+        "transferMode": "as_text",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "709783",
+        "kommoFieldId": 871444,
+        "amoFieldName": "Был на пробном занятии",
+        "kommoFieldName": "Attended the demo",
+        "amoFieldType": "checkbox",
+        "kommoFieldType": "checkbox",
+        "amoGroup": null,
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "709785",
+        "kommoFieldId": 871442,
+        "amoFieldName": "Записан на пробное",
+        "kommoFieldName": "Registered for the demo",
+        "amoFieldType": "checkbox",
+        "kommoFieldType": "checkbox",
+        "amoGroup": null,
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "710285",
+        "kommoFieldId": 918389,
+        "kommoFieldType": "url",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "710689",
+        "kommoFieldId": 918381,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "710691",
+        "kommoFieldId": 918383,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "710693",
+        "kommoFieldId": 918453,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "710695",
+        "kommoFieldId": 918455,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "710763",
+        "kommoFieldId": 911846,
+        "amoFieldName": "CHECKBOX",
+        "kommoFieldName": "CHECKBOX",
+        "amoFieldType": "textarea",
+        "kommoFieldType": "textarea",
+        "amoGroup": "тех_поля",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "710851",
+        "kommoFieldId": 918525,
+        "amoFieldName": "Направление",
+        "kommoFieldName": "Направление",
+        "amoFieldType": "select",
+        "kommoFieldType": "select",
+        "amoGroup": null,
+        "transferMode": "direct",
+        "enumMap": {
+          "433233": 761869,
+          "433235": 761871
+        }
+      },
+      {
+        "amoFieldId": "710877",
+        "kommoFieldId": 918527,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "711035",
+        "kommoFieldId": 918521,
+        "amoFieldName": "Webinar",
+        "kommoFieldName": "Webinar",
+        "amoFieldType": "select",
+        "kommoFieldType": "select",
+        "amoGroup": null,
+        "transferMode": "direct",
+        "enumMap": {
+          "433777": 761857,
+          "433779": 761859,
+          "433781": 761861,
+          "433943": 761863,
+          "434147": 761865,
+          "434149": 761867
+        }
+      },
+      {
+        "amoFieldId": "711367",
+        "kommoFieldId": 918445,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "712079",
+        "kommoFieldId": 918441,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "712553",
+        "kommoFieldId": 871424,
+        "amoFieldName": "Источник",
+        "kommoFieldName": "Lead source",
+        "amoFieldType": "select",
+        "kommoFieldType": "select",
+        "amoGroup": null,
+        "transferMode": "direct",
+        "enumMap": {
+          "436229": 762245,
+          "436231": 733028,
+          "436233": 733034,
+          "436235": 762253,
+          "436237": 733032,
+          "436239": 762259,
+          "436297": 733038,
+          "436305": 762251,
+          "436389": 762243,
+          "436391": 762247,
+          "444177": 762249,
+          "445344": 762241,
+          "453645": 762261,
+          "453936": 762255
+        }
+      },
+      {
+        "amoFieldId": "712701",
+        "kommoFieldId": 918399,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "712703",
+        "kommoFieldId": 918401,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "712705",
+        "kommoFieldId": 918403,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "712707",
+        "kommoFieldId": 918405,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "712709",
+        "kommoFieldId": 918407,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "712711",
+        "kommoFieldId": 918409,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "712713",
+        "kommoFieldId": 918411,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "712715",
+        "kommoFieldId": 868564,
+        "amoFieldName": "Качество лида",
+        "kommoFieldName": "lead quality",
+        "amoFieldType": "select",
+        "kommoFieldType": "select",
+        "amoGroup": null,
+        "transferMode": "direct",
+        "enumMap": {
+          "436319": 728786,
+          "436321": 728788,
+          "436323": 728790
+        }
+      },
+      {
+        "amoFieldId": "716959",
+        "kommoFieldId": 918439,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "717433",
+        "kommoFieldId": 918443,
+        "kommoFieldType": "text",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "717435",
+        "kommoFieldId": 918437,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "717751",
+        "kommoFieldId": 918435,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "717753",
+        "kommoFieldId": 918427,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "721875",
+        "kommoFieldId": 918431,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "721877",
+        "kommoFieldId": 918433,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "721879",
+        "kommoFieldId": 918429,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "721881",
+        "kommoFieldId": 918423,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "721883",
+        "kommoFieldId": 918425,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "723487",
+        "kommoFieldId": 871422,
+        "amoFieldName": "Квалифицирован",
+        "kommoFieldName": "Qualified",
+        "amoFieldType": "checkbox",
+        "kommoFieldType": "checkbox",
+        "amoGroup": null,
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "724167",
+        "kommoFieldId": 918369,
+        "kommoFieldType": "textarea",
+        "amoGroup": "emfy",
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "724179",
+        "kommoFieldId": 918449,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "724645",
+        "kommoFieldId": 918379,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "725415",
+        "kommoFieldId": 918529,
+        "kommoFieldType": "text",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "725417",
+        "kommoFieldId": 918531,
+        "kommoFieldType": "text",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "725419",
+        "kommoFieldId": 918533,
+        "kommoFieldType": "text",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "725651",
+        "kommoFieldId": 918419,
+        "kommoFieldType": "text",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "725653",
+        "kommoFieldId": 918421,
+        "kommoFieldType": "text",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "725655",
+        "kommoFieldId": 918415,
+        "kommoFieldType": "text",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "725657",
+        "kommoFieldId": 918417,
+        "kommoFieldType": "text",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "725659",
+        "kommoFieldId": 918397,
+        "kommoFieldType": "text",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "725661",
+        "kommoFieldId": 918395,
+        "kommoFieldType": "url",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "725663",
+        "kommoFieldId": 918413,
+        "kommoFieldType": "text",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "725665",
+        "kommoFieldId": 918451,
+        "kommoFieldType": "date_time",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "725667",
+        "kommoFieldId": 918393,
+        "kommoFieldType": "text",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "725673",
+        "kommoFieldId": 918387,
+        "kommoFieldType": "text",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "726941",
+        "kommoFieldId": 918589,
+        "kommoFieldType": "numeric",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "729123",
+        "kommoFieldId": 880928,
+        "amoFieldName": "TEXTAREA",
+        "kommoFieldName": "TEXTAREA",
+        "amoFieldType": "textarea",
+        "kommoFieldType": "textarea",
+        "amoGroup": "тех_поля",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "729215",
+        "kommoFieldId": 918535,
+        "kommoFieldType": "checkbox",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "729347",
+        "kommoFieldId": 869208,
+        "amoFieldName": "UTM_ID",
+        "kommoFieldName": "UTM_ID",
+        "amoFieldType": "textarea",
+        "kommoFieldType": "textarea",
+        "amoGroup": "тех_поля",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "730353",
+        "kommoFieldId": 918459,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "730355",
+        "kommoFieldId": 918461,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "730357",
+        "kommoFieldId": 918463,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "730359",
+        "kommoFieldId": 918465,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "730361",
+        "kommoFieldId": 918467,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "730363",
+        "kommoFieldId": 918469,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "730365",
+        "kommoFieldId": 918471,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "730373",
+        "kommoFieldId": 918473,
+        "kommoFieldType": "text",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "730801",
+        "kommoFieldId": 918359,
+        "kommoFieldType": "checkbox",
+        "amoGroup": "контроль_качества",
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "731073",
+        "kommoFieldId": 918475,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "731075",
+        "kommoFieldId": 918457,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "731083",
+        "kommoFieldId": 918473,
+        "amoFieldName": "GA UTM",
+        "kommoFieldName": "GA UTM",
+        "amoFieldType": "text",
+        "kommoFieldType": "text",
+        "amoGroup": "тех_поля",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "731675",
+        "kommoFieldId": 918517,
+        "kommoFieldType": "text",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "731677",
+        "kommoFieldId": 918519,
+        "kommoFieldType": "text",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "732843",
+        "kommoFieldId": 918537,
+        "amoFieldName": "РФ этап",
+        "kommoFieldName": "РФ этап",
+        "amoFieldType": "select",
+        "kommoFieldType": "select",
+        "amoGroup": null,
+        "transferMode": "direct",
+        "enumMap": {
+          "451603": 761873,
+          "451605": 761875,
+          "451607": 761877,
+          "451609": 761879,
+          "451611": 761881,
+          "451613": 761883,
+          "451615": 761885,
+          "451617": 761887,
+          "451619": 761889,
+          "451621": 761891,
+          "451623": 761893,
+          "451625": 761895
+        }
+      },
+      {
+        "amoFieldId": "733053",
+        "kommoFieldId": 918539,
+        "amoFieldName": "МЖД этап",
+        "kommoFieldName": "МЖД этап",
+        "amoFieldType": "select",
+        "kommoFieldType": "select",
+        "amoGroup": null,
+        "transferMode": "direct",
+        "enumMap": {
+          "451711": 761897,
+          "451713": 761899,
+          "451715": 761901,
+          "451717": 761903,
+          "451719": 761905,
+          "451721": 761907,
+          "451723": 761909,
+          "451725": 761911,
+          "451727": 761913,
+          "451729": 761915,
+          "451731": 761917,
+          "451733": 761919
+        }
+      },
+      {
+        "amoFieldId": "733079",
+        "kommoFieldId": 918541,
+        "amoFieldName": "Прогрев РШ этап",
+        "kommoFieldName": "Прогрев РШ этап",
+        "amoFieldType": "select",
+        "kommoFieldType": "select",
+        "amoGroup": null,
+        "transferMode": "direct",
+        "enumMap": {
+          "451791": 761921,
+          "451793": 761923,
+          "451795": 761925,
+          "451797": 761927,
+          "451799": 761929,
+          "451801": 761931,
+          "451803": 761933,
+          "451805": 761935,
+          "451807": 761937,
+          "451809": 761939,
+          "451811": 761941,
+          "451813": 761943,
+          "451815": 761945,
+          "451817": 761947,
+          "451819": 761949
+        }
+      },
+      {
+        "amoFieldId": "733081",
+        "kommoFieldId": 918543,
+        "amoFieldName": "Прогрев МШ этап",
+        "kommoFieldName": "Прогрев МШ этап",
+        "amoFieldType": "select",
+        "kommoFieldType": "select",
+        "amoGroup": null,
+        "transferMode": "direct",
+        "enumMap": {
+          "451821": 761951,
+          "451823": 761953,
+          "451825": 761955,
+          "451827": 761957,
+          "451829": 761959,
+          "451831": 761961,
+          "451833": 761963,
+          "451835": 761965,
+          "451837": 761967,
+          "451839": 761969,
+          "451841": 761971,
+          "451843": 761973,
+          "451845": 761975
+        }
+      },
+      {
+        "amoFieldId": "734768",
+        "kommoFieldId": 918715,
+        "amoFieldName": "Продукт",
+        "kommoFieldName": "Product",
+        "amoFieldType": "multiselect",
+        "kommoFieldType": "select",
+        "amoGroup": null,
+        "transferMode": "first_value",
+        "enumMap": {
+          "453816": 762347,
+          "453818": 762327,
+          "453820": 762349,
+          "453822": 762329,
+          "453824": 762351,
+          "453826": 762353,
+          "453828": 762355,
+          "453830": 762357,
+          "453834": 762359
+        }
+      },
+      {
+        "amoFieldId": "734770",
+        "kommoFieldId": 918593,
+        "amoFieldName": "Связаться",
+        "kommoFieldName": "Связаться",
+        "amoFieldType": "select",
+        "kommoFieldType": "select",
+        "amoGroup": null,
+        "transferMode": "direct",
+        "enumMap": {
+          "453836": 762159,
+          "453838": 762161,
+          "453840": 762163,
+          "453842": 762165,
+          "453844": 762167,
+          "453846": 762169,
+          "453848": 762171,
+          "453850": 762173,
+          "453852": 762175,
+          "453854": 762177,
+          "453856": 762179,
+          "453858": 762181
+        }
+      },
+      {
+        "amoFieldId": "734772",
+        "kommoFieldId": 918371,
+        "kommoFieldType": "text",
+        "amoGroup": "emfy",
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "734774",
+        "kommoFieldId": 918373,
+        "kommoFieldType": "text",
+        "amoGroup": "emfy",
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "734776",
+        "kommoFieldId": 918375,
+        "amoFieldName": "Перешли из реанимации",
+        "kommoFieldName": "Перешли из реанимации",
+        "amoFieldType": "select",
+        "kommoFieldType": "select",
+        "amoGroup": "emfy",
+        "transferMode": "direct",
+        "enumMap": {
+          "453862": 761855
+        }
+      },
+      {
+        "amoFieldId": "735125",
+        "kommoFieldId": 918377,
+        "kommoFieldType": "text",
+        "amoGroup": "emfy",
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "735131",
+        "kommoFieldId": 918545,
+        "kommoFieldType": "text",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "735133",
+        "kommoFieldId": 918577,
+        "kommoFieldType": "textarea",
+        "amoGroup": null,
+        "transferMode": null,
+        "enumMap": {}
+      }
+    ],
+    "contacts": [
+      {
+        "amoFieldId": "55561",
+        "kommoFieldId": 200296,
+        "amoFieldName": "Должность",
+        "kommoFieldName": "Position",
+        "amoFieldType": "text",
+        "kommoFieldType": "text",
+        "amoGroup": "Доп.",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "55563",
+        "kommoFieldId": 200298,
+        "amoFieldName": "Телефон",
+        "kommoFieldName": "Phone",
+        "amoFieldType": "multitext",
+        "kommoFieldType": "multitext",
+        "amoGroup": "Основное",
+        "transferMode": "direct",
+        "enumMap": {
+          "80017": 166646,
+          "80019": 166648,
+          "80021": 166650,
+          "80023": 166652,
+          "80025": 166654,
+          "80027": 166656
+        }
+      },
+      {
+        "amoFieldId": "55565",
+        "kommoFieldId": 200300,
+        "amoFieldName": "Email",
+        "kommoFieldName": "Email",
+        "amoFieldType": "multitext",
+        "kommoFieldType": "multitext",
+        "amoGroup": "Основное",
+        "transferMode": "direct",
+        "enumMap": {
+          "80029": 166658,
+          "80031": 166660,
+          "80033": 166662
+        }
+      },
+      {
+        "amoFieldId": "112229",
+        "kommoFieldId": 871456,
+        "amoFieldName": "Пол",
+        "kommoFieldName": "Male/Female",
+        "amoFieldType": "radiobutton",
+        "kommoFieldType": "radiobutton",
+        "amoGroup": "Основное",
+        "transferMode": "direct",
+        "enumMap": {
+          "160295": 733146,
+          "160297": 733148
+        }
+      },
+      {
+        "amoFieldId": "698985",
+        "kommoFieldId": 871458,
+        "amoFieldName": "Роль",
+        "kommoFieldName": "Relationship to the student",
+        "amoFieldType": "select",
+        "kommoFieldType": "select",
+        "amoGroup": "Основное",
+        "transferMode": "direct",
+        "enumMap": {
+          "400107": 733152,
+          "400109": 733150,
+          "404913": 733156,
+          "404915": 733154,
+          "404985": 733162,
+          "404987": 733158
+        }
+      },
+      {
+        "amoFieldId": "704035",
+        "kommoFieldId": 918673,
+        "amoFieldName": "Пользовательское соглашение",
+        "kommoFieldName": "Пользовательское соглашение",
+        "amoFieldType": "checkbox",
+        "kommoFieldType": "checkbox",
+        "amoGroup": "Доп.",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "704129",
+        "kommoFieldId": 871454,
+        "amoFieldName": "Город",
+        "kommoFieldName": "Town/City",
+        "amoFieldType": "textarea",
+        "kommoFieldType": "text",
+        "amoGroup": "Основное",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "706039",
+        "kommoFieldId": 918679,
+        "amoFieldName": "TelegramUsername_WZ",
+        "kommoFieldName": "TelegramUsername_WZ",
+        "amoFieldType": "text",
+        "kommoFieldType": "text",
+        "amoGroup": "Доп.",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "706041",
+        "kommoFieldId": 918677,
+        "amoFieldName": "TelegramId_WZ",
+        "kommoFieldName": "TelegramId_WZ",
+        "amoFieldType": "text",
+        "kommoFieldType": "text",
+        "amoGroup": "Доп.",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "710287",
+        "kommoFieldId": 918669,
+        "amoFieldName": "Реферальная ссылка",
+        "kommoFieldName": "Реферальная ссылка",
+        "amoFieldType": "url",
+        "kommoFieldType": "url",
+        "amoGroup": "Реф. ссылки",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "710289",
+        "kommoFieldId": 918667,
+        "amoFieldName": "Ссылка на рефералов",
+        "kommoFieldName": "Ссылка на рефералов",
+        "amoFieldType": "url",
+        "kommoFieldType": "url",
+        "amoGroup": "Реф. ссылки",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "710291",
+        "kommoFieldId": 918665,
+        "amoFieldName": "Ссылка на рефера",
+        "kommoFieldName": "Ссылка на рефера",
+        "amoFieldType": "url",
+        "kommoFieldType": "url",
+        "amoGroup": "Реф. ссылки",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "720125",
+        "kommoFieldId": 918681,
+        "amoFieldName": "TelegroupId_WZ",
+        "kommoFieldName": "TelegroupId_WZ",
+        "amoFieldType": "text",
+        "kommoFieldType": "text",
+        "amoGroup": "Доп.",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "723483",
+        "kommoFieldId": 871464,
+        "amoFieldName": "Квалифицирован",
+        "kommoFieldName": "Qualified",
+        "amoFieldType": "checkbox",
+        "kommoFieldType": "checkbox",
+        "amoGroup": "Основное",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "724181",
+        "kommoFieldId": 918683,
+        "amoFieldName": "EmfyPusherSub",
+        "kommoFieldName": "EmfyPusherSub",
+        "amoFieldType": "textarea",
+        "kommoFieldType": "textarea",
+        "amoGroup": "Доп.",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "725117",
+        "kommoFieldId": 918707,
+        "amoFieldName": "Ссылка на alfaCRM",
+        "kommoFieldName": "Ссылка на alfaCRM",
+        "amoFieldType": "url",
+        "kommoFieldType": "url",
+        "amoGroup": "Основное",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "725389",
+        "kommoFieldId": 871462,
+        "amoFieldName": "Ученик",
+        "kommoFieldName": "Student",
+        "amoFieldType": "checkbox",
+        "kommoFieldType": "checkbox",
+        "amoGroup": "Основное",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "725649",
+        "kommoFieldId": 918671,
+        "amoFieldName": "Имя",
+        "kommoFieldName": "Имя",
+        "amoFieldType": "text",
+        "kommoFieldType": "text",
+        "amoGroup": "Доп.",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "728971",
+        "kommoFieldId": 918675,
+        "amoFieldName": "ИНФО О ПРОДЛЕНИИ",
+        "kommoFieldName": "ИНФО О ПРОДЛЕНИИ",
+        "amoFieldType": "text",
+        "kommoFieldType": "text",
+        "amoGroup": "Доп.",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "730797",
+        "kommoFieldId": 918709,
+        "amoFieldName": "ОТПИСАЛАСЬ",
+        "kommoFieldName": "ОТПИСАЛАСЬ",
+        "amoFieldType": "checkbox",
+        "kommoFieldType": "checkbox",
+        "amoGroup": "Основное",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "733429",
+        "kommoFieldId": 918711,
+        "amoFieldName": "День рождения ребёнка",
+        "kommoFieldName": "День рождения ребёнка",
+        "amoFieldType": "birthday",
+        "kommoFieldType": "birthday",
+        "amoGroup": "Основное",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "733981",
+        "kommoFieldId": 918687,
+        "amoFieldName": "Venyoo вопрос",
+        "kommoFieldName": "Venyoo вопрос",
+        "amoFieldType": "textarea",
+        "kommoFieldType": "textarea",
+        "amoGroup": "Основное",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "733983",
+        "kommoFieldId": 918689,
+        "amoFieldName": "Venyoo имя",
+        "kommoFieldName": "Venyoo имя",
+        "amoFieldType": "text",
+        "kommoFieldType": "text",
+        "amoGroup": "Основное",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "733985",
+        "kommoFieldId": 918691,
+        "amoFieldName": "Venyoo сайт",
+        "kommoFieldName": "Venyoo сайт",
+        "amoFieldType": "url",
+        "kommoFieldType": "url",
+        "amoGroup": "Основное",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "733987",
+        "kommoFieldId": 918693,
+        "amoFieldName": "Venyoo страница отправки",
+        "kommoFieldName": "Venyoo страница отправки",
+        "amoFieldType": "url",
+        "kommoFieldType": "url",
+        "amoGroup": "Основное",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "733989",
+        "kommoFieldId": 918199,
+        "amoFieldName": "Venyoo город",
+        "kommoFieldName": "Venyoo город",
+        "amoFieldType": "text",
+        "kommoFieldType": "text",
+        "amoGroup": "Основное",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "733991",
+        "kommoFieldId": 918697,
+        "amoFieldName": "utm_medium",
+        "kommoFieldName": "utm_medium",
+        "amoFieldType": "text",
+        "kommoFieldType": "text",
+        "amoGroup": "Основное",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "733993",
+        "kommoFieldId": 918699,
+        "amoFieldName": "utm_campaign",
+        "kommoFieldName": "utm_campaign",
+        "amoFieldType": "text",
+        "kommoFieldType": "text",
+        "amoGroup": "Основное",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "733995",
+        "kommoFieldId": 918701,
+        "amoFieldName": "utm_content",
+        "kommoFieldName": "utm_content",
+        "amoFieldType": "text",
+        "kommoFieldType": "text",
+        "amoGroup": "Основное",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "733997",
+        "kommoFieldId": 918703,
+        "amoFieldName": "utm_term",
+        "kommoFieldName": "utm_term",
+        "amoFieldType": "text",
+        "kommoFieldType": "text",
+        "amoGroup": "Основное",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "733999",
+        "kommoFieldId": 918695,
+        "amoFieldName": "utm_source",
+        "kommoFieldName": "utm_source",
+        "amoFieldType": "text",
+        "kommoFieldType": "text",
+        "amoGroup": "Основное",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "734001",
+        "kommoFieldId": 918705,
+        "amoFieldName": "Venyoo GA_id",
+        "kommoFieldName": "Venyoo GA_id",
+        "amoFieldType": "text",
+        "kommoFieldType": "text",
+        "amoGroup": "Основное",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "734249",
+        "kommoFieldId": 918685,
+        "amoFieldName": "MaxId_WZ",
+        "kommoFieldName": "MaxId_WZ",
+        "amoFieldType": "text",
+        "kommoFieldType": "text",
+        "amoGroup": "Основное",
+        "transferMode": "direct",
+        "enumMap": {}
+      }
+    ],
+    "companies": [
+      {
+        "amoFieldId": "55563",
+        "kommoFieldId": 200298,
+        "amoFieldName": "Телефон",
+        "kommoFieldName": "Phone",
+        "amoFieldType": "multitext",
+        "kommoFieldType": "multitext",
+        "amoGroup": "Основное",
+        "transferMode": "direct",
+        "enumMap": {
+          "80017": 166646,
+          "80019": 166648,
+          "80021": 166650,
+          "80023": 166652,
+          "80025": 166654,
+          "80027": 166656
+        }
+      },
+      {
+        "amoFieldId": "55565",
+        "kommoFieldId": 200300,
+        "amoFieldName": "Email",
+        "kommoFieldName": "Email",
+        "amoFieldType": "multitext",
+        "kommoFieldType": "multitext",
+        "amoGroup": "Основное",
+        "transferMode": "direct",
+        "enumMap": {
+          "80029": 166658,
+          "80031": 166660,
+          "80033": 166662
+        }
+      },
+      {
+        "amoFieldId": "55567",
+        "kommoFieldId": 200302,
+        "amoFieldName": "Web",
+        "kommoFieldName": "Web",
+        "amoFieldType": "url",
+        "kommoFieldType": "url",
+        "amoGroup": "Основное",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "55569",
+        "kommoFieldId": 200304,
+        "amoFieldName": "Адрес",
+        "kommoFieldName": "Address",
+        "amoFieldType": "textarea",
+        "kommoFieldType": "textarea",
+        "amoGroup": "Основное",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "724183",
+        "kommoFieldId": 918663,
+        "amoFieldName": "EmfyPusherSub",
+        "kommoFieldName": "EmfyPusherSub",
+        "amoFieldType": "textarea",
+        "kommoFieldType": "textarea",
+        "amoGroup": "Основное",
+        "transferMode": "direct",
+        "enumMap": {}
+      },
+      {
+        "amoFieldId": "730795",
+        "kommoFieldId": 918661,
+        "amoFieldName": "Отписалась от рассылки",
+        "kommoFieldName": "Отписалась от рассылки",
+        "amoFieldType": "checkbox",
+        "kommoFieldType": "checkbox",
+        "amoGroup": "Основное",
+        "transferMode": "direct",
+        "enumMap": {}
+      }
+    ]
+  }
+}
