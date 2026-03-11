@@ -1685,6 +1685,38 @@ export default function App() {
         </div>
       )}
 
+      {/* ═══════ СОПОСТАВЛЕНИЕ СДЕЛОК (после последнего пакета) ═══════ */}
+      {tab === 'dashboard' && batchStatus?.dealPairs?.length > 0 && (
+        <div style={{ marginTop: 24, padding: 16, border: '1px solid #334155', borderRadius: 8, background: '#0f172a' }}>
+          <h3 style={{ margin: '0 0 12px', color: '#f8fafc' }}>📋 Сопоставление сделок (последний пакет: {batchStatus.dealPairs.length} шт.)</h3>
+          <div style={{ maxHeight: 400, overflowY: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid #475569', color: '#94a3b8' }}>
+                  <th style={{ textAlign: 'left', padding: '4px 8px' }}>#</th>
+                  <th style={{ textAlign: 'left', padding: '4px 8px' }}>AMO ID</th>
+                  <th style={{ textAlign: 'left', padding: '4px 8px' }}>Kommo ID</th>
+                  <th style={{ textAlign: 'left', padding: '4px 8px' }}>Ссылки</th>
+                </tr>
+              </thead>
+              <tbody>
+                {batchStatus.dealPairs.map((p, i) => (
+                  <tr key={i} style={{ borderBottom: '1px solid #1e293b' }}>
+                    <td style={{ padding: '3px 8px', color: '#64748b' }}>{i + 1}</td>
+                    <td style={{ padding: '3px 8px', color: '#e2e8f0' }}>{p.amoId}</td>
+                    <td style={{ padding: '3px 8px', color: '#e2e8f0' }}>{p.kommoId}</td>
+                    <td style={{ padding: '3px 8px' }}>
+                      <a href={`https://houch.amocrm.ru/leads/detail/${p.amoId}`} target="_blank" rel="noreferrer" style={{ color: '#60a5fa', marginRight: 12 }}>AMO ↗</a>
+                      <a href={`https://helloshkolaonlinecom.kommo.com/leads/detail/${p.kommoId}`} target="_blank" rel="noreferrer" style={{ color: '#34d399' }}>Kommo ↗</a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* ═══════════════════════════ ВОРОНКИ ═══════════════════════════════ */}
       {tab === 'pipelines' && (
         <div className="pipelines-tab">
