@@ -568,7 +568,7 @@ async function runBatchMigration(stageMapping) {
     }
         /* ── 10. Migrate tasks ──────────────────────────────────────────── */
     const batchAmoIds = new Set(batchLeads.map(l => l.id));
-    const _batchTasksRaw = allTasks.filter(t => t.entity_type === 'leads' && batchAmoIds.has(t.entity_id));
+    const _batchTasksRaw = allTasks.filter(t => t.entity_type === 'leads' && batchAmoIds.has(t.entity_id) && !t.is_completed);
     // Dedup by task ID to prevent duplicate tasks if batch is re-run
     const { toCreate: _batchTasksFiltered, skipped: _batchTasksSkipped } = safety.filterNotMigrated('tasks_leads', _batchTasksRaw, t => t.id);
     const batchTasks = _batchTasksFiltered;
@@ -622,18 +622,23 @@ async function runBatchMigration(stageMapping) {
       }
     }
 
-    /* ── 10-fix. PATCH task_type_id for already-migrated lead tasks ──────── */
+    /* ── 10-fix. PATCH task_type_id + text for already-migrated lead tasks ──────── */
     if (!_skipPatch && _batchTasksSkipped.length > 0) {
-      const { AMO_TO_KOMMO_TASK_TYPE } = require('../utils/dataTransformer');
+      const { AMO_TO_KOMMO_TASK_TYPE, fmtDatePrefix: _fmtDP } = require('../utils/dataTransformer');
       const _taskTypeUpdates = [];
       for (const s of _batchTasksSkipped) {
         const amoTask = s.item;
+        if (amoTask.is_completed) continue; // only active tasks
         const kommoTaskId = s.kommoId;
         const amoTypeId = amoTask.task_type_id;
         const kommoTypeId = AMO_TO_KOMMO_TASK_TYPE[amoTypeId];
-        if (kommoTypeId && kommoTypeId !== 1) {
-          _taskTypeUpdates.push({ id: kommoTaskId, task_type_id: kommoTypeId });
+        const upd = { id: kommoTaskId, task_type_id: kommoTypeId || 1 };
+        // МОЯ ЗАДАЧА prefix for self-assigned tasks
+        if (amoTask.created_by && amoTask.responsible_user_id && amoTask.created_by === amoTask.responsible_user_id) {
+          const _tb = _fmtDP(amoTask.created_at) + ((amoTask.text && amoTask.text.trim()) ? amoTask.text : 'Задача');
+          upd.text = 'МОЯ ЗАДАЧА: ' + _tb;
         }
+        _taskTypeUpdates.push(upd);
       }
       if (_taskTypeUpdates.length > 0) {
         updateState({ step: `Обновление типов задач лидов (${_taskTypeUpdates.length})...` });
@@ -652,7 +657,7 @@ async function runBatchMigration(stageMapping) {
     {
       const _batchContactIdsSet = new Set(Object.keys(contactIdMap).map(Number));
       const _batchContactTasksRaw = allTasks.filter(
-        t => t.entity_type === 'contacts' && _batchContactIdsSet.has(Number(t.entity_id))
+        t => t.entity_type === 'contacts' && _batchContactIdsSet.has(Number(t.entity_id)) && !t.is_completed
       );
       const { toCreate: _batchContactTasksFiltered, skipped: _batchContactTasksSkipped } = safety.filterNotMigrated('tasks_contacts', _batchContactTasksRaw, t => t.id);
       if (_batchContactTasksFiltered.length > 0) {
@@ -701,16 +706,21 @@ async function runBatchMigration(stageMapping) {
       }
     }
 
-    /* ── 10b-fix. PATCH task_type_id for already-migrated contact tasks ── */
+    /* ── 10b-fix. PATCH task_type_id + text for already-migrated contact tasks ── */
     if (!_skipPatch && _batchContactTasksSkipped && _batchContactTasksSkipped.length > 0) {
-      const { AMO_TO_KOMMO_TASK_TYPE: _ctTypeMap } = require('../utils/dataTransformer');
+      const { AMO_TO_KOMMO_TASK_TYPE: _ctTypeMap, fmtDatePrefix: _fmtDP2 } = require('../utils/dataTransformer');
       const _ctTypeUpdates = [];
       for (const s of _batchContactTasksSkipped) {
-        const amoTypeId = s.item.task_type_id;
+        const amoTask = s.item;
+        if (amoTask.is_completed) continue; // only active tasks
+        const amoTypeId = amoTask.task_type_id;
         const kommoTypeId = _ctTypeMap[amoTypeId];
-        if (kommoTypeId && kommoTypeId !== 1) {
-          _ctTypeUpdates.push({ id: s.kommoId, task_type_id: kommoTypeId });
+        const upd = { id: s.kommoId, task_type_id: kommoTypeId || 1 };
+        if (amoTask.created_by && amoTask.responsible_user_id && amoTask.created_by === amoTask.responsible_user_id) {
+          const _tb = _fmtDP2(amoTask.created_at) + ((amoTask.text && amoTask.text.trim()) ? amoTask.text : 'Задача');
+          upd.text = 'МОЯ ЗАДАЧА: ' + _tb;
         }
+        _ctTypeUpdates.push(upd);
       }
       if (_ctTypeUpdates.length > 0) {
         try {
@@ -726,7 +736,7 @@ async function runBatchMigration(stageMapping) {
     {
       const _batchCompanyIdsSet = new Set(Object.keys(companyIdMap).map(Number));
       const _batchCompanyTasksRaw = allTasks.filter(
-        t => t.entity_type === 'companies' && _batchCompanyIdsSet.has(Number(t.entity_id))
+        t => t.entity_type === 'companies' && _batchCompanyIdsSet.has(Number(t.entity_id)) && !t.is_completed
       );
       const { toCreate: _batchCompanyTasksFiltered, skipped: _batchCompanyTasksSkipped } = safety.filterNotMigrated('tasks_companies', _batchCompanyTasksRaw, t => t.id);
       if (_batchCompanyTasksFiltered.length > 0) {
@@ -770,16 +780,21 @@ async function runBatchMigration(stageMapping) {
       }
     }
 
-    /* ── 10c-fix. PATCH task_type_id for already-migrated company tasks ── */
+    /* ── 10c-fix. PATCH task_type_id + text for already-migrated company tasks ── */
     if (!_skipPatch && _batchCompanyTasksSkipped && _batchCompanyTasksSkipped.length > 0) {
-      const { AMO_TO_KOMMO_TASK_TYPE: _coTypeMap } = require('../utils/dataTransformer');
+      const { AMO_TO_KOMMO_TASK_TYPE: _coTypeMap, fmtDatePrefix: _fmtDP3 } = require('../utils/dataTransformer');
       const _coTypeUpdates = [];
       for (const s of _batchCompanyTasksSkipped) {
-        const amoTypeId = s.item.task_type_id;
+        const amoTask = s.item;
+        if (amoTask.is_completed) continue; // only active tasks
+        const amoTypeId = amoTask.task_type_id;
         const kommoTypeId = _coTypeMap[amoTypeId];
-        if (kommoTypeId && kommoTypeId !== 1) {
-          _coTypeUpdates.push({ id: s.kommoId, task_type_id: kommoTypeId });
+        const upd = { id: s.kommoId, task_type_id: kommoTypeId || 1 };
+        if (amoTask.created_by && amoTask.responsible_user_id && amoTask.created_by === amoTask.responsible_user_id) {
+          const _tb = _fmtDP3(amoTask.created_at) + ((amoTask.text && amoTask.text.trim()) ? amoTask.text : 'Задача');
+          upd.text = 'МОЯ ЗАДАЧА: ' + _tb;
         }
+        _coTypeUpdates.push(upd);
       }
       if (_coTypeUpdates.length > 0) {
         try {

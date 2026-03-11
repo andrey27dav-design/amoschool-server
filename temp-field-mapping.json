@@ -1,0 +1,1609 @@
+﻿{
+  "leads": {
+    "64361": {
+      "kommoFieldId": 708010,
+      "amoFieldName": "TRANID",
+      "kommoFieldName": "TRANID",
+      "amoFieldType": "textarea",
+      "kommoFieldType": "textarea",
+      "amoGroup": "╤В╨╡╤Е_╨┐╨╛╨╗╤П",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "64363": {
+      "kommoFieldId": 708016,
+      "amoFieldName": "FORMID",
+      "kommoFieldName": "FORMID",
+      "amoFieldType": "textarea",
+      "kommoFieldType": "textarea",
+      "amoGroup": "╤В╨╡╤Е_╨┐╨╛╨╗╤П",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "64365": {
+      "kommoFieldId": 708018,
+      "amoFieldName": "REFERER1",
+      "kommoFieldName": "REFERER",
+      "amoFieldType": "url",
+      "kommoFieldType": "url",
+      "amoGroup": "╤В╨╡╤Е_╨┐╨╛╨╗╤П",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "66265": {
+      "kommoFieldId": 200312,
+      "amoFieldName": "UTM_SOURCE",
+      "kommoFieldName": "utm_source",
+      "amoFieldType": "tracking_data",
+      "kommoFieldType": "tracking_data",
+      "amoGroup": "╤Б╤В╨░╤В╨╕╤Б╤В╨╕╨║╨░",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "66267": {
+      "kommoFieldId": 200310,
+      "amoFieldName": "UTM_CAMPAIGN",
+      "kommoFieldName": "utm_campaign",
+      "amoFieldType": "tracking_data",
+      "kommoFieldType": "tracking_data",
+      "amoGroup": "╤Б╤В╨░╤В╨╕╤Б╤В╨╕╨║╨░",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "66269": {
+      "kommoFieldId": 200308,
+      "amoFieldName": "UTM_MEDIUM",
+      "kommoFieldName": "utm_medium",
+      "amoFieldType": "tracking_data",
+      "kommoFieldType": "tracking_data",
+      "amoGroup": "╤Б╤В╨░╤В╨╕╤Б╤В╨╕╨║╨░",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "66271": {
+      "kommoFieldId": 200306,
+      "amoFieldName": "UTM_CONTENT",
+      "kommoFieldName": "utm_content",
+      "amoFieldType": "tracking_data",
+      "kommoFieldType": "tracking_data",
+      "amoGroup": "╤Б╤В╨░╤В╨╕╤Б╤В╨╕╨║╨░",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "171265": {
+      "kommoFieldId": 708014,
+      "amoFieldName": "FORMNAME",
+      "kommoFieldName": "FORMNAME",
+      "amoFieldType": "textarea",
+      "kommoFieldType": "textarea",
+      "amoGroup": "╤В╨╡╤Е_╨┐╨╛╨╗╤П",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "174757": {
+      "kommoFieldId": 200314,
+      "amoFieldName": "UTM_TERM",
+      "kommoFieldName": "utm_term",
+      "amoFieldType": "tracking_data",
+      "kommoFieldType": "tracking_data",
+      "amoGroup": "╤Б╤В╨░╤В╨╕╤Б╤В╨╕╨║╨░",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "184243": {
+      "kommoFieldId": 918501,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "184245": {
+      "kommoFieldId": 918499,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "184247": {
+      "kommoFieldId": 918495,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "184249": {
+      "kommoFieldId": 918489,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "184251": {
+      "kommoFieldId": 918497,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "184253": {
+      "kommoFieldId": 918493,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "184255": {
+      "kommoFieldId": 918503,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "184267": {
+      "kommoFieldId": 918491,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "219937": {
+      "kommoFieldId": 918511,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "219939": {
+      "kommoFieldId": 918507,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "219941": {
+      "kommoFieldId": 918513,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "219943": {
+      "kommoFieldId": 918515,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "228287": {
+      "kommoFieldId": 918487,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "228289": {
+      "kommoFieldId": 918505,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "661771": {
+      "kommoFieldId": 200316,
+      "amoFieldName": "utm_referrer",
+      "kommoFieldName": "utm_referrer",
+      "amoFieldType": "tracking_data",
+      "kommoFieldType": "tracking_data",
+      "amoGroup": "╤Б╤В╨░╤В╨╕╤Б╤В╨╕╨║╨░",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "661773": {
+      "kommoFieldId": 918571,
+      "fieldType": "tracking_data",
+      "enumMap": {},
+      "kommoFieldType": "tracking_data"
+    },
+    "661775": {
+      "kommoFieldId": 918551,
+      "fieldType": "tracking_data",
+      "enumMap": {},
+      "kommoFieldType": "tracking_data"
+    },
+    "661777": {
+      "kommoFieldId": 918553,
+      "fieldType": "tracking_data",
+      "enumMap": {},
+      "kommoFieldType": "tracking_data"
+    },
+    "661779": {
+      "kommoFieldId": 200318,
+      "amoFieldName": "referrer",
+      "kommoFieldName": "referrer",
+      "amoFieldType": "tracking_data",
+      "kommoFieldType": "tracking_data",
+      "amoGroup": "╤Б╤В╨░╤В╨╕╤Б╤В╨╕╨║╨░",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "661781": {
+      "kommoFieldId": 918549,
+      "fieldType": "tracking_data",
+      "enumMap": {},
+      "kommoFieldType": "tracking_data"
+    },
+    "661783": {
+      "kommoFieldId": 918557,
+      "fieldType": "tracking_data",
+      "enumMap": {},
+      "kommoFieldType": "tracking_data"
+    },
+    "661785": {
+      "kommoFieldId": 918559,
+      "fieldType": "tracking_data",
+      "enumMap": {},
+      "kommoFieldType": "tracking_data"
+    },
+    "661787": {
+      "kommoFieldId": 918555,
+      "fieldType": "tracking_data",
+      "enumMap": {},
+      "kommoFieldType": "tracking_data"
+    },
+    "661789": {
+      "kommoFieldId": 918561,
+      "fieldType": "tracking_data",
+      "enumMap": {},
+      "kommoFieldType": "tracking_data"
+    },
+    "661791": {
+      "kommoFieldId": 200320,
+      "amoFieldName": "gclientid",
+      "kommoFieldName": "gclientid",
+      "amoFieldType": "tracking_data",
+      "kommoFieldType": "tracking_data",
+      "amoGroup": "╤Б╤В╨░╤В╨╕╤Б╤В╨╕╨║╨░",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "661793": {
+      "kommoFieldId": 200322,
+      "amoFieldName": "gclid",
+      "kommoFieldName": "gclid",
+      "amoFieldType": "tracking_data",
+      "kommoFieldType": "tracking_data",
+      "amoGroup": "╤Б╤В╨░╤В╨╕╤Б╤В╨╕╨║╨░",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "661795": {
+      "kommoFieldId": 918563,
+      "fieldType": "tracking_data",
+      "enumMap": {},
+      "kommoFieldType": "tracking_data"
+    },
+    "661797": {
+      "kommoFieldId": 200324,
+      "amoFieldName": "fbclid",
+      "kommoFieldName": "fbclid",
+      "amoFieldType": "tracking_data",
+      "kommoFieldType": "tracking_data",
+      "amoGroup": "╤Б╤В╨░╤В╨╕╤Б╤В╨╕╨║╨░",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "685679": {
+      "kommoFieldId": 918509,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "685683": {
+      "kommoFieldId": 918483,
+      "fieldType": "text",
+      "enumMap": {},
+      "kommoFieldType": "text"
+    },
+    "685695": {
+      "kommoFieldId": 918547,
+      "fieldType": "tracking_data",
+      "enumMap": {},
+      "kommoFieldType": "tracking_data"
+    },
+    "693669": {
+      "kommoFieldId": 918485,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "698289": {
+      "kommoFieldId": 919073,
+      "fieldType": "select",
+      "enumMap": {
+        "399205": 763107,
+        "412341": 763109,
+        "412343": 763111,
+        "417771": 763113,
+        "433221": 763115,
+        "433917": 763117,
+        "436121": 763119,
+        "436123": 763121,
+        "447279": 763123,
+        "450407": 763125
+      }
+    },
+    "698769": {
+      "kommoFieldId": 871440,
+      "amoFieldName": "╨Ф╨░╤В╨░ ╨╕ ╨▓╤А╨╡╨╝╤П ╨┐╤А╨╛╨▒╨╜╨╛╨│╨╛ ╤Г╤А╨╛╨║╨░",
+      "kommoFieldName": "Date and time of demo",
+      "amoFieldType": "date_time",
+      "kommoFieldType": "date_time",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "698771": {
+      "kommoFieldId": 871448,
+      "amoFieldName": "╨Ф╨░╤В╨░ ╨╛╨┐╨╗╨░╤В╤Л",
+      "kommoFieldName": "Payment date",
+      "amoFieldType": "date",
+      "kommoFieldType": "date",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "698898": {
+      "kommoFieldId": 871446,
+      "amoFieldName": "╨Ю╤Ж╨╡╨╜╨║╨░ ╨┐╨╛╤Б╨╗╨╡ ╨┐╤А╨╛╨▒╨╜╨╛╨│╨╛",
+      "kommoFieldName": "Grade recived after demo",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "699551": {
+      "kommoFieldId": 918363,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "amoGroup": "emfy",
+      "kommoFieldType": "textarea"
+    },
+    "701093": {
+      "kommoFieldId": 918477,
+      "fieldType": "text",
+      "enumMap": {},
+      "kommoFieldType": "text"
+    },
+    "701095": {
+      "kommoFieldId": 918523,
+      "fieldType": "text",
+      "enumMap": {},
+      "kommoFieldType": "text"
+    },
+    "701563": {
+      "kommoFieldId": 918479,
+      "fieldType": "numeric",
+      "enumMap": {},
+      "kommoFieldType": "numeric"
+    },
+    "701571": {
+      "kommoFieldId": 918481,
+      "fieldType": "numeric",
+      "enumMap": {},
+      "kommoFieldType": "numeric"
+    },
+    "703419": {
+      "kommoFieldId": 871430,
+      "amoFieldName": "╨Ш╨╝╤П ╤А╨╡╨▒╨╡╨╜╨║╨░",
+      "kommoFieldName": "Student's name",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "703421": {
+      "kommoFieldId": 918583,
+      "fieldType": "numeric",
+      "enumMap": {},
+      "kommoFieldType": "numeric"
+    },
+    "703425": {
+      "kommoFieldId": 918595,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "703925": {
+      "kommoFieldId": 871436,
+      "amoFieldName": "╨Я╤А╨╡╨┤╨╝╨╡╤В",
+      "kommoFieldName": "Subject",
+      "amoFieldType": "multiselect",
+      "kommoFieldType": "select",
+      "transferMode": "first_value",
+      "enumMap": {
+        "404917": 762293,
+        "404919": 733074,
+        "404921": 733098,
+        "404923": 733100,
+        "404925": 762271,
+        "404927": 733106,
+        "404929": 733108,
+        "404931": 733110,
+        "404933": 733090,
+        "404935": 733092,
+        "404937": 762281,
+        "404939": 762263,
+        "404943": 733078,
+        "404949": 762285
+      }
+    },
+    "704081": {
+      "kommoFieldId": 871432,
+      "amoFieldName": "╨Т╨╛╨╖╤А╨░╤Б╤В ╤А╨╡╨▒╨╡╨╜╨║╨░",
+      "kommoFieldName": "Student's age",
+      "amoFieldType": "numeric",
+      "kommoFieldType": "numeric",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "706695": {
+      "kommoFieldId": 918713,
+      "amoFieldName": "╨Я╤А╨╕╤З╨╕╨╜╨░ ╨╖╨░╨║╤А╤Л╤В╨╕╤П",
+      "kommoFieldName": "Cause of loss",
+      "amoFieldType": "multiselect",
+      "kommoFieldType": "select",
+      "transferMode": "first_value",
+      "enumMap": {
+        "417739": 762301,
+        "417741": 762331,
+        "417743": 762303,
+        "417745": 762305,
+        "417747": 762333,
+        "417749": 762307,
+        "417751": 762335,
+        "417753": 762309,
+        "417755": 762337,
+        "417757": 762311,
+        "417759": 762313,
+        "417761": 762315,
+        "417763": 762317,
+        "418039": 762319,
+        "433523": 762339,
+        "433713": 762321,
+        "444309": 762323,
+        "444311": 762325,
+        "453884": 762341,
+        "454251": 762343,
+        "454253": 762345
+      }
+    },
+    "706983": {
+      "kommoFieldId": 918353,
+      "fieldType": "text",
+      "enumMap": {},
+      "amoGroup": "╨║╨╛╨╜╤В╤А╨╛╨╗╤М_╨║╨░╤З╨╡╤Б╤В╨▓╨░",
+      "kommoFieldType": "text"
+    },
+    "706987": {
+      "kommoFieldId": 918355,
+      "fieldType": "checkbox",
+      "enumMap": {},
+      "amoGroup": "╨║╨╛╨╜╤В╤А╨╛╨╗╤М_╨║╨░╤З╨╡╤Б╤В╨▓╨░",
+      "kommoFieldType": "checkbox"
+    },
+    "706989": {
+      "kommoFieldId": 918357,
+      "fieldType": "text",
+      "enumMap": {},
+      "amoGroup": "╨║╨╛╨╜╤В╤А╨╛╨╗╤М_╨║╨░╤З╨╡╤Б╤В╨▓╨░",
+      "kommoFieldType": "text"
+    },
+    "707307": {
+      "kommoFieldId": 918447,
+      "fieldType": "text",
+      "enumMap": {},
+      "kommoFieldType": "text"
+    },
+    "707309": {
+      "kommoFieldId": 918385,
+      "fieldType": "url",
+      "enumMap": {},
+      "kommoFieldType": "url"
+    },
+    "707323": {
+      "kommoFieldId": 918367,
+      "fieldType": "text",
+      "enumMap": {},
+      "amoGroup": "emfy",
+      "kommoFieldType": "text"
+    },
+    "707325": {
+      "kommoFieldId": 918365,
+      "fieldType": "numeric",
+      "enumMap": {},
+      "amoGroup": "emfy",
+      "kommoFieldType": "numeric"
+    },
+    "709163": {
+      "kommoFieldId": 918391,
+      "fieldType": "text",
+      "enumMap": {},
+      "kommoFieldType": "text"
+    },
+    "709781": {
+      "kommoFieldId": 871438,
+      "amoFieldName": "╨б╤В╤А╨░╨╜╨░ ╨┐╤А╨╛╨╢╨╕╨▓╨░╨╜╨╕╤П",
+      "kommoFieldName": "Student's country",
+      "amoFieldType": "select",
+      "kommoFieldType": "text",
+      "transferMode": "as_text",
+      "enumMap": {}
+    },
+    "709783": {
+      "kommoFieldId": 871444,
+      "amoFieldName": "╨С╤Л╨╗ ╨╜╨░ ╨┐╤А╨╛╨▒╨╜╨╛╨╝ ╨╖╨░╨╜╤П╤В╨╕╨╕",
+      "kommoFieldName": "Attended the demo",
+      "amoFieldType": "checkbox",
+      "kommoFieldType": "checkbox",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "709785": {
+      "kommoFieldId": 871442,
+      "amoFieldName": "╨Ч╨░╨┐╨╕╤Б╨░╨╜ ╨╜╨░ ╨┐╤А╨╛╨▒╨╜╨╛╨╡",
+      "kommoFieldName": "Registered for the demo",
+      "amoFieldType": "checkbox",
+      "kommoFieldType": "checkbox",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "710285": {
+      "kommoFieldId": 918389,
+      "fieldType": "url",
+      "enumMap": {},
+      "kommoFieldType": "url"
+    },
+    "710689": {
+      "kommoFieldId": 918381,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "710691": {
+      "kommoFieldId": 918383,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "710693": {
+      "kommoFieldId": 918453,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "710695": {
+      "kommoFieldId": 918455,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "710763": {
+      "kommoFieldId": 911846,
+      "amoFieldName": "CHECKBOX",
+      "kommoFieldName": "CHECKBOX",
+      "amoFieldType": "textarea",
+      "kommoFieldType": "textarea",
+      "amoGroup": "╤В╨╡╤Е_╨┐╨╛╨╗╤П",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "710851": {
+      "kommoFieldId": 918525,
+      "fieldType": "select",
+      "enumMap": {
+        "433233": 761869,
+        "433235": 761871
+      },
+      "amoFieldName": "╨Э╨░╨┐╤А╨░╨▓╨╗╨╡╨╜╨╕╨╡",
+      "kommoFieldName": "╨Э╨░╨┐╤А╨░╨▓╨╗╨╡╨╜╨╕╨╡",
+      "amoFieldType": "select",
+      "kommoFieldType": "select",
+      "transferMode": "direct"
+    },
+    "710877": {
+      "kommoFieldId": 918527,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "711035": {
+      "kommoFieldId": 918521,
+      "fieldType": "select",
+      "enumMap": {
+        "433777": 761857,
+        "433779": 761859,
+        "433781": 761861,
+        "433943": 761863,
+        "434147": 761865,
+        "434149": 761867
+      },
+      "amoFieldName": "Webinar",
+      "kommoFieldName": "Webinar",
+      "amoFieldType": "select",
+      "kommoFieldType": "select",
+      "transferMode": "direct"
+    },
+    "711367": {
+      "kommoFieldId": 918445,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "712079": {
+      "kommoFieldId": 918441,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "712553": {
+      "kommoFieldId": 871424,
+      "amoFieldName": "╨Ш╤Б╤В╨╛╤З╨╜╨╕╨║",
+      "kommoFieldName": "Lead source",
+      "amoFieldType": "select",
+      "kommoFieldType": "select",
+      "transferMode": "direct",
+      "enumMap": {
+        "436229": 762245,
+        "436231": 733028,
+        "436233": 733034,
+        "436235": 762253,
+        "436237": 733032,
+        "436239": 762259,
+        "436297": 733038,
+        "436305": 762251,
+        "436389": 762243,
+        "436391": 762247,
+        "444177": 762249,
+        "445344": 762241,
+        "453645": 762261,
+        "453936": 762255
+      }
+    },
+    "712701": {
+      "kommoFieldId": 918399,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "712703": {
+      "kommoFieldId": 918401,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "712705": {
+      "kommoFieldId": 918403,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "712707": {
+      "kommoFieldId": 918405,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "712709": {
+      "kommoFieldId": 918407,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "712711": {
+      "kommoFieldId": 918409,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "712713": {
+      "kommoFieldId": 918411,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "712715": {
+      "kommoFieldId": 868564,
+      "amoFieldName": "╨Ъ╨░╤З╨╡╤Б╤В╨▓╨╛ ╨╗╨╕╨┤╨░",
+      "kommoFieldName": "lead quality",
+      "amoFieldType": "select",
+      "kommoFieldType": "select",
+      "transferMode": "direct",
+      "enumMap": {
+        "436319": 728786,
+        "436321": 728788,
+        "436323": 728790
+      }
+    },
+    "716959": {
+      "kommoFieldId": 918439,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "717433": {
+      "kommoFieldId": 918443,
+      "fieldType": "text",
+      "enumMap": {},
+      "kommoFieldType": "text"
+    },
+    "717435": {
+      "kommoFieldId": 918437,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "717751": {
+      "kommoFieldId": 918435,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "717753": {
+      "kommoFieldId": 918427,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "721875": {
+      "kommoFieldId": 918431,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "721877": {
+      "kommoFieldId": 918433,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "721879": {
+      "kommoFieldId": 918429,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "721881": {
+      "kommoFieldId": 918423,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "721883": {
+      "kommoFieldId": 918425,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "723487": {
+      "kommoFieldId": 871422,
+      "amoFieldName": "╨Ъ╨▓╨░╨╗╨╕╤Д╨╕╤Ж╨╕╤А╨╛╨▓╨░╨╜",
+      "kommoFieldName": "Qualified",
+      "amoFieldType": "checkbox",
+      "kommoFieldType": "checkbox",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "724167": {
+      "kommoFieldId": 918369,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "amoGroup": "emfy",
+      "kommoFieldType": "textarea"
+    },
+    "724179": {
+      "kommoFieldId": 918449,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "724645": {
+      "kommoFieldId": 918379,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "725415": {
+      "kommoFieldId": 918529,
+      "fieldType": "text",
+      "enumMap": {},
+      "kommoFieldType": "text"
+    },
+    "725417": {
+      "kommoFieldId": 918531,
+      "fieldType": "text",
+      "enumMap": {},
+      "kommoFieldType": "text"
+    },
+    "725419": {
+      "kommoFieldId": 918533,
+      "fieldType": "text",
+      "enumMap": {},
+      "kommoFieldType": "text"
+    },
+    "725651": {
+      "kommoFieldId": 918419,
+      "fieldType": "text",
+      "enumMap": {},
+      "kommoFieldType": "text"
+    },
+    "725653": {
+      "kommoFieldId": 918421,
+      "fieldType": "text",
+      "enumMap": {},
+      "kommoFieldType": "text"
+    },
+    "725655": {
+      "kommoFieldId": 918415,
+      "fieldType": "text",
+      "enumMap": {},
+      "kommoFieldType": "text"
+    },
+    "725657": {
+      "kommoFieldId": 918417,
+      "fieldType": "text",
+      "enumMap": {},
+      "kommoFieldType": "text"
+    },
+    "725659": {
+      "kommoFieldId": 918397,
+      "fieldType": "text",
+      "enumMap": {},
+      "kommoFieldType": "text"
+    },
+    "725661": {
+      "kommoFieldId": 918395,
+      "fieldType": "url",
+      "enumMap": {},
+      "kommoFieldType": "url"
+    },
+    "725663": {
+      "kommoFieldId": 918413,
+      "fieldType": "text",
+      "enumMap": {},
+      "kommoFieldType": "text"
+    },
+    "725665": {
+      "kommoFieldId": 918451,
+      "fieldType": "date_time",
+      "enumMap": {},
+      "kommoFieldType": "date_time"
+    },
+    "725667": {
+      "kommoFieldId": 918393,
+      "fieldType": "text",
+      "enumMap": {},
+      "kommoFieldType": "text"
+    },
+    "725673": {
+      "kommoFieldId": 918387,
+      "fieldType": "text",
+      "enumMap": {},
+      "kommoFieldType": "text"
+    },
+    "726941": {
+      "kommoFieldId": 918589,
+      "fieldType": "numeric",
+      "enumMap": {},
+      "kommoFieldType": "numeric"
+    },
+    "729123": {
+      "kommoFieldId": 880928,
+      "amoFieldName": "TEXTAREA",
+      "kommoFieldName": "TEXTAREA",
+      "amoFieldType": "textarea",
+      "kommoFieldType": "textarea",
+      "amoGroup": "╤В╨╡╤Е_╨┐╨╛╨╗╤П",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "729215": {
+      "kommoFieldId": 918535,
+      "fieldType": "checkbox",
+      "enumMap": {},
+      "kommoFieldType": "checkbox"
+    },
+    "729347": {
+      "kommoFieldId": 869208,
+      "amoFieldName": "UTM_ID",
+      "kommoFieldName": "UTM_ID",
+      "amoFieldType": "textarea",
+      "kommoFieldType": "textarea",
+      "amoGroup": "╤В╨╡╤Е_╨┐╨╛╨╗╤П",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "730353": {
+      "kommoFieldId": 918459,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "730355": {
+      "kommoFieldId": 918461,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "730357": {
+      "kommoFieldId": 918463,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "730359": {
+      "kommoFieldId": 918465,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "730361": {
+      "kommoFieldId": 918467,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "730363": {
+      "kommoFieldId": 918469,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "730365": {
+      "kommoFieldId": 918471,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "730373": {
+      "kommoFieldId": 918473,
+      "fieldType": "text",
+      "enumMap": {},
+      "kommoFieldType": "text"
+    },
+    "730801": {
+      "kommoFieldId": 918359,
+      "fieldType": "checkbox",
+      "enumMap": {},
+      "amoGroup": "╨║╨╛╨╜╤В╤А╨╛╨╗╤М_╨║╨░╤З╨╡╤Б╤В╨▓╨░",
+      "kommoFieldType": "checkbox"
+    },
+    "731073": {
+      "kommoFieldId": 918475,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "731075": {
+      "kommoFieldId": 918457,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    },
+    "731083": {
+      "kommoFieldId": 918473,
+      "amoFieldName": "GA UTM",
+      "kommoFieldName": "GA UTM",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "╤В╨╡╤Е_╨┐╨╛╨╗╤П",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "731675": {
+      "kommoFieldId": 918517,
+      "fieldType": "text",
+      "enumMap": {},
+      "kommoFieldType": "text"
+    },
+    "731677": {
+      "kommoFieldId": 918519,
+      "fieldType": "text",
+      "enumMap": {},
+      "kommoFieldType": "text"
+    },
+    "732843": {
+      "kommoFieldId": 918537,
+      "fieldType": "select",
+      "enumMap": {
+        "451603": 761873,
+        "451605": 761875,
+        "451607": 761877,
+        "451609": 761879,
+        "451611": 761881,
+        "451613": 761883,
+        "451615": 761885,
+        "451617": 761887,
+        "451619": 761889,
+        "451621": 761891,
+        "451623": 761893,
+        "451625": 761895
+      },
+      "amoFieldName": "╨а╨д ╤Н╤В╨░╨┐",
+      "kommoFieldName": "╨а╨д ╤Н╤В╨░╨┐",
+      "amoFieldType": "select",
+      "kommoFieldType": "select",
+      "transferMode": "direct"
+    },
+    "733053": {
+      "kommoFieldId": 918539,
+      "fieldType": "select",
+      "enumMap": {
+        "451711": 761897,
+        "451713": 761899,
+        "451715": 761901,
+        "451717": 761903,
+        "451719": 761905,
+        "451721": 761907,
+        "451723": 761909,
+        "451725": 761911,
+        "451727": 761913,
+        "451729": 761915,
+        "451731": 761917,
+        "451733": 761919
+      },
+      "amoFieldName": "╨Ь╨Ц╨Ф ╤Н╤В╨░╨┐",
+      "kommoFieldName": "╨Ь╨Ц╨Ф ╤Н╤В╨░╨┐",
+      "amoFieldType": "select",
+      "kommoFieldType": "select",
+      "transferMode": "direct"
+    },
+    "733079": {
+      "kommoFieldId": 918541,
+      "fieldType": "select",
+      "enumMap": {
+        "451791": 761921,
+        "451793": 761923,
+        "451795": 761925,
+        "451797": 761927,
+        "451799": 761929,
+        "451801": 761931,
+        "451803": 761933,
+        "451805": 761935,
+        "451807": 761937,
+        "451809": 761939,
+        "451811": 761941,
+        "451813": 761943,
+        "451815": 761945,
+        "451817": 761947,
+        "451819": 761949
+      },
+      "amoFieldName": "╨Я╤А╨╛╨│╤А╨╡╨▓ ╨а╨и ╤Н╤В╨░╨┐",
+      "kommoFieldName": "╨Я╤А╨╛╨│╤А╨╡╨▓ ╨а╨и ╤Н╤В╨░╨┐",
+      "amoFieldType": "select",
+      "kommoFieldType": "select",
+      "transferMode": "direct"
+    },
+    "733081": {
+      "kommoFieldId": 918543,
+      "fieldType": "select",
+      "enumMap": {
+        "451821": 761951,
+        "451823": 761953,
+        "451825": 761955,
+        "451827": 761957,
+        "451829": 761959,
+        "451831": 761961,
+        "451833": 761963,
+        "451835": 761965,
+        "451837": 761967,
+        "451839": 761969,
+        "451841": 761971,
+        "451843": 761973,
+        "451845": 761975
+      },
+      "amoFieldName": "╨Я╤А╨╛╨│╤А╨╡╨▓ ╨Ь╨и ╤Н╤В╨░╨┐",
+      "kommoFieldName": "╨Я╤А╨╛╨│╤А╨╡╨▓ ╨Ь╨и ╤Н╤В╨░╨┐",
+      "amoFieldType": "select",
+      "kommoFieldType": "select",
+      "transferMode": "direct"
+    },
+    "734768": {
+      "kommoFieldId": 918715,
+      "amoFieldName": "╨Я╤А╨╛╨┤╤Г╨║╤В",
+      "kommoFieldName": "Product",
+      "amoFieldType": "multiselect",
+      "kommoFieldType": "select",
+      "transferMode": "first_value",
+      "enumMap": {
+        "453816": 762347,
+        "453818": 762327,
+        "453820": 762349,
+        "453822": 762329,
+        "453824": 762351,
+        "453826": 762353,
+        "453828": 762355,
+        "453830": 762357,
+        "453834": 762359
+      }
+    },
+    "734770": {
+      "kommoFieldId": 918593,
+      "fieldType": "select",
+      "enumMap": {
+        "453836": 762159,
+        "453838": 762161,
+        "453840": 762163,
+        "453842": 762165,
+        "453844": 762167,
+        "453846": 762169,
+        "453848": 762171,
+        "453850": 762173,
+        "453852": 762175,
+        "453854": 762177,
+        "453856": 762179,
+        "453858": 762181
+      },
+      "amoFieldName": "╨б╨▓╤П╨╖╨░╤В╤М╤Б╤П",
+      "kommoFieldName": "╨б╨▓╤П╨╖╨░╤В╤М╤Б╤П",
+      "amoFieldType": "select",
+      "kommoFieldType": "select",
+      "transferMode": "direct"
+    },
+    "734772": {
+      "kommoFieldId": 918371,
+      "fieldType": "text",
+      "enumMap": {},
+      "amoGroup": "emfy",
+      "kommoFieldType": "text"
+    },
+    "734774": {
+      "kommoFieldId": 918373,
+      "fieldType": "text",
+      "enumMap": {},
+      "amoGroup": "emfy",
+      "kommoFieldType": "text"
+    },
+    "734776": {
+      "kommoFieldId": 918375,
+      "fieldType": "select",
+      "enumMap": {
+        "453862": 761855
+      },
+      "amoFieldName": "╨Я╨╡╤А╨╡╤И╨╗╨╕ ╨╕╨╖ ╤А╨╡╨░╨╜╨╕╨╝╨░╤Ж╨╕╨╕",
+      "kommoFieldName": "╨Я╨╡╤А╨╡╤И╨╗╨╕ ╨╕╨╖ ╤А╨╡╨░╨╜╨╕╨╝╨░╤Ж╨╕╨╕",
+      "amoFieldType": "select",
+      "kommoFieldType": "select",
+      "transferMode": "direct",
+      "amoGroup": "emfy"
+    },
+    "735125": {
+      "kommoFieldId": 918377,
+      "fieldType": "text",
+      "enumMap": {},
+      "amoGroup": "emfy",
+      "kommoFieldType": "text"
+    },
+    "735131": {
+      "kommoFieldId": 918545,
+      "fieldType": "text",
+      "enumMap": {},
+      "kommoFieldType": "text"
+    },
+    "735133": {
+      "kommoFieldId": 918577,
+      "fieldType": "textarea",
+      "enumMap": {},
+      "kommoFieldType": "textarea"
+    }
+  },
+  "contacts": {
+    "55561": {
+      "kommoFieldId": 200296,
+      "amoFieldName": "╨Ф╨╛╨╗╨╢╨╜╨╛╤Б╤В╤М",
+      "kommoFieldName": "Position",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "╨Ф╨╛╨┐.",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "55563": {
+      "kommoFieldId": 200298,
+      "amoFieldName": "╨в╨╡╨╗╨╡╤Д╨╛╨╜",
+      "kommoFieldName": "Phone",
+      "amoFieldType": "multitext",
+      "kommoFieldType": "multitext",
+      "amoGroup": "╨Ю╤Б╨╜╨╛╨▓╨╜╨╛╨╡",
+      "transferMode": "direct",
+      "enumMap": {
+        "80017": 166646,
+        "80019": 166648,
+        "80021": 166650,
+        "80023": 166652,
+        "80025": 166654,
+        "80027": 166656
+      }
+    },
+    "55565": {
+      "kommoFieldId": 200300,
+      "amoFieldName": "Email",
+      "kommoFieldName": "Email",
+      "amoFieldType": "multitext",
+      "kommoFieldType": "multitext",
+      "amoGroup": "╨Ю╤Б╨╜╨╛╨▓╨╜╨╛╨╡",
+      "transferMode": "direct",
+      "enumMap": {
+        "80029": 166658,
+        "80031": 166660,
+        "80033": 166662
+      }
+    },
+    "112229": {
+      "kommoFieldId": 871456,
+      "amoFieldName": "╨Я╨╛╨╗",
+      "kommoFieldName": "Male/Female",
+      "amoFieldType": "radiobutton",
+      "kommoFieldType": "radiobutton",
+      "amoGroup": "╨Ю╤Б╨╜╨╛╨▓╨╜╨╛╨╡",
+      "transferMode": "direct",
+      "enumMap": {
+        "160295": 733146,
+        "160297": 733148
+      }
+    },
+    "698985": {
+      "kommoFieldId": 871458,
+      "amoFieldName": "╨а╨╛╨╗╤М",
+      "kommoFieldName": "Relationship to the student",
+      "amoFieldType": "select",
+      "kommoFieldType": "select",
+      "amoGroup": "╨Ю╤Б╨╜╨╛╨▓╨╜╨╛╨╡",
+      "transferMode": "direct",
+      "enumMap": {
+        "400107": 733152,
+        "400109": 733150,
+        "404913": 733156,
+        "404915": 733154,
+        "404985": 733162,
+        "404987": 733158
+      }
+    },
+    "704035": {
+      "kommoFieldId": 918673,
+      "amoFieldName": "╨Я╨╛╨╗╤М╨╖╨╛╨▓╨░╤В╨╡╨╗╤М╤Б╨║╨╛╨╡ ╤Б╨╛╨│╨╗╨░╤И╨╡╨╜╨╕╨╡",
+      "kommoFieldName": "╨Я╨╛╨╗╤М╨╖╨╛╨▓╨░╤В╨╡╨╗╤М╤Б╨║╨╛╨╡ ╤Б╨╛╨│╨╗╨░╤И╨╡╨╜╨╕╨╡",
+      "amoFieldType": "checkbox",
+      "kommoFieldType": "checkbox",
+      "amoGroup": "╨Ф╨╛╨┐.",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "704129": {
+      "kommoFieldId": 871454,
+      "amoFieldName": "╨У╨╛╤А╨╛╨┤",
+      "kommoFieldName": "Town/City",
+      "amoFieldType": "textarea",
+      "kommoFieldType": "text",
+      "amoGroup": "╨Ю╤Б╨╜╨╛╨▓╨╜╨╛╨╡",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "706039": {
+      "kommoFieldId": 918679,
+      "amoFieldName": "TelegramUsername_WZ",
+      "kommoFieldName": "TelegramUsername_WZ",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "╨Ф╨╛╨┐.",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "706041": {
+      "kommoFieldId": 918677,
+      "amoFieldName": "TelegramId_WZ",
+      "kommoFieldName": "TelegramId_WZ",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "╨Ф╨╛╨┐.",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "710287": {
+      "kommoFieldId": 918669,
+      "amoFieldName": "╨а╨╡╤Д╨╡╤А╨░╨╗╤М╨╜╨░╤П ╤Б╤Б╤Л╨╗╨║╨░",
+      "kommoFieldName": "╨а╨╡╤Д╨╡╤А╨░╨╗╤М╨╜╨░╤П ╤Б╤Б╤Л╨╗╨║╨░",
+      "amoFieldType": "url",
+      "kommoFieldType": "url",
+      "amoGroup": "╨а╨╡╤Д. ╤Б╤Б╤Л╨╗╨║╨╕",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "710289": {
+      "kommoFieldId": 918667,
+      "amoFieldName": "╨б╤Б╤Л╨╗╨║╨░ ╨╜╨░ ╤А╨╡╤Д╨╡╤А╨░╨╗╨╛╨▓",
+      "kommoFieldName": "╨б╤Б╤Л╨╗╨║╨░ ╨╜╨░ ╤А╨╡╤Д╨╡╤А╨░╨╗╨╛╨▓",
+      "amoFieldType": "url",
+      "kommoFieldType": "url",
+      "amoGroup": "╨а╨╡╤Д. ╤Б╤Б╤Л╨╗╨║╨╕",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "710291": {
+      "kommoFieldId": 918665,
+      "amoFieldName": "╨б╤Б╤Л╨╗╨║╨░ ╨╜╨░ ╤А╨╡╤Д╨╡╤А╨░",
+      "kommoFieldName": "╨б╤Б╤Л╨╗╨║╨░ ╨╜╨░ ╤А╨╡╤Д╨╡╤А╨░",
+      "amoFieldType": "url",
+      "kommoFieldType": "url",
+      "amoGroup": "╨а╨╡╤Д. ╤Б╤Б╤Л╨╗╨║╨╕",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "720125": {
+      "kommoFieldId": 918681,
+      "amoFieldName": "TelegroupId_WZ",
+      "kommoFieldName": "TelegroupId_WZ",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "╨Ф╨╛╨┐.",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "723483": {
+      "kommoFieldId": 871464,
+      "amoFieldName": "╨Ъ╨▓╨░╨╗╨╕╤Д╨╕╤Ж╨╕╤А╨╛╨▓╨░╨╜",
+      "kommoFieldName": "Qualified",
+      "amoFieldType": "checkbox",
+      "kommoFieldType": "checkbox",
+      "amoGroup": "╨Ю╤Б╨╜╨╛╨▓╨╜╨╛╨╡",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "724181": {
+      "kommoFieldId": 918683,
+      "amoFieldName": "EmfyPusherSub",
+      "kommoFieldName": "EmfyPusherSub",
+      "amoFieldType": "textarea",
+      "kommoFieldType": "textarea",
+      "amoGroup": "╨Ф╨╛╨┐.",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "725117": {
+      "kommoFieldId": 918707,
+      "amoFieldName": "╨б╤Б╤Л╨╗╨║╨░ ╨╜╨░ alfaCRM",
+      "kommoFieldName": "╨б╤Б╤Л╨╗╨║╨░ ╨╜╨░ alfaCRM",
+      "amoFieldType": "url",
+      "kommoFieldType": "url",
+      "amoGroup": "╨Ю╤Б╨╜╨╛╨▓╨╜╨╛╨╡",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "725389": {
+      "kommoFieldId": 871462,
+      "amoFieldName": "╨г╤З╨╡╨╜╨╕╨║",
+      "kommoFieldName": "Student",
+      "amoFieldType": "checkbox",
+      "kommoFieldType": "checkbox",
+      "amoGroup": "╨Ю╤Б╨╜╨╛╨▓╨╜╨╛╨╡",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "725649": {
+      "kommoFieldId": 918671,
+      "amoFieldName": "╨Ш╨╝╤П",
+      "kommoFieldName": "╨Ш╨╝╤П",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "╨Ф╨╛╨┐.",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "728971": {
+      "kommoFieldId": 918675,
+      "amoFieldName": "╨Ш╨Э╨д╨Ю ╨Ю ╨Я╨а╨Ю╨Ф╨Ы╨Х╨Э╨Ш╨Ш",
+      "kommoFieldName": "╨Ш╨Э╨д╨Ю ╨Ю ╨Я╨а╨Ю╨Ф╨Ы╨Х╨Э╨Ш╨Ш",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "╨Ф╨╛╨┐.",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "730797": {
+      "kommoFieldId": 918709,
+      "amoFieldName": "╨Ю╨в╨Я╨Ш╨б╨Р╨Ы╨Р╨б╨м",
+      "kommoFieldName": "╨Ю╨в╨Я╨Ш╨б╨Р╨Ы╨Р╨б╨м",
+      "amoFieldType": "checkbox",
+      "kommoFieldType": "checkbox",
+      "amoGroup": "╨Ю╤Б╨╜╨╛╨▓╨╜╨╛╨╡",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "733429": {
+      "kommoFieldId": 918711,
+      "amoFieldName": "╨Ф╨╡╨╜╤М ╤А╨╛╨╢╨┤╨╡╨╜╨╕╤П ╤А╨╡╨▒╤С╨╜╨║╨░",
+      "kommoFieldName": "╨Ф╨╡╨╜╤М ╤А╨╛╨╢╨┤╨╡╨╜╨╕╤П ╤А╨╡╨▒╤С╨╜╨║╨░",
+      "amoFieldType": "birthday",
+      "kommoFieldType": "birthday",
+      "amoGroup": "╨Ю╤Б╨╜╨╛╨▓╨╜╨╛╨╡",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "733981": {
+      "kommoFieldId": 918687,
+      "amoFieldName": "Venyoo ╨▓╨╛╨┐╤А╨╛╤Б",
+      "kommoFieldName": "Venyoo ╨▓╨╛╨┐╤А╨╛╤Б",
+      "amoFieldType": "textarea",
+      "kommoFieldType": "textarea",
+      "amoGroup": "╨Ю╤Б╨╜╨╛╨▓╨╜╨╛╨╡",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "733983": {
+      "kommoFieldId": 918689,
+      "amoFieldName": "Venyoo ╨╕╨╝╤П",
+      "kommoFieldName": "Venyoo ╨╕╨╝╤П",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "╨Ю╤Б╨╜╨╛╨▓╨╜╨╛╨╡",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "733985": {
+      "kommoFieldId": 918691,
+      "amoFieldName": "Venyoo ╤Б╨░╨╣╤В",
+      "kommoFieldName": "Venyoo ╤Б╨░╨╣╤В",
+      "amoFieldType": "url",
+      "kommoFieldType": "url",
+      "amoGroup": "╨Ю╤Б╨╜╨╛╨▓╨╜╨╛╨╡",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "733987": {
+      "kommoFieldId": 918693,
+      "amoFieldName": "Venyoo ╤Б╤В╤А╨░╨╜╨╕╤Ж╨░ ╨╛╤В╨┐╤А╨░╨▓╨║╨╕",
+      "kommoFieldName": "Venyoo ╤Б╤В╤А╨░╨╜╨╕╤Ж╨░ ╨╛╤В╨┐╤А╨░╨▓╨║╨╕",
+      "amoFieldType": "url",
+      "kommoFieldType": "url",
+      "amoGroup": "╨Ю╤Б╨╜╨╛╨▓╨╜╨╛╨╡",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "733989": {
+      "kommoFieldId": 918199,
+      "amoFieldName": "Venyoo ╨│╨╛╤А╨╛╨┤",
+      "kommoFieldName": "Venyoo ╨│╨╛╤А╨╛╨┤",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "╨Ю╤Б╨╜╨╛╨▓╨╜╨╛╨╡",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "733991": {
+      "kommoFieldId": 918697,
+      "amoFieldName": "utm_medium",
+      "kommoFieldName": "utm_medium",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "╨Ю╤Б╨╜╨╛╨▓╨╜╨╛╨╡",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "733993": {
+      "kommoFieldId": 918699,
+      "amoFieldName": "utm_campaign",
+      "kommoFieldName": "utm_campaign",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "╨Ю╤Б╨╜╨╛╨▓╨╜╨╛╨╡",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "733995": {
+      "kommoFieldId": 918701,
+      "amoFieldName": "utm_content",
+      "kommoFieldName": "utm_content",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "╨Ю╤Б╨╜╨╛╨▓╨╜╨╛╨╡",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "733997": {
+      "kommoFieldId": 918703,
+      "amoFieldName": "utm_term",
+      "kommoFieldName": "utm_term",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "╨Ю╤Б╨╜╨╛╨▓╨╜╨╛╨╡",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "733999": {
+      "kommoFieldId": 918695,
+      "amoFieldName": "utm_source",
+      "kommoFieldName": "utm_source",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "╨Ю╤Б╨╜╨╛╨▓╨╜╨╛╨╡",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "734001": {
+      "kommoFieldId": 918705,
+      "amoFieldName": "Venyoo GA_id",
+      "kommoFieldName": "Venyoo GA_id",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "╨Ю╤Б╨╜╨╛╨▓╨╜╨╛╨╡",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "734249": {
+      "kommoFieldId": 918685,
+      "amoFieldName": "MaxId_WZ",
+      "kommoFieldName": "MaxId_WZ",
+      "amoFieldType": "text",
+      "kommoFieldType": "text",
+      "amoGroup": "╨Ю╤Б╨╜╨╛╨▓╨╜╨╛╨╡",
+      "transferMode": "direct",
+      "enumMap": {}
+    }
+  },
+  "companies": {
+    "55563": {
+      "kommoFieldId": 200298,
+      "amoFieldName": "╨в╨╡╨╗╨╡╤Д╨╛╨╜",
+      "kommoFieldName": "Phone",
+      "amoFieldType": "multitext",
+      "kommoFieldType": "multitext",
+      "amoGroup": "╨Ю╤Б╨╜╨╛╨▓╨╜╨╛╨╡",
+      "transferMode": "direct",
+      "enumMap": {
+        "80017": 166646,
+        "80019": 166648,
+        "80021": 166650,
+        "80023": 166652,
+        "80025": 166654,
+        "80027": 166656
+      }
+    },
+    "55565": {
+      "kommoFieldId": 200300,
+      "amoFieldName": "Email",
+      "kommoFieldName": "Email",
+      "amoFieldType": "multitext",
+      "kommoFieldType": "multitext",
+      "amoGroup": "╨Ю╤Б╨╜╨╛╨▓╨╜╨╛╨╡",
+      "transferMode": "direct",
+      "enumMap": {
+        "80029": 166658,
+        "80031": 166660,
+        "80033": 166662
+      }
+    },
+    "55567": {
+      "kommoFieldId": 200302,
+      "amoFieldName": "Web",
+      "kommoFieldName": "Web",
+      "amoFieldType": "url",
+      "kommoFieldType": "url",
+      "amoGroup": "╨Ю╤Б╨╜╨╛╨▓╨╜╨╛╨╡",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "55569": {
+      "kommoFieldId": 200304,
+      "amoFieldName": "╨Р╨┤╤А╨╡╤Б",
+      "kommoFieldName": "Address",
+      "amoFieldType": "textarea",
+      "kommoFieldType": "textarea",
+      "amoGroup": "╨Ю╤Б╨╜╨╛╨▓╨╜╨╛╨╡",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "724183": {
+      "kommoFieldId": 918663,
+      "amoFieldName": "EmfyPusherSub",
+      "kommoFieldName": "EmfyPusherSub",
+      "amoFieldType": "textarea",
+      "kommoFieldType": "textarea",
+      "amoGroup": "╨Ю╤Б╨╜╨╛╨▓╨╜╨╛╨╡",
+      "transferMode": "direct",
+      "enumMap": {}
+    },
+    "730795": {
+      "kommoFieldId": 918661,
+      "amoFieldName": "╨Ю╤В╨┐╨╕╤Б╨░╨╗╨░╤Б╤М ╨╛╤В ╤А╨░╤Б╤Б╤Л╨╗╨║╨╕",
+      "kommoFieldName": "╨Ю╤В╨┐╨╕╤Б╨░╨╗╨░╤Б╤М ╨╛╤В ╤А╨░╤Б╤Б╤Л╨╗╨║╨╕",
+      "amoFieldType": "checkbox",
+      "kommoFieldType": "checkbox",
+      "amoGroup": "╨Ю╤Б╨╜╨╛╨▓╨╜╨╛╨╡",
+      "transferMode": "direct",
+      "enumMap": {}
+    }
+  }
+}

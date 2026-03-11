@@ -1,0 +1,16 @@
+const fs = require('fs');
+const f = '/var/www/amoschool/backend/src/versions.js';
+let code = fs.readFileSync(f, 'utf8');
+code = code.replace("вто-цикл пакетной миграции", "Авто-цикл пакетной миграции");
+code = code.replace("нопка «вто С»", "Кнопка «Авто ВСЕ»");
+code = code.replace("нопка «Стоп»", "Кнопка «Стоп»");
+code = code.replace("ерификация счётчиков", "Верификация счётчиков");
+code = code.replace("братный отсчёт", "Обратный отсчёт");
+code = code.replace("лоская отправка", "Плоская отправка");
+code = code.replace("аметки сделок", "Заметки сделок");
+code = code.replace(/ремя миграции 10 сделок: ~3/, "Время миграции 10 сделок: ~3");
+code = code.replace("аметки контактов загружаются", "Заметки контактов загружаются");
+code = code.replace(/ремя миграции 10 сделок: ~9/, "Время миграции 10 сделок: ~9");
+fs.writeFileSync(f, code, 'utf8');
+console.log('Fixed. First 40 lines:');
+console.log(code.split('\n').slice(0,40).join('\n'));
