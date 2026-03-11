@@ -914,6 +914,8 @@ async function runBatchMigration(stageMapping) {
     batchState.stats.remainingLeads   = Math.max(0, eligible.length - batchConfig.offset);
     // Save last batch position for retry feature
     batchState.lastBatch = { from, size: batchLeads.length };
+    // Store AMO→Kommo deal pairs for verification UI
+    batchState.dealPairs = Object.entries(leadIdMap).map(([amo, kommo]) => ({ amoId: Number(amo), kommoId: Number(kommo) }));
     saveBatchConfig();
 
     updateState({
