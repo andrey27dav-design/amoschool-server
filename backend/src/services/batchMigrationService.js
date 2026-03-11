@@ -17,9 +17,12 @@ const BATCH_CONFIG_FILE = path.resolve(config.backupDir, 'batch_config.json');
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let pauseRequestedFlag = false;
+let autoRunEnabled = false;    // auto-run cycle active
+let autoRunStopFlag = false;   // user pressed stop during countdown
+let autoRunContinueFlag = false; // frontend signals: countdown done, start next batch
 
 let batchState = {
-  status: 'idle', // idle | running | completed | error | rolling_back | paused
+  status: 'idle', // idle | running | completed | error | rolling_back | paused | auto-waiting
   step: null,
   progress: { current: 0, total: 0 },
   errors: [],
@@ -220,6 +223,10 @@ const SKIP_NOTE_TYPES = new Set([10, 11, 'amomail_message', 'extended_service_me
 
 async function runBatchMigration(stageMapping) {
   if (batchState.status === 'running') throw new Error('Пакетная миграция уже выполняется');
+
+  // Reset stale flags from previous stop (prevents phantom pause on new batch)
+  pauseRequestedFlag = false;
+  if (!autoRunEnabled) autoRunStopFlag = false;
 
   loadBatchConfig();
 
@@ -812,78 +819,92 @@ async function runBatchMigration(stageMapping) {
       const leadAmoIds = batchLeads.map(l => l.id);
       try {
         const allLeadNotes = await amoApi.getLeadNotesByEntityIds(leadAmoIds);
-        // Dedup by note ID to prevent duplicates on batch re-run
         const _batchLeadNotesTyped = allLeadNotes.filter(note => !SKIP_NOTE_TYPES.has(note.note_type));
         const { toCreate: _batchLeadNotesToCreate } = safety.filterNotMigrated('notes_leads', _batchLeadNotesTyped, n => n.id);
-        // Group by kommo lead ID
-        const _batchLeadNotesGrouped = {};
+        // Build flat array: all notes for all leads in one bulk call
+        const _allLeadNotesMapped = [];
+        const _allLeadNoteAmoIds = [];
         for (const note of _batchLeadNotesToCreate) {
           const kId = leadIdMap[note.entity_id];
           if (!kId) continue;
-          if (!_batchLeadNotesGrouped[kId]) _batchLeadNotesGrouped[kId] = [];
-          _batchLeadNotesGrouped[kId].push(note);
+          const s = sanitizeNoteParams(note);
+          _allLeadNotesMapped.push({ entity_id: Number(kId), note_type: s.note_type, params: s.params, created_by: 12739795 });
+          _allLeadNoteAmoIds.push(note.id);
         }
-        const _batchLeadNotePairs = [];
-        for (const [kId, notes] of Object.entries(_batchLeadNotesGrouped)) {
-          const _amoNoteIds = notes.map(n => n.id);
-          const n = notes.map(note => { const s = sanitizeNoteParams(note); return { entity_id: Number(kId), note_type: s.note_type, params: s.params, created_by: 12739795 }; });
-          try {
-            const created = await kommoApi.createNotesBatch('leads', n);
-            created.forEach((cn, idx) => {
-              if (cn) {
-                batchState.createdIds.notes.push(cn.id);
-                if (_amoNoteIds[idx]) _batchLeadNotePairs.push({ amoId: Number(_amoNoteIds[idx]), kommoId: cn.id });
-              }
-            });
-            const _leadSuccessCount = created.filter(x => x !== null).length;
-            if (_leadSuccessCount < n.length) {
-              logger.warn(`[batch] Заметки сделки Kommo#${kId} (AMO#${kommoToAmoLead[kId] || '?'}): перенесено ${_leadSuccessCount}/${n.length}`);
-              if (_leadSuccessCount === 0) addWarning(`Заметки сделки Kommo#${kId} (AMO#${kommoToAmoLead[kId] || '?'}): 0 из ${n.length} перенесено после retry.`, 'Попробуйте повтор пакета.');
+        if (_allLeadNotesMapped.length > 0) {
+          const created = await kommoApi.createNotesBatch('leads', _allLeadNotesMapped);
+          const _batchLeadNotePairs = [];
+          created.forEach((cn, idx) => {
+            if (cn) {
+              batchState.createdIds.notes.push(cn.id);
+              if (_allLeadNoteAmoIds[idx]) _batchLeadNotePairs.push({ amoId: Number(_allLeadNoteAmoIds[idx]), kommoId: cn.id });
             }
-          } catch (e) {
-            logger.error(`[batch] Неожиданная ошибка заметок сделки Kommo#${kId}: ${e.message}`);
+          });
+          if (_batchLeadNotePairs.length > 0) safety.registerMigratedBatch('notes_leads', _batchLeadNotePairs);
+          const _leadSuccessCount = created.filter(x => x !== null).length;
+          if (_leadSuccessCount < _allLeadNotesMapped.length) {
+            logger.warn(`[batch] Заметки сделок: перенесено ${_leadSuccessCount}/${_allLeadNotesMapped.length}`);
           }
         }
-        if (_batchLeadNotePairs.length > 0) safety.registerMigratedBatch('notes_leads', _batchLeadNotePairs);
       } catch (e) {
         addWarning('Не удалось загрузить заметки сделок: ' + e.message, 'Попробуйте повторить пакет.');
       }
     }
 
     updateState({ step: 'Перенос комментариев контактов...' });
-    const batchTransferredContactIds = new Set();
-    for (const aLead of batchLeads) {
-      for (const c of (aLead._embedded?.contacts || [])) {
-        const aContactId = c.id;
-        const kContactId = contactIdMap[aContactId];
-        if (!kContactId || batchTransferredContactIds.has(aContactId)) continue;
-        batchTransferredContactIds.add(aContactId);
-        try {
-          const _bCNotes = await amoApi.getContactNotes(aContactId);
-          // Dedup by note ID
-          const _bCNotesTyped = _bCNotes.filter(note => !SKIP_NOTE_TYPES.has(note.note_type));
-          const { toCreate: _bCNotesToCreate } = safety.filterNotMigrated('notes_contacts', _bCNotesTyped, n => n.id);
-          if (_bCNotesToCreate.length > 0) {
-            const _bCNoteAmoIds = _bCNotesToCreate.map(n => n.id);
-            const n = _bCNotesToCreate.map(note => { const s = sanitizeNoteParams(note); return { entity_id: Number(kContactId), note_type: s.note_type, params: s.params, created_by: 12739795 }; });
-            const created = await kommoApi.createNotesBatch('contacts', n);
-            const _bCNotePairs = [];
-            created.forEach((cn, idx) => {
-              if (cn) {
-                batchState.createdIds.notes.push(cn.id);
-                if (_bCNoteAmoIds[idx]) _bCNotePairs.push({ amoId: Number(_bCNoteAmoIds[idx]), kommoId: cn.id });
-              }
-            });
-            if (_bCNotePairs.length > 0) safety.registerMigratedBatch('notes_contacts', _bCNotePairs);
-          const _cSuccessCount = created.filter(x => x !== null).length;
-          if (_cSuccessCount < n.length) {
-            logger.warn(`[batch] Заметки контакта AMO#${aContactId} (Kommo#${kContactId}): перенесено ${_cSuccessCount}/${n.length}`);
-            if (_cSuccessCount === 0) addWarning(`Заметки контакта AMO#${aContactId} (Kommo#${kContactId}): 0 из ${n.length} перенесено после retry.`, 'Попробуйте повтор пакета.');
-          }
-          }
-        } catch (e) {
-          logger.error(`[batch] Неожиданная ошибка заметок контакта AMO#${aContactId}: ${e.message}`);
+    {
+      // Collect unique contact IDs from this batch
+      const batchContactAmoIds = [];
+      const seenContactIds = new Set();
+      for (const aLead of batchLeads) {
+        for (const c of (aLead._embedded?.contacts || [])) {
+          const aContactId = c.id;
+          if (!contactIdMap[aContactId] || seenContactIds.has(aContactId)) continue;
+          seenContactIds.add(aContactId);
+          batchContactAmoIds.push(aContactId);
         }
+      }
+      try {
+        // Bulk-fetch all contact notes in one API call (batches of 50 inside)
+        const allContactNotes = await amoApi.getContactNotesByEntityIds(batchContactAmoIds);
+        // Filter out skipped types + dedup via safety
+        const _bCNotesTyped = allContactNotes.filter(note => !SKIP_NOTE_TYPES.has(note.note_type));
+        const { toCreate: _bCNotesToCreate } = safety.filterNotMigrated('notes_contacts', _bCNotesTyped, n => n.id);
+        // Group by kommo contact ID
+        const _bCNotesGrouped = {};
+        for (const note of _bCNotesToCreate) {
+          const kId = contactIdMap[note.entity_id];
+          if (!kId) continue;
+          if (!_bCNotesGrouped[kId]) _bCNotesGrouped[kId] = [];
+          _bCNotesGrouped[kId].push(note);
+        }
+        // Build flat array: all contact notes in one bulk call
+        const _allContactNotesMapped = [];
+        const _allContactNoteAmoIds = [];
+        for (const [kId, notes] of Object.entries(_bCNotesGrouped)) {
+          for (const note of notes) {
+            const s = sanitizeNoteParams(note);
+            _allContactNotesMapped.push({ entity_id: Number(kId), note_type: s.note_type, params: s.params, created_by: 12739795 });
+            _allContactNoteAmoIds.push(note.id);
+          }
+        }
+        if (_allContactNotesMapped.length > 0) {
+          const created = await kommoApi.createNotesBatch('contacts', _allContactNotesMapped);
+          const _batchContactNotePairs = [];
+          created.forEach((cn, idx) => {
+            if (cn) {
+              batchState.createdIds.notes.push(cn.id);
+              if (_allContactNoteAmoIds[idx]) _batchContactNotePairs.push({ amoId: Number(_allContactNoteAmoIds[idx]), kommoId: cn.id });
+            }
+          });
+          if (_batchContactNotePairs.length > 0) safety.registerMigratedBatch('notes_contacts', _batchContactNotePairs);
+          const _cSuccessCount = created.filter(x => x !== null).length;
+          if (_cSuccessCount < _allContactNotesMapped.length) {
+            logger.warn(`[batch] Заметки контактов: перенесено ${_cSuccessCount}/${_allContactNotesMapped.length}`);
+          }
+        }
+      } catch (e) {
+        addWarning('Не удалось загрузить заметки контактов: ' + e.message, 'Попробуйте повторить пакет.');
       }
     }
 
@@ -1621,4 +1642,175 @@ async function retryLastBatch() {
   return runBatchMigration(stageMapping);
 }
 
-module.exports = { getBatchConfig, setBatchConfig, getBatchState, analyzeManagers, getStats, runBatchMigration, rollbackBatch, resetOffset, loadBatchConfig, loadAmoCache, runSingleDealsTransfer, pauseBatch, retryLastBatch };
+// ─── Auto-run cycle ───────────────────────────────────────────────────────────
+/**
+ * Starts an auto-run cycle: runs batches one after another with a 60-second
+ * pause between them (to allow the user to review and press Stop).
+ * The migration logic itself (runBatchMigration) is NOT changed.
+ */
+async function startAutoRun() {
+  if (autoRunEnabled) throw new Error('Автозапуск уже работает');
+  if (batchState.status === 'running') throw new Error('Пакетная миграция уже выполняется');
+
+  autoRunEnabled = true;
+  autoRunStopFlag = false;
+  pauseRequestedFlag = false;
+  logger.info('[auto-run] Auto-run cycle started, batchSize=' + batchConfig.batchSize);
+
+  // Load stage mapping once
+  const cfg2 = require('../config');
+  const stagePath = path.resolve(cfg2.backupDir, 'stage_mapping.json');
+  let stageMapping = {};
+  if (fs.existsSync(stagePath)) stageMapping = fs.readJsonSync(stagePath);
+
+  try {
+    while (autoRunEnabled && !autoRunStopFlag) {
+      loadBatchConfig();
+      const cache = loadAmoCache();
+      const eligible = getEligibleLeads(cache.leads || [], batchConfig.managerIds);
+      const remaining = eligible.length - batchConfig.offset;
+
+      if (remaining <= 0) {
+        logger.info('[auto-run] All deals migrated. Stopping auto-run.');
+        updateState({
+          status: 'completed',
+          step: `✅ Автозапуск завершён: все ${eligible.length} сделок перенесены`,
+          completedAt: new Date().toISOString(),
+        });
+        break;
+      }
+
+      // ── Run one batch ──
+      const offsetBefore = batchConfig.offset;
+      await runBatchMigration(stageMapping);
+
+      // ── Check result ──
+      loadBatchConfig();
+      const offsetAfter = batchConfig.offset;
+      const transferred = offsetAfter - offsetBefore;
+      const expectedSize = Math.min(batchConfig.batchSize || remaining, remaining);
+
+      if (batchState.status === 'error') {
+        logger.warn('[auto-run] Batch ended with error. Stopping auto-run.');
+        autoRunEnabled = false;
+        break;
+      }
+
+      if (batchState.status === 'paused') {
+        logger.info('[auto-run] Batch was paused manually. Stopping auto-run.');
+        autoRunEnabled = false;
+        break;
+      }
+
+      // Counter verification: transferred must match expected batch size
+      if (transferred !== expectedSize) {
+        logger.warn(`[auto-run] Counter mismatch! Expected ${expectedSize}, got ${transferred}. Stopping.`);
+        updateState({
+          status: 'auto-stopped',
+          step: `⚠️ Расхождение счётчиков: ожидалось ${expectedSize}, перенесено ${transferred}. Автозапуск остановлен.`,
+          completedAt: new Date().toISOString(),
+        });
+        autoRunEnabled = false;
+        break;
+      }
+
+      // Check if all done after this batch
+      const remainingAfter = eligible.length - offsetAfter;
+      if (remainingAfter <= 0) {
+        logger.info('[auto-run] All deals migrated after this batch. Done.');
+        updateState({
+          status: 'completed',
+          step: `✅ Автозапуск завершён: все ${eligible.length} сделок перенесены`,
+          completedAt: new Date().toISOString(),
+        });
+        break;
+      }
+
+      // ── Wait for frontend to signal "continue" (client-side 60s countdown) ──
+      logger.info(`[auto-run] Batch done (+${transferred}). Waiting for frontend continue signal. Remaining: ${remainingAfter}`);
+      autoRunContinueFlag = false;
+      updateState({
+        status: 'auto-waiting',
+        step: `⏳ Пауза перед следующим пакетом. Перенесено: ${offsetAfter}/${eligible.length}. Нажмите «Стоп» для отмены.`,
+        autoRunCountdown: 60,
+      });
+
+      // Poll every 500ms for stop or continue signal (no heavy work — just flag checks)
+      let stopped = false;
+      while (!autoRunContinueFlag) {
+        if (autoRunStopFlag || !autoRunEnabled) {
+          stopped = true;
+          break;
+        }
+        await new Promise(r => setTimeout(r, 500));
+      }
+
+      if (stopped || autoRunStopFlag || !autoRunEnabled) {
+        logger.info('[auto-run] Stopped by user during countdown.');
+        updateState({
+          status: 'completed',
+          step: `⏹ Автозапуск остановлен пользователем. Перенесено: ${offsetAfter}/${eligible.length}`,
+          completedAt: new Date().toISOString(),
+          autoRunCountdown: 0,
+        });
+        break;
+      }
+      logger.info('[auto-run] Continue signal received, starting next batch.');
+    }
+  } catch (err) {
+    logger.error('[auto-run] Fatal error:', err);
+    updateState({
+      status: 'error',
+      step: `❌ Автозапуск: критическая ошибка: ${err.message}`,
+      completedAt: new Date().toISOString(),
+    });
+  } finally {
+    autoRunEnabled = false;
+    autoRunStopFlag = false;
+    autoRunContinueFlag = false;
+    batchState.autoRunCountdown = 0;
+  }
+}
+
+function stopAutoRun() {
+  if (!autoRunEnabled) {
+    // Idempotent: double-click or stale state — just clean up flags
+    pauseRequestedFlag = false;
+    autoRunStopFlag = false;
+    return { ok: true, wasRunning: false,
+      transferred: batchState.stats?.totalTransferred || 0,
+      remaining: batchState.stats?.remainingLeads || 0,
+      lastStep: batchState.step || '' };
+  }
+  autoRunStopFlag = true;
+  const wasRunning = batchState.status === 'running';
+  if (wasRunning) {
+    pauseRequestedFlag = true;
+  }
+  logger.info('[auto-run] Stop requested by user, wasRunning=' + wasRunning);
+  return { ok: true, wasRunning,
+    transferred: batchState.stats?.totalTransferred || 0,
+    remaining: batchState.stats?.remainingLeads || 0,
+    lastStep: batchState.step || '' };
+}
+
+function isAutoRunActive() {
+  return autoRunEnabled;
+}
+  // ─── Continue auto-run (called by frontend after client-side countdown) ─────
+  function continueAutoRun() {
+    if (!autoRunEnabled) {
+      return { ok: false, error: 'Автозапуск не активен' };
+    }
+    if (batchState.status !== 'auto-waiting') {
+      return { ok: false, error: 'Не в состоянии ожидания' };
+    }
+    autoRunContinueFlag = true;
+    logger.info('[auto-run] Continue signal received from frontend.');
+    return { ok: true };
+  }
+
+
+
+module.exports = { getBatchConfig, setBatchConfig, getBatchState, analyzeManagers, getStats, runBatchMigration, rollbackBatch, resetOffset, loadBatchConfig, loadAmoCache, runSingleDealsTransfer, pauseBatch, retryLastBatch, startAutoRun, stopAutoRun,
+    continueAutoRun, isAutoRunActive };
