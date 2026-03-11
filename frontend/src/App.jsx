@@ -75,8 +75,12 @@ export default function App() {
   const [batchStats, setBatchStats] = useState(null);
   const [batchStatus, setBatchStatusData] = useState(null);
   const [selectedManagers, setSelectedManagers] = useState([]);
-  const [batchSize, setBatchSize] = useState(10);
-  const [migrationMode, setMigrationMode] = useState('all'); // 'all' | 'fix-existing' | 'new-only'
+  const [batchSize, setBatchSize] = useState(() => {
+    const s = localStorage.getItem('batch_size'); return s ? parseInt(s) : 10;
+  });
+  const [migrationMode, setMigrationMode] = useState(() =>
+    localStorage.getItem('migration_mode') || 'all'
+  ); // 'all' | 'fix-existing' | 'new-only'
   const [batchLoading, setBatchLoading] = useState(false);
   // Crash detection: if server restarts while running, status goes idle without completing
   const prevBatchStatusRef = useRef(null);
@@ -576,6 +580,7 @@ export default function App() {
 
   const handleBatchSizeChange = async (sz) => {
     setBatchSize(sz);
+    localStorage.setItem('batch_size', sz);
     try { await api.setBatchConfig({ managerIds: selectedManagers, batchSize: sz, migrationMode }); } catch {}
   };
 
@@ -1200,7 +1205,7 @@ export default function App() {
                 {[['all','Все'],['fix-existing','Фикс'],['new-only','Новые']].map(([val,lbl]) => (
                   <button key={val}
                     className={`batch-size-btn${migrationMode === val ? ' active' : ''}`}
-                    onClick={() => setMigrationMode(val)}
+                    onClick={() => { setMigrationMode(val); localStorage.setItem('migration_mode', val); }}
                     disabled={batchStatus?.status === 'running'}
                     title={val === 'all' ? 'Стандартный перенос всех сделок' : val === 'fix-existing' ? 'Только уже перенесённые — PATCH типов задач' : 'Только ещё не перенесённые сделки'}>
                     {lbl}
