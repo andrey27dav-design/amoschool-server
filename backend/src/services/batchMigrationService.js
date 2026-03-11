@@ -35,6 +35,7 @@ let batchConfig = {
   batchSize: 10,
   offset: 0,        // number of eligible leads already transferred
   stageMapping: {},
+  migrationMode: 'all', // 'all' | 'fix-existing' | 'new-only'
 };
 
 // ─── Config helpers ───────────────────────────────────────────────────────────
@@ -254,7 +255,24 @@ async function runBatchMigration(stageMapping) {
     ];
 
     /* ── 2. Filter by managers ──────────────────────────────────────── */
-    const eligible = getEligibleLeads(allLeads, batchConfig.managerIds);
+    let eligible = getEligibleLeads(allLeads, batchConfig.managerIds);
+
+    /* ── 2b. Filter by migration mode ───────────────────────────────── */
+    const _mode = batchConfig.migrationMode || 'all';
+    const _skipCreate = (_mode === 'fix-existing');  // don't create new entities, only PATCH existing
+    const _skipPatch  = (_mode === 'new-only');       // don't patch existing, only create new
+    if (_mode === 'fix-existing' || _mode === 'new-only') {
+      const _modeIdx = safety.loadIndex();
+      const _modeIdxLeads = _modeIdx.leads || {};
+      if (_mode === 'fix-existing') {
+        eligible = eligible.filter(l => !!_modeIdxLeads[String(l.id)]);
+        logger.info(`[batch] Mode=fix-existing: ${eligible.length} leads already in index`);
+      } else {
+        eligible = eligible.filter(l => !_modeIdxLeads[String(l.id)]);
+        logger.info(`[batch] Mode=new-only: ${eligible.length} leads NOT in index`);
+      }
+    }
+
     batchState.stats.totalEligible = eligible.length;
     batchState.stats.remainingLeads = Math.max(0, eligible.length - batchConfig.offset);
 
@@ -552,7 +570,7 @@ async function runBatchMigration(stageMapping) {
     const batchAmoIds = new Set(batchLeads.map(l => l.id));
     const _batchTasksRaw = allTasks.filter(t => t.entity_type === 'leads' && batchAmoIds.has(t.entity_id));
     // Dedup by task ID to prevent duplicate tasks if batch is re-run
-    const { toCreate: _batchTasksFiltered } = safety.filterNotMigrated('tasks_leads', _batchTasksRaw, t => t.id);
+    const { toCreate: _batchTasksFiltered, skipped: _batchTasksSkipped } = safety.filterNotMigrated('tasks_leads', _batchTasksRaw, t => t.id);
     const batchTasks = _batchTasksFiltered;
 
     if (batchTasks.length > 0) {
@@ -604,13 +622,39 @@ async function runBatchMigration(stageMapping) {
       }
     }
 
+    /* ── 10-fix. PATCH task_type_id for already-migrated lead tasks ──────── */
+    if (!_skipPatch && _batchTasksSkipped.length > 0) {
+      const { AMO_TO_KOMMO_TASK_TYPE } = require('../utils/dataTransformer');
+      const _taskTypeUpdates = [];
+      for (const s of _batchTasksSkipped) {
+        const amoTask = s.item;
+        const kommoTaskId = s.kommoId;
+        const amoTypeId = amoTask.task_type_id;
+        const kommoTypeId = AMO_TO_KOMMO_TASK_TYPE[amoTypeId];
+        if (kommoTypeId && kommoTypeId !== 1) {
+          _taskTypeUpdates.push({ id: kommoTaskId, task_type_id: kommoTypeId });
+        }
+      }
+      if (_taskTypeUpdates.length > 0) {
+        updateState({ step: `Обновление типов задач лидов (${_taskTypeUpdates.length})...` });
+        try {
+          const _updatedLT = await kommoApi.updateTasksBatch(_taskTypeUpdates);
+          logger.info(`[batch] PATCH task_type_id for lead tasks: ${_updatedLT}/${_taskTypeUpdates.length}`);
+        } catch (e) {
+          logger.error('[batch] Ошибка PATCH типов задач лидов: ' + e.message);
+        }
+      } else {
+        logger.info(`[batch] Skipped lead tasks: ${_batchTasksSkipped.length}, all type=1, no PATCH needed`);
+      }
+    }
+
     /* -- 10b. Batch: Contact tasks ----------------------------------------- */
     {
       const _batchContactIdsSet = new Set(Object.keys(contactIdMap).map(Number));
       const _batchContactTasksRaw = allTasks.filter(
         t => t.entity_type === 'contacts' && _batchContactIdsSet.has(Number(t.entity_id))
       );
-      const { toCreate: _batchContactTasksFiltered } = safety.filterNotMigrated('tasks_contacts', _batchContactTasksRaw, t => t.id);
+      const { toCreate: _batchContactTasksFiltered, skipped: _batchContactTasksSkipped } = safety.filterNotMigrated('tasks_contacts', _batchContactTasksRaw, t => t.id);
       if (_batchContactTasksFiltered.length > 0) {
         updateState({ step: 'Перенос задач контактов (' + _batchContactTasksFiltered.length + ')...' });
         const { transformTask: _transformTaskCT } = require('../utils/dataTransformer');
@@ -657,13 +701,34 @@ async function runBatchMigration(stageMapping) {
       }
     }
 
+    /* ── 10b-fix. PATCH task_type_id for already-migrated contact tasks ── */
+    if (!_skipPatch && _batchContactTasksSkipped && _batchContactTasksSkipped.length > 0) {
+      const { AMO_TO_KOMMO_TASK_TYPE: _ctTypeMap } = require('../utils/dataTransformer');
+      const _ctTypeUpdates = [];
+      for (const s of _batchContactTasksSkipped) {
+        const amoTypeId = s.item.task_type_id;
+        const kommoTypeId = _ctTypeMap[amoTypeId];
+        if (kommoTypeId && kommoTypeId !== 1) {
+          _ctTypeUpdates.push({ id: s.kommoId, task_type_id: kommoTypeId });
+        }
+      }
+      if (_ctTypeUpdates.length > 0) {
+        try {
+          const _ctUpd = await kommoApi.updateTasksBatch(_ctTypeUpdates);
+          logger.info(`[batch] PATCH task_type_id for contact tasks: ${_ctUpd}/${_ctTypeUpdates.length}`);
+        } catch (e) {
+          logger.error('[batch] Ошибка PATCH типов задач контактов: ' + e.message);
+        }
+      }
+    }
+
     /* -- 10c. Batch: Company tasks ----------------------------------------- */
     {
       const _batchCompanyIdsSet = new Set(Object.keys(companyIdMap).map(Number));
       const _batchCompanyTasksRaw = allTasks.filter(
         t => t.entity_type === 'companies' && _batchCompanyIdsSet.has(Number(t.entity_id))
       );
-      const { toCreate: _batchCompanyTasksFiltered } = safety.filterNotMigrated('tasks_companies', _batchCompanyTasksRaw, t => t.id);
+      const { toCreate: _batchCompanyTasksFiltered, skipped: _batchCompanyTasksSkipped } = safety.filterNotMigrated('tasks_companies', _batchCompanyTasksRaw, t => t.id);
       if (_batchCompanyTasksFiltered.length > 0) {
         updateState({ step: 'Перенос задач компаний (' + _batchCompanyTasksFiltered.length + ')...' });
         const { transformTask: _transformTaskCo } = require('../utils/dataTransformer');
@@ -701,6 +766,27 @@ async function runBatchMigration(stageMapping) {
           } catch (e) {
             addWarning('Ошибка переноса задач компаний: ' + e.message, 'Повторите пакет.');
           }
+        }
+      }
+    }
+
+    /* ── 10c-fix. PATCH task_type_id for already-migrated company tasks ── */
+    if (!_skipPatch && _batchCompanyTasksSkipped && _batchCompanyTasksSkipped.length > 0) {
+      const { AMO_TO_KOMMO_TASK_TYPE: _coTypeMap } = require('../utils/dataTransformer');
+      const _coTypeUpdates = [];
+      for (const s of _batchCompanyTasksSkipped) {
+        const amoTypeId = s.item.task_type_id;
+        const kommoTypeId = _coTypeMap[amoTypeId];
+        if (kommoTypeId && kommoTypeId !== 1) {
+          _coTypeUpdates.push({ id: s.kommoId, task_type_id: kommoTypeId });
+        }
+      }
+      if (_coTypeUpdates.length > 0) {
+        try {
+          const _coUpd = await kommoApi.updateTasksBatch(_coTypeUpdates);
+          logger.info(`[batch] PATCH task_type_id for company tasks: ${_coUpd}/${_coTypeUpdates.length}`);
+        } catch (e) {
+          logger.error('[batch] Ошибка PATCH типов задач компаний: ' + e.message);
         }
       }
     }
