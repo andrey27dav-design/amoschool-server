@@ -334,6 +334,43 @@ async function completeTasksBatch(taskIds) {
   }
 }
 
+/**
+ * Update task types in batch via PATCH /api/v4/tasks.
+ * Each item: { id: kommoTaskId, task_type_id: newTypeId }
+ * Returns count of successfully updated tasks.
+ */
+async function updateTasksBatch(updates) {
+  if (!updates || updates.length === 0) return 0;
+  let totalUpdated = 0;
+  const chunks = [];
+  for (let i = 0; i < updates.length; i += 50) chunks.push(updates.slice(i, i + 50));
+  for (const chunk of chunks) {
+    await rateLimit();
+    try {
+      const payload = chunk.map(u => ({ id: parseInt(u.id), task_type_id: u.task_type_id }));
+      await kommoClient.patch('/api/v4/tasks', payload);
+      totalUpdated += chunk.length;
+      logger.info(`Kommo updateTasksBatch: обновлено типов задач: ${chunk.length}`);
+    } catch (e) {
+      const body = e.response?.data ? JSON.stringify(e.response.data).slice(0, 300) : e.message;
+      logger.warn(`Kommo updateTasksBatch ошибка чанка: ${body}. Переключаемся на поштучный режим.`);
+      // Fallback: update one by one
+      for (const u of chunk) {
+        await rateLimit();
+        try {
+          await kommoClient.patch('/api/v4/tasks', [{ id: parseInt(u.id), task_type_id: u.task_type_id }]);
+          totalUpdated++;
+        } catch (e2) {
+          const body2 = e2.response?.data ? JSON.stringify(e2.response.data).slice(0, 300) : e2.message;
+          logger.warn(`Kommo updateTasksBatch single id=${u.id} пропуск: ${body2}`);
+        }
+      }
+    }
+  }
+  logger.info(`Kommo updateTasksBatch: всего обновлено ${totalUpdated}/${updates.length}`);
+  return totalUpdated;
+}
+
 async function createNote(entityType, entityId, noteData) {
   await rateLimit();
   const payload = [{ ...noteData, entity_id: entityId }];
@@ -539,6 +576,7 @@ module.exports = {
   createTask,
   createTasksBatch,
   completeTasksBatch,
+  updateTasksBatch,
   createNote,
   createNotesBatch,
   updateContact,

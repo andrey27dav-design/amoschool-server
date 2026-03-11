@@ -76,6 +76,7 @@ export default function App() {
   const [batchStatus, setBatchStatusData] = useState(null);
   const [selectedManagers, setSelectedManagers] = useState([]);
   const [batchSize, setBatchSize] = useState(10);
+  const [migrationMode, setMigrationMode] = useState('all'); // 'all' | 'fix-existing' | 'new-only'
   const [batchLoading, setBatchLoading] = useState(false);
   // Crash detection: if server restarts while running, status goes idle without completing
   const prevBatchStatusRef = useRef(null);
@@ -564,7 +565,7 @@ export default function App() {
       : [...selectedManagers, id];
     setSelectedManagers(newIds);
     try {
-      await api.setBatchConfig({ managerIds: newIds, batchSize });
+      await api.setBatchConfig({ managerIds: newIds, batchSize, migrationMode });
       const stats = await api.getBatchStats();
       setBatchStats(stats);
     } catch {}
@@ -572,7 +573,7 @@ export default function App() {
 
   const handleBatchSizeChange = async (sz) => {
     setBatchSize(sz);
-    try { await api.setBatchConfig({ managerIds: selectedManagers, batchSize: sz }); } catch {}
+    try { await api.setBatchConfig({ managerIds: selectedManagers, batchSize: sz, migrationMode }); } catch {}
   };
 
   const handleStartBatch = async () => {
@@ -592,7 +593,7 @@ export default function App() {
     setBatchLoading(true);
     setMessage('');
     try {
-      await api.setBatchConfig({ managerIds: selectedManagers, batchSize });
+      await api.setBatchConfig({ managerIds: selectedManagers, batchSize, migrationMode });
       await api.startBatch();
       setMessage('⏳ Пакетная миграция запущена...');
       setTimeout(async () => {
@@ -627,7 +628,7 @@ export default function App() {
     setBatchLoading(true);
     setMessage('');
     try {
-      await api.setBatchConfig({ managerIds: selectedManagers, batchSize });
+      await api.setBatchConfig({ managerIds: selectedManagers, batchSize, migrationMode });
       await api.startBatch();
       setMessage('▶ Продолжение миграции запущено...');
       setTimeout(async () => {
@@ -666,7 +667,7 @@ export default function App() {
     setBatchLoading(true);
     setMessage('');
     try {
-      await api.setBatchConfig({ managerIds: selectedManagers, batchSize });
+      await api.setBatchConfig({ managerIds: selectedManagers, batchSize, migrationMode });
       await api.startAutoRun();
       setMessage('🔄 Автозапуск активирован — пакеты по ' + batchSize + ' сделок будут переноситься автоматически');
       setTimeout(async () => {
@@ -1167,6 +1168,18 @@ export default function App() {
                     onClick={() => handleBatchSizeChange(sz)}
                     disabled={batchStatus?.status === 'running'}>
                     {sz}
+                  </button>
+                ))}
+              </div>
+              <div className="batch-size-wrap" style={{ marginLeft: 16 }}>
+                <label className="batch-size-label">Режим:</label>
+                {[['all','Все'],['fix-existing','Фикс'],['new-only','Новые']].map(([val,lbl]) => (
+                  <button key={val}
+                    className={`batch-size-btn${migrationMode === val ? ' active' : ''}`}
+                    onClick={() => setMigrationMode(val)}
+                    disabled={batchStatus?.status === 'running'}
+                    title={val === 'all' ? 'Стандартный перенос всех сделок' : val === 'fix-existing' ? 'Только уже перенесённые — PATCH типов задач' : 'Только ещё не перенесённые сделки'}>
+                    {lbl}
                   </button>
                 ))}
               </div>
