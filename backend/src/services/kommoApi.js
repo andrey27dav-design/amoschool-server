@@ -347,7 +347,11 @@ async function updateTasksBatch(updates) {
   for (const chunk of chunks) {
     await rateLimit();
     try {
-      const payload = chunk.map(u => ({ id: parseInt(u.id), task_type_id: u.task_type_id }));
+      const payload = chunk.map(u => {
+        const o = { id: parseInt(u.id), task_type_id: u.task_type_id };
+        if (u.text !== undefined) o.text = u.text;
+        return o;
+      });
       await kommoClient.patch('/api/v4/tasks', payload);
       totalUpdated += chunk.length;
       logger.info(`Kommo updateTasksBatch: обновлено типов задач: ${chunk.length}`);
@@ -358,7 +362,9 @@ async function updateTasksBatch(updates) {
       for (const u of chunk) {
         await rateLimit();
         try {
-          await kommoClient.patch('/api/v4/tasks', [{ id: parseInt(u.id), task_type_id: u.task_type_id }]);
+          const _singlePatch = { id: parseInt(u.id), task_type_id: u.task_type_id };
+          if (u.text !== undefined) _singlePatch.text = u.text;
+          await kommoClient.patch('/api/v4/tasks', [_singlePatch]);
           totalUpdated++;
         } catch (e2) {
           const body2 = e2.response?.data ? JSON.stringify(e2.response.data).slice(0, 300) : e2.message;
