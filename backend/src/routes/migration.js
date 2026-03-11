@@ -1519,6 +1519,21 @@ router.get('/safety-status', (req, res) => {
   }
 });
 
+/* ── Active task counts for dealPairs table ─────────────────────────── */
+router.get('/task-counts', async (req, res) => {
+  try {
+    const ids = (req.query.kommoIds || '')
+      .split(',')
+      .map(s => parseInt(s.trim()))
+      .filter(n => !isNaN(n));
+    if (!ids.length) return res.json({ ok: true, counts: {} });
+    const counts = await kommoApi.getActiveTasksCount(ids);
+    res.json({ ok: true, counts });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 /* ── Reset safety index (admin only) ────────────────────────────────── */
 router.post('/safety-reset', (req, res) => {
   try {
