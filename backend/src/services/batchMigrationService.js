@@ -39,6 +39,8 @@ let batchConfig = {
   offset: 0,        // number of eligible leads already transferred
   stageMapping: {},
   migrationMode: 'all', // 'all' | 'fix-existing' | 'new-only'
+  fixProcessed: 0,  // cumulative deals processed in fix-existing mode
+  fixEligible: 0,   // total eligible for fix-existing at last count
 };
 
 // ─── Config helpers ───────────────────────────────────────────────────────────
@@ -916,6 +918,13 @@ async function runBatchMigration(stageMapping) {
     batchConfig.offset = from + batchLeads.length;
     batchState.stats.totalTransferred = batchConfig.offset;
     batchState.stats.remainingLeads   = Math.max(0, eligible.length - batchConfig.offset);
+    // ── Fix mode: накапливаем отдельный счётчик ──────────────────────
+    if (_mode === 'fix-existing') {
+      batchConfig.fixProcessed = (batchConfig.fixProcessed || 0) + batchLeads.length;
+      batchConfig.fixEligible  = eligible.length;
+      batchState.stats.fixProcessed = batchConfig.fixProcessed;
+      batchState.stats.fixEligible  = batchConfig.fixEligible;
+    }
     // Save last batch position for retry feature
     batchState.lastBatch = { from, size: batchLeads.length };
     // Store AMO→Kommo deal pairs for verification UI
