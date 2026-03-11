@@ -661,12 +661,14 @@ async function runBatchMigration(stageMapping) {
     }
 
     /* -- 10b. Batch: Contact tasks ----------------------------------------- */
+    let _batchContactTasksSkipped = [];
     {
       const _batchContactIdsSet = new Set(Object.keys(contactIdMap).map(Number));
       const _batchContactTasksRaw = allTasks.filter(
         t => t.entity_type === 'contacts' && _batchContactIdsSet.has(Number(t.entity_id)) && !t.is_completed
       );
-      const { toCreate: _batchContactTasksFiltered, skipped: _batchContactTasksSkipped } = safety.filterNotMigrated('tasks_contacts', _batchContactTasksRaw, t => t.id);
+      const { toCreate: _batchContactTasksFiltered, skipped: _ctSkipped } = safety.filterNotMigrated('tasks_contacts', _batchContactTasksRaw, t => t.id);
+      _batchContactTasksSkipped = _ctSkipped;
       if (_batchContactTasksFiltered.length > 0) {
         updateState({ step: 'Перенос задач контактов (' + _batchContactTasksFiltered.length + ')...' });
         const { transformTask: _transformTaskCT } = require('../utils/dataTransformer');
@@ -740,12 +742,14 @@ async function runBatchMigration(stageMapping) {
     }
 
     /* -- 10c. Batch: Company tasks ----------------------------------------- */
+    let _batchCompanyTasksSkipped = [];
     {
       const _batchCompanyIdsSet = new Set(Object.keys(companyIdMap).map(Number));
       const _batchCompanyTasksRaw = allTasks.filter(
         t => t.entity_type === 'companies' && _batchCompanyIdsSet.has(Number(t.entity_id)) && !t.is_completed
       );
-      const { toCreate: _batchCompanyTasksFiltered, skipped: _batchCompanyTasksSkipped } = safety.filterNotMigrated('tasks_companies', _batchCompanyTasksRaw, t => t.id);
+      const { toCreate: _batchCompanyTasksFiltered, skipped: _coSkipped } = safety.filterNotMigrated('tasks_companies', _batchCompanyTasksRaw, t => t.id);
+      _batchCompanyTasksSkipped = _coSkipped;
       if (_batchCompanyTasksFiltered.length > 0) {
         updateState({ step: 'Перенос задач компаний (' + _batchCompanyTasksFiltered.length + ')...' });
         const { transformTask: _transformTaskCo } = require('../utils/dataTransformer');
