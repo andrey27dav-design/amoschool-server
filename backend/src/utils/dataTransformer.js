@@ -205,15 +205,43 @@ function transformCompany(amoCompany, fieldMapping, userMapping) {
 }
 
 /**
+ * AMO → Kommo task type mapping (AMO task_type_id → Kommo task_type_id).
+ * Standard types 1 (Follow-up) and 2 (Meeting) are the same in both systems.
+ * Custom types were created in Kommo to match AMO originals by name.
+ */
+const AMO_TO_KOMMO_TASK_TYPE = {
+  1: 1,             // Связаться (Follow-up)
+  2: 2,             // Встреча (Meeting)
+  2377747: 4143052, // Написать
+  2377744: 4143056, // Отправить КП
+  2377729: 4143060, // Связаться с клиентом
+  2377732: 4143064, // Напомнить клиенту
+  2377735: 4143068, // Другое
+  2378124: 4143072, // Связаться с клиентом
+  2377738: 4143076, // Проверить оплату
+  2377741: 4143080, // Назначить урок
+  2378121: 4143084, // Поставить задачу преподователю
+  2377750: 4143088, // Контроль
+  2377753: 4143092, // Задача от РОПпа
+  2388826: 4143096, // Реанимация
+  2397082: 4143100, // Учебный отдел
+  2518729: 4143104, // Напомнить клиенту_рассрочка
+  3134518: 4143108, // Сделать рассылку
+  3731890: 4143112, // Проверить оплату повторно
+  4067422: 4143116, // Написать
+  4114354: 4143120, // Трудоустройство
+};
+
+/**
  * Transform AMO task to Kommo task format
  */
 function transformTask(amoTask, userMapping, entityKommoResponsibleId) {
   // complete_till must be a valid future/past unix timestamp > 0
   // is_completed is NOT accepted by Kommo POST /api/v4/tasks — causes 400
   const fallbackTill = Math.floor(Date.now() / 1000) + 86400; // tomorrow
-  // Kommo only accepts task_type_id 1 (call) or 2 (meeting); custom AMO types → 1
+  // Map AMO task_type_id → Kommo task_type_id using full mapping; fallback to 1 (Follow-up)
   const rawTypeId = amoTask.task_type_id;
-  const safeTypeId = (rawTypeId === 1 || rawTypeId === 2) ? rawTypeId : 1;
+  const safeTypeId = AMO_TO_KOMMO_TASK_TYPE[rawTypeId] || 1;
   const obj = {
     task_type_id: safeTypeId,
     text: fmtDatePrefix(amoTask.created_at) + ((amoTask.text && amoTask.text.trim()) ? amoTask.text : 'Задача'),
@@ -286,4 +314,5 @@ module.exports = {
   transformCustomFields,
   buildStageMapping,
   AMO_STAGE_MAP,
+  AMO_TO_KOMMO_TASK_TYPE,
 };

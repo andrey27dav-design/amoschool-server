@@ -76,10 +76,13 @@ export default function App() {
   const [batchStatus, setBatchStatusData] = useState(null);
   const [selectedManagers, setSelectedManagers] = useState([]);
   const [batchSize, setBatchSize] = useState(10);
+  const [migrationMode, setMigrationMode] = useState('all'); // 'all' | 'fix-existing' | 'new-only'
   const [batchLoading, setBatchLoading] = useState(false);
   // Crash detection: if server restarts while running, status goes idle without completing
   const prevBatchStatusRef = useRef(null);
+  const continueSignalSentRef = useRef(false); // prevents countdown restart after continue signal
   const [crashDetected, setCrashDetected] = useState(false);
+  const [lastBatchResult, setLastBatchResult] = useState(null); // persists across status changes
 
   // Single deals transfer state
   const [dealsList, setDealsList] = useState([]);
@@ -287,25 +290,100 @@ export default function App() {
     }
   }, [status?.status]);
 
-  // Poll batch status when batch is running
+  // Poll batch status (only when running/rolling_back) + pure client countdown (auto-waiting)
   useEffect(() => {
-    if (batchStatus?.status !== 'running' && batchStatus?.status !== 'rolling_back') return;
-    const iv = setInterval(async () => {
-      try {
-        const d = await api.getBatchStatus();
-        // Crash detection: running → idle means server restarted mid-migration
-        if (prevBatchStatusRef.current === 'running' && d.status === 'idle') {
-          setCrashDetected(true);
-        }
-        prevBatchStatusRef.current = d.status;
-        setBatchStatusData(d);
-        if (d.status !== 'running' && d.status !== 'rolling_back') {
-          clearInterval(iv);
-          api.getBatchStats().then(setBatchStats).catch(() => {});
-        }
-      } catch {}
-    }, 1500);
-    return () => clearInterval(iv);
+    const st = batchStatus?.status;
+    if (st !== 'running' && st !== 'rolling_back' && st !== 'auto-waiting') return;
+
+    // ── auto-waiting: pure client-side countdown 60→0, then signal server ──
+    if (st === 'auto-waiting') {
+      // If continue was already sent, skip countdown — wait for server to switch to 'running'
+      if (continueSignalSentRef.current) {
+        let polling = true;
+        const waitForRunning = async () => {
+          while (polling) {
+            try {
+              const d = await api.getBatchStatus();
+              if (!polling) break;
+              setBatchStatusData(d);
+              if (d.status === 'running' || d.status === 'idle' || d.status === 'completed' || d.status === 'error') {
+                continueSignalSentRef.current = false;
+                break;
+              }
+            } catch {}
+            await new Promise(r => setTimeout(r, 1000));
+          }
+        };
+        waitForRunning();
+        return () => { polling = false; };
+      }
+      let cancelled = false;
+      const countdownTimer = setInterval(() => {
+        if (cancelled) return;
+        setBatchStatusData(prev => {
+          if (!prev || prev.status !== 'auto-waiting') return prev;
+          const next = (prev.autoRunCountdown || 60) - 1;
+          if (next <= 0) {
+            // Countdown done — tell server to start next batch
+            continueSignalSentRef.current = true;
+            api.continueAutoRun().then(() => {
+              // After continue, fetch fresh status to transition to 'running'
+              api.getBatchStatus().then(d => {
+                if (!cancelled) setBatchStatusData(d);
+              }).catch(() => {});
+            }).catch(() => {});
+            return { ...prev, autoRunCountdown: 0, status: 'running', step: '🔄 Запуск следующего пакета...' };
+          }
+          return { ...prev, autoRunCountdown: next };
+        });
+      }, 1000);
+      return () => { cancelled = true; clearInterval(countdownTimer); };
+    }
+
+    // ── running/rolling_back: poll server for progress ──
+    let polling = true;
+    const poll = async () => {
+      while (polling) {
+        try {
+          const d = await api.getBatchStatus();
+          if (!polling) break;
+          if (prevBatchStatusRef.current === 'running' && d.status === 'idle') {
+            setCrashDetected(true);
+          }
+          prevBatchStatusRef.current = d.status;
+          // Auto-dismiss crash banner when normal operation resumes
+          if (d.status === 'running' || d.status === 'auto-waiting') {
+            setCrashDetected(false);
+          }
+          // Sync counters instantly from embedded stats
+          if (d.stats) {
+            setBatchStats(prev => ({
+              ...(prev || {}),
+              ...d.stats,
+              alreadyMigrated: d.stats.totalTransferred,
+            }));
+          }
+          setBatchStatusData(d);
+          // Save batch results whenever we have them (persists during auto-waiting)
+          if (d.createdIds) {
+            setLastBatchResult({
+              createdIds: d.createdIds,
+              warnings: d.warnings || [],
+              errors: d.errors || [],
+            });
+          }
+          // Terminal states: fetch full stats and stop polling
+          if (d.status !== 'running' && d.status !== 'rolling_back') {
+            api.getBatchStats().then(setBatchStats).catch(() => {});
+            break;
+          }
+        } catch {}
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    };
+    poll();
+
+    return () => { polling = false; };
   }, [batchStatus?.status]);
 
   const handleStart = async () => {
@@ -487,7 +565,7 @@ export default function App() {
       : [...selectedManagers, id];
     setSelectedManagers(newIds);
     try {
-      await api.setBatchConfig({ managerIds: newIds, batchSize });
+      await api.setBatchConfig({ managerIds: newIds, batchSize, migrationMode });
       const stats = await api.getBatchStats();
       setBatchStats(stats);
     } catch {}
@@ -495,7 +573,7 @@ export default function App() {
 
   const handleBatchSizeChange = async (sz) => {
     setBatchSize(sz);
-    try { await api.setBatchConfig({ managerIds: selectedManagers, batchSize: sz }); } catch {}
+    try { await api.setBatchConfig({ managerIds: selectedManagers, batchSize: sz, migrationMode }); } catch {}
   };
 
   const handleStartBatch = async () => {
@@ -515,7 +593,7 @@ export default function App() {
     setBatchLoading(true);
     setMessage('');
     try {
-      await api.setBatchConfig({ managerIds: selectedManagers, batchSize });
+      await api.setBatchConfig({ managerIds: selectedManagers, batchSize, migrationMode });
       await api.startBatch();
       setMessage('⏳ Пакетная миграция запущена...');
       setTimeout(async () => {
@@ -550,7 +628,7 @@ export default function App() {
     setBatchLoading(true);
     setMessage('');
     try {
-      await api.setBatchConfig({ managerIds: selectedManagers, batchSize });
+      await api.setBatchConfig({ managerIds: selectedManagers, batchSize, migrationMode });
       await api.startBatch();
       setMessage('▶ Продолжение миграции запущено...');
       setTimeout(async () => {
@@ -574,6 +652,53 @@ export default function App() {
       }, 1500);
     } catch (e) {
       setMessage('❌ ' + (e.response?.data?.error || e.message));
+    }
+  };
+
+  const handleStartAutoRun = async () => {
+    continueSignalSentRef.current = false;
+    setCrashDetected(false);
+    setLastBatchResult(null); // clear previous results for fresh start
+    if (batchSize === 0 || !batchSize) {
+      setMessage('❌ Выберите размер пакета (1–200) перед запуском автозапуска');
+      return;
+    }
+    if (!confirm(`Запустить автозапуск? Пакеты по ${batchSize} сделок будут переноситься автоматически с паузой 60 сек между ними. Нажмите «⏹ Стоп» для остановки.`)) return;
+    setBatchLoading(true);
+    setMessage('');
+    try {
+      await api.setBatchConfig({ managerIds: selectedManagers, batchSize, migrationMode });
+      await api.startAutoRun();
+      setMessage('🔄 Автозапуск активирован — пакеты по ' + batchSize + ' сделок будут переноситься автоматически');
+      setTimeout(async () => {
+        const d = await api.getBatchStatus().catch(() => null);
+        if (d) setBatchStatusData(d);
+      }, 800);
+    } catch (e) {
+      setMessage(`❌ Ошибка: ${e.response?.data?.error || e.message}`);
+    }
+    setBatchLoading(false);
+  };
+
+  const handleStopAutoRun = async () => {
+    continueSignalSentRef.current = false;
+    try {
+      const result = await api.stopAutoRun();
+      const t = result.transferred || 0;
+      const r = result.remaining || 0;
+      const msg = result.wasRunning
+        ? '⏹ Стоп принят. Текущий пакет завершится.\n📊 Перенесено: ' + t + '. Осталось: ' + r + '.\n▶ Продолжить: «Авто ВСЕ» или «Перенести».'
+        : '⏹ Автозапуск остановлен.\n📊 Перенесено: ' + t + '. Осталось: ' + r + '.\n▶ Продолжить: «Авто ВСЕ» или «Перенести».';
+      setMessage(msg);
+      // Immediate state refresh
+      const [d, s] = await Promise.all([api.getBatchStatus(), api.getBatchStats()]).catch(() => [null, null]);
+      if (d) setBatchStatusData(d);
+      if (s) setBatchStats(s);
+    } catch (e) {
+      setMessage('❌ ' + (e.response?.data?.error || e.message));
+      const [d, s] = await Promise.all([api.getBatchStatus(), api.getBatchStats()]).catch(() => [null, null]);
+      if (d) setBatchStatusData(d);
+      if (s) setBatchStats(s);
     }
   };
 
@@ -720,6 +845,33 @@ export default function App() {
                 </ol>
               </div>
 
+
+              {/* ── АВТОМАТИЧЕСКИЙ ПЕРЕНОС ────────────────────────── */}
+              <div className="plan-guide-block green">
+                <h3>🚀 Автоматический перенос (Авто ВСЁ)</h3>
+                <ol>
+                  <li>
+                    <strong>Выберите размер пакета</strong> — рекомендуется 200 для оптимальной скорости.
+                  </li>
+                  <li>
+                    <strong>Нажмите «🔄 Авто ВСЁ»</strong> — система автоматически перенесёт все сделки пакетами.
+                    <br/><em>После каждого пакета — пауза 60 секунд (обратный отсчёт на экране), затем следующий пакет запускается автоматически.</em>
+                  </li>
+                  <li>
+                    <strong>Обратный отсчёт 60 → 0</strong> — показывается зелёным баннером между пакетами.
+                    Это время нужно для стабильности API. Счётчик тикает на клиенте — <strong>не закрывайте вкладку браузера</strong>.
+                  </li>
+                  <li>
+                    <strong>Кнопка «⏹ СТОП»</strong> — останавливает автоматический перенос после завершения текущего пакета.
+                    Уже перенесённые данные сохраняются. Можно продолжить позже нажав «🔄 Авто ВСЁ» снова.
+                  </li>
+                </ol>
+                <p style={{color:'#64748b',fontSize:'13px',marginTop:'6px'}}>
+                  ⚠️ <strong>Важно:</strong> Если вы закроете/обновите вкладку браузера во время паузы между пакетами,
+                  обратный отсчёт остановится. Просто откройте страницу снова — отсчёт продолжится автоматически.
+                </p>
+              </div>
+
               {/* ── ТОНКИЙ ПЕРЕНОС ────────────────────────────────── */}
               <div className="plan-guide-block">
                 <h3>🎯 Тонкий перенос (только выбранные / только новые)</h3>
@@ -751,6 +903,9 @@ export default function App() {
                     <tr><td>«🔁 Сбросить счётчик»</td><td>Обнулить зелёные числа, начать очередь сначала</td><td>Перед новой сессией</td></tr>
                     <tr><td>«🔍 Только необработанные»</td><td>Убрать перенесённые из кэша + сбросить офсет</td><td>Когда кэш «засорён»</td></tr>
                     <tr><td>«⏸ Пауза»</td><td>Остановить после текущей сделки</td><td>Нужно прервать</td></tr>
+                    <tr><td>«🔄 Авто ВСЁ»</td><td>Автоматически перенести все оставшиеся сделки пакетами с паузой 60 сек</td><td>Основной режим массового переноса</td></tr>
+                    <tr><td>«⏹ СТОП»</td><td>Остановить авто-перенос после текущего пакета</td><td>Нужно прервать авто-перенос</td></tr>
+                    <tr><td>«▶ Продолжить пакет»</td><td>Возобновить перенос после сбоя/паузы</td><td>После ошибки или перезагрузки сервера</td></tr>
                   </tbody>
                 </table>
                 <p style={{fontSize:'13px',color:'#64748b',marginTop:'8px'}}>
@@ -791,6 +946,7 @@ export default function App() {
                 <div><span style={{color:'#10b981'}}>Каждая сессия:</span> <span style={{color:'#e2e8f0'}}>Загрузить данные → выбрать размер → Перенести ▶️</span></div>
                 <div><span style={{color:'#60a5fa'}}>Продолжить прошлую:</span> <span style={{color:'#e2e8f0'}}>просто нажать «Перенести» (офсет сохранён)</span></div>
                 <div><span style={{color:'#a78bfa'}}>Только новые сделки:</span> <span style={{color:'#e2e8f0'}}>«🔍 Только необработанные» → «🔁 Сбросить» → «Перенести»</span></div>
+                <div><span style={{color:'#34d399'}}>Авто-перенос:</span> <span style={{color:'#e2e8f0'}}>«Авто ВСЁ» → ждать → все пакеты перенесутся автоматически</span></div>
                 <div><span style={{color:'#f87171'}}>Что-то не так:</span> <span style={{color:'#e2e8f0'}}>нажать «Перенести» снова — продолжит без дублей</span></div>
               </div>
 
@@ -1014,26 +1170,45 @@ export default function App() {
                     {sz}
                   </button>
                 ))}
-                <button
-                  className={`batch-size-btn${batchSize === 0 ? ' active' : ''}`}
-                  onClick={() => handleBatchSizeChange(0)}
-                  disabled={batchStatus?.status === 'running'}>
-                  ВСЕ
-                </button>
+              </div>
+              <div className="batch-size-wrap" style={{ marginLeft: 16 }}>
+                <label className="batch-size-label">Режим:</label>
+                {[['all','Все'],['fix-existing','Фикс'],['new-only','Новые']].map(([val,lbl]) => (
+                  <button key={val}
+                    className={`batch-size-btn${migrationMode === val ? ' active' : ''}`}
+                    onClick={() => setMigrationMode(val)}
+                    disabled={batchStatus?.status === 'running'}
+                    title={val === 'all' ? 'Стандартный перенос всех сделок' : val === 'fix-existing' ? 'Только уже перенесённые — PATCH типов задач' : 'Только ещё не перенесённые сделки'}>
+                    {lbl}
+                  </button>
+                ))}
               </div>
               <button className="btn btn-primary" onClick={handleStartBatch}
-                disabled={batchLoading || batchStatus?.status === 'running' || batchStats?.remainingLeads === 0}>
+                disabled={batchLoading || batchStatus?.status === 'running' || batchStatus?.status === 'auto-waiting' || batchStatus?.autoRunActive || batchStats?.remainingLeads === 0}>
                 {batchStatus?.status === 'running'
                   ? `⏳ ${batchStatus.step || 'Выполняется...'}`
-                  : batchSize === 0
-                    ? '🚀 Перенести ВСЕ сделки'
-                    : `🚀 Перенести первые ${batchSize} неотработанных`}
+                  : batchStatus?.status === 'auto-waiting'
+                    ? `⏳ Пауза ${batchStatus.autoRunCountdown || ''}с...`
+                    : `🚀 Перенести ${batchSize || 10} сделок`}
               </button>
-              {batchStatus?.status === 'running' && (
+              <button className="btn btn-primary" onClick={handleStartAutoRun}
+                disabled={batchLoading || batchStatus?.status === 'running' || batchStatus?.status === 'auto-waiting' || batchStatus?.autoRunActive || batchStats?.remainingLeads === 0}
+                title="Автоматически переносить пакеты один за другим с паузой 60 сек между ними"
+                style={{ background: 'rgba(16,185,129,0.25)', borderColor: 'rgba(16,185,129,0.6)', color: '#6ee7b7' }}>
+                🔄 Авто ВСЕ
+              </button>
+              {(batchStatus?.status === 'running' && !batchStatus?.autoRunActive) && (
                 <button className="btn btn-warn" onClick={handleBatchPause}
                   disabled={batchLoading}
                   title="Остановить на ближайшей контрольной точке">
                   ⏸ Пауза
+                </button>
+              )}
+              {(batchStatus?.autoRunActive || batchStatus?.status === 'auto-waiting') && (
+                <button className="btn btn-warn" onClick={handleStopAutoRun}
+                  title="Остановить автозапуск (текущий пакет завершится)"
+                  style={{ background: 'rgba(239,68,68,0.3)', borderColor: 'rgba(239,68,68,0.7)', color: '#fca5a5' }}>
+                  ⏹ Стоп
                 </button>
               )}
               {(batchStatus?.status === 'error' || batchStatus?.status === 'paused' || crashDetected) && (
@@ -1061,8 +1236,28 @@ export default function App() {
               </button>
             </div>
 
+            {/* Auto-run countdown banner */}
+            {batchStatus?.status === 'auto-waiting' && (
+              <div style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.45)', borderRadius: 8, padding: '10px 14px', marginTop: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 22 }}>🔄</span>
+                <span style={{ fontSize: 13, color: '#6ee7b7' }}>
+                  Автозапуск: пауза {batchStatus.autoRunCountdown || '...'} сек до следующего пакета. Нажмите «⏹ Стоп» чтобы остановить.
+                </span>
+              </div>
+            )}
+
+            {/* Auto-stopped banner */}
+            {batchStatus?.status === 'auto-stopped' && (
+              <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 8, padding: '10px 14px', marginTop: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 22 }}>⚠️</span>
+                <span style={{ fontSize: 13, color: '#fca5a5' }}>
+                  {batchStatus.step || 'Автозапуск остановлен из-за расхождения счётчиков. Проверьте данные.'}
+                </span>
+              </div>
+            )}
+
             {/* Time estimate */}
-            {batchStatus?.status !== 'running' && batchSize > 0 && (
+            {batchStatus?.status !== 'running' && batchStatus?.status !== 'auto-waiting' && batchSize > 0 && (
               <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6, marginBottom: 2 }}>
                 ⏱ Прогноз: ~{Math.max(1, Math.round(batchSize * 1.5 * 1.3 / 60))} мин для {batchSize} сделок
                 {batchStats?.remainingLeads > 0 && ` · Осталось: ${batchStats.remainingLeads}`}
@@ -1102,21 +1297,26 @@ export default function App() {
               </div>
             )}
 
-            {/* Completion stats */}
-            {batchStatus?.status === 'completed' && batchStatus?.createdIds && (
+            {/* Completion stats — visible during completed AND auto-waiting */}
+            {(() => {
+              const res = batchStatus?.createdIds ? batchStatus : lastBatchResult;
+              const show = res?.createdIds && (batchStatus?.status === 'completed' || batchStatus?.status === 'auto-waiting' || batchStatus?.status === 'auto-stopped');
+              if (!show) return null;
+              return (
               <div style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 8, padding: '10px 14px', marginTop: 8 }}>
                 <div style={{ fontWeight: 700, fontSize: 13, color: '#86efac', marginBottom: 6 }}>✅ Пакет завершён</div>
                 <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: 12, color: '#cbd5e1' }}>
-                  <span>Сделок: <b style={{color:'#fff'}}>{batchStatus.createdIds.leads?.length ?? 0}</b></span>
-                  <span>Контактов: <b style={{color:'#fff'}}>{batchStatus.createdIds.contacts?.length ?? 0}</b></span>
-                  <span>Компаний: <b style={{color:'#fff'}}>{batchStatus.createdIds.companies?.length ?? 0}</b></span>
-                  <span>Задач: <b style={{color:'#fff'}}>{batchStatus.createdIds.tasks?.length ?? 0}</b></span>
-                  <span>Заметок: <b style={{color:'#fff'}}>{batchStatus.createdIds.notes?.length ?? 0}</b></span>
-                  <span>⚠️ предупреждений: <b style={{color: batchStatus.warnings?.length > 0 ? '#fbbf24':'#fff'}}>{batchStatus.warnings?.length ?? 0}</b></span>
-                  <span>❌ ошибок: <b style={{color: batchStatus.errors?.length > 0 ? '#f87171':'#fff'}}>{batchStatus.errors?.length ?? 0}</b></span>
+                  <span>Сделок: <b style={{color:'#fff'}}>{res.createdIds.leads?.length ?? 0}</b></span>
+                  <span>Контактов: <b style={{color:'#fff'}}>{res.createdIds.contacts?.length ?? 0}</b></span>
+                  <span>Компаний: <b style={{color:'#fff'}}>{res.createdIds.companies?.length ?? 0}</b></span>
+                  <span>Задач: <b style={{color:'#fff'}}>{res.createdIds.tasks?.length ?? 0}</b></span>
+                  <span>Заметок: <b style={{color:'#fff'}}>{res.createdIds.notes?.length ?? 0}</b></span>
+                  <span>⚠️ предупреждений: <b style={{color: (res.warnings?.length || 0) > 0 ? '#fbbf24':'#fff'}}>{res.warnings?.length ?? 0}</b></span>
+                  <span>❌ ошибок: <b style={{color: (res.errors?.length || 0) > 0 ? '#f87171':'#fff'}}>{res.errors?.length ?? 0}</b></span>
                 </div>
               </div>
-            )}
+              );
+            })()}
 
             {/* Batch progress */}
             {batchStatus?.status === 'running' && batchStatus.progress?.total > 0 && (
@@ -1130,10 +1330,10 @@ export default function App() {
             )}
 
             {/* Batch warnings */}
-            {batchStatus?.warnings?.length > 0 && (
+            {(batchStatus?.warnings?.length > 0 || (batchStatus?.status === 'auto-waiting' && lastBatchResult?.warnings?.length > 0)) && (
               <div className="batch-warnings">
-                <div className="batch-section-title">⚠️ Предупреждения ({batchStatus.warnings.length})</div>
-                {batchStatus.warnings.slice(0, 8).map((w, i) => (
+                <div className="batch-section-title">⚠️ Предупреждения ({batchStatus?.warnings?.length || lastBatchResult?.warnings?.length || 0})</div>
+                {(batchStatus?.warnings?.length > 0 ? batchStatus.warnings : lastBatchResult?.warnings || []).slice(0, 8).map((w, i) => (
                   <div key={i} className="warning-rec-item">
                     <div className="warning-rec-msg">⚠ {w.message}</div>
                     {w.recommendation && <div className="warning-rec-tip">💡 {w.recommendation}</div>}
@@ -1147,8 +1347,8 @@ export default function App() {
                     )}
                   </div>
                 ))}
-                {batchStatus.warnings.length > 8 && (
-                  <div className="more">...и ещё {batchStatus.warnings.length - 8} предупреждений</div>
+                {(batchStatus?.warnings?.length || lastBatchResult?.warnings?.length || 0) > 8 && (
+                  <div className="more">...и ещё {(batchStatus?.warnings?.length || lastBatchResult?.warnings?.length || 0) - 8} предупреждений</div>
                 )}
               </div>
             )}

@@ -671,6 +671,7 @@ router.get('/batch-status', (req, res) => {
     migrationTotals: getMigrationTotals(),
     pendingStats:    getPendingStats(),
     batchPosition:   { offset: cfg.offset, batchSize: cfg.batchSize },
+    autoRunActive:   batchService.isAutoRunActive(),
   });
 });
 
@@ -727,6 +728,35 @@ router.post('/batch-rollback', async (req, res) => {
 router.post('/batch-pause', (req, res) => {
   try {
     const result = batchService.pauseBatch();
+    res.json(result);
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+// POST /api/migration/batch-auto-start — start auto-run cycle
+router.post('/batch-auto-start', async (req, res) => {
+  try {
+    batchService.startAutoRun().catch(e => {
+      logger.error('Auto-run cycle error:', e);
+    });
+    res.json({ message: 'Auto-run started', status: 'running' });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+
+// POST /api/migration/batch-auto-continue — frontend signals: countdown done, start next batch
+router.post('/batch-auto-continue', (req, res) => {
+  const result = batchService.continueAutoRun();
+  res.json(result);
+});
+
+// POST /api/migration/batch-auto-stop — stop auto-run cycle
+router.post('/batch-auto-stop', (req, res) => {
+  try {
+    const result = batchService.stopAutoRun();
     res.json(result);
   } catch (e) {
     res.status(400).json({ error: e.message });
