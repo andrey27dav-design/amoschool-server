@@ -671,6 +671,7 @@ router.get('/batch-status', (req, res) => {
     migrationTotals: getMigrationTotals(),
     pendingStats:    getPendingStats(),
     batchPosition:   { offset: cfg.offset, batchSize: cfg.batchSize },
+    fixStats:        { processed: cfg.fixProcessed || 0, eligible: cfg.fixEligible || 0 },
     autoRunActive:   batchService.isAutoRunActive(),
   });
 });

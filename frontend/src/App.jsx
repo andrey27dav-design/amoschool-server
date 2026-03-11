@@ -1161,6 +1161,27 @@ export default function App() {
               </div>
             )}
 
+            {/* Fix mode progress counter */}
+            {(migrationMode === 'fix-existing' || (batchStatus?.fixStats?.processed > 0)) && (
+              <div style={{ marginTop: 8, padding: '8px 12px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.35)', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ color: '#fbbf24', fontSize: 13 }}>
+                  🔧 Режим Фикс — обработано:{' '}
+                  <b style={{ color: '#fde68a', fontSize: 16 }}>{batchStatus?.fixStats?.processed ?? 0}</b>
+                  {batchStatus?.fixStats?.eligible > 0 && (
+                    <span style={{ color: '#d97706' }}> / {batchStatus.fixStats.eligible}</span>
+                  )}
+                  <span style={{ color: '#92400e', marginLeft: 4 }}>сделок</span>
+                </span>
+                <button
+                  style={{ marginLeft: 'auto', fontSize: 11, padding: '2px 8px', background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.5)', color: '#fca5a5', borderRadius: 4, cursor: 'pointer' }}
+                  disabled={batchStatus?.status === 'running'}
+                  title="Сбросить счётчик фикс-режима"
+                  onClick={() => fetch('/api/migration/batch-config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fixProcessed: 0, fixEligible: 0 }) }).then(() => setBatchStatusData(s => ({ ...s, fixStats: { processed: 0, eligible: 0 } })))}>
+                  Сброс
+                </button>
+              </div>
+            )}
+
             {/* Batch size + controls */}
             <div className="batch-controls">
               <div className="batch-size-wrap">
