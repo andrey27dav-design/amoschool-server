@@ -100,6 +100,9 @@ export default function App() {
   // Copy totals from DB — real accumulated counts
   const [copyTotals, setCopyTotals] = useState(null);
 
+  // Active task counts per Kommo lead ID for dealPairs table
+  const [dealTaskCounts, setDealTaskCounts] = useState({});
+
   // Pipeline selector state — persist across tab-switches and page reloads
   const [selectedAmoPipeline, setSelectedAmoPipeline] = useState(() => {
     const s = localStorage.getItem('pipeline_amo');
@@ -1686,36 +1689,58 @@ export default function App() {
       )}
 
       {/* ═══════ СОПОСТАВЛЕНИЕ СДЕЛОК (после последнего пакета) ═══════ */}
-      {tab === 'dashboard' && batchStatus?.dealPairs?.length > 0 && (
-        <div style={{ marginTop: 24, padding: 16, border: '1px solid #334155', borderRadius: 8, background: '#0f172a' }}>
-          <h3 style={{ margin: '0 0 12px', color: '#f8fafc' }}>📋 Сопоставление сделок (последний пакет: {batchStatus.dealPairs.length} шт.)</h3>
-          <div style={{ maxHeight: 400, overflowY: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid #475569', color: '#94a3b8' }}>
-                  <th style={{ textAlign: 'left', padding: '4px 8px' }}>#</th>
-                  <th style={{ textAlign: 'left', padding: '4px 8px' }}>AMO ID</th>
-                  <th style={{ textAlign: 'left', padding: '4px 8px' }}>Kommo ID</th>
-                  <th style={{ textAlign: 'left', padding: '4px 8px' }}>Ссылки</th>
-                </tr>
-              </thead>
-              <tbody>
-                {batchStatus.dealPairs.map((p, i) => (
-                  <tr key={i} style={{ borderBottom: '1px solid #1e293b' }}>
-                    <td style={{ padding: '3px 8px', color: '#64748b' }}>{i + 1}</td>
-                    <td style={{ padding: '3px 8px', color: '#e2e8f0' }}>{p.amoId}</td>
-                    <td style={{ padding: '3px 8px', color: '#e2e8f0' }}>{p.kommoId}</td>
-                    <td style={{ padding: '3px 8px' }}>
-                      <a href={`https://houch.amocrm.ru/leads/detail/${p.amoId}`} target="_blank" rel="noreferrer" style={{ color: '#60a5fa', marginRight: 12 }}>AMO ↗</a>
-                      <a href={`https://helloshkolaonlinecom.kommo.com/leads/detail/${p.kommoId}`} target="_blank" rel="noreferrer" style={{ color: '#34d399' }}>Kommo ↗</a>
-                    </td>
+      {tab === 'dashboard' && batchStatus?.dealPairs?.length > 0 && (() => {
+        // Fetch task counts when dealPairs appear or change
+        const pairsKey = batchStatus.dealPairs.map(p => p.kommoId).join(',');
+        const countsLoaded = Object.keys(dealTaskCounts).length > 0 &&
+          batchStatus.dealPairs.every(p => dealTaskCounts[p.kommoId] !== undefined);
+        if (!countsLoaded) {
+          fetch(`/api/migration/task-counts?kommoIds=${pairsKey}`)
+            .then(r => r.json())
+            .then(data => { if (data.ok) setDealTaskCounts(data.counts); })
+            .catch(() => {});
+        }
+        return (
+          <div style={{ marginTop: 24, padding: 16, border: '1px solid #334155', borderRadius: 8, background: '#0f172a' }}>
+            <h3 style={{ margin: '0 0 12px', color: '#f8fafc' }}>📋 Сопоставление сделок (последний пакет: {batchStatus.dealPairs.length} шт.)</h3>
+            <div style={{ maxHeight: 400, overflowY: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid #475569', color: '#94a3b8' }}>
+                    <th style={{ textAlign: 'left', padding: '4px 8px' }}>#</th>
+                    <th style={{ textAlign: 'left', padding: '4px 8px' }}>AMO ID</th>
+                    <th style={{ textAlign: 'left', padding: '4px 8px' }}>Kommo ID</th>
+                    <th style={{ textAlign: 'left', padding: '4px 8px' }}>Задачи</th>
+                    <th style={{ textAlign: 'left', padding: '4px 8px' }}>Ссылки</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {batchStatus.dealPairs.map((p, i) => {
+                    const cnt = dealTaskCounts[p.kommoId];
+                    const taskLabel = cnt === undefined
+                      ? <span style={{ color: '#64748b' }}>…</span>
+                      : cnt === 0
+                        ? <span style={{ color: '#475569' }}>—</span>
+                        : <span style={{ color: '#f59e0b', fontWeight: 600 }}>⚡ {cnt}</span>;
+                    return (
+                      <tr key={i} style={{ borderBottom: '1px solid #1e293b' }}>
+                        <td style={{ padding: '3px 8px', color: '#64748b' }}>{i + 1}</td>
+                        <td style={{ padding: '3px 8px', color: '#e2e8f0' }}>{p.amoId}</td>
+                        <td style={{ padding: '3px 8px', color: '#e2e8f0' }}>{p.kommoId}</td>
+                        <td style={{ padding: '3px 8px' }}>{taskLabel}</td>
+                        <td style={{ padding: '3px 8px' }}>
+                          <a href={`https://houch.amocrm.ru/leads/detail/${p.amoId}`} target="_blank" rel="noreferrer" style={{ color: '#60a5fa', marginRight: 12 }}>AMO ↗</a>
+                          <a href={`https://helloshkolaonlinecom.kommo.com/leads/detail/${p.kommoId}`} target="_blank" rel="noreferrer" style={{ color: '#34d399' }}>Kommo ↗</a>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ═══════════════════════════ ВОРОНКИ ═══════════════════════════════ */}
       {tab === 'pipelines' && (

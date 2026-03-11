@@ -567,6 +567,36 @@ async function deleteCompaniesBatch(companyIds) {
   logger.info(`Kommo: deleted ${deleted}/${companyIds.length} companies (rollback)`);
 }
 
+async function getActiveTasksCount(kommoLeadIds) {
+  // Returns { [kommoId]: count } — active (not completed) tasks for each lead
+  if (!kommoLeadIds || !kommoLeadIds.length) return {};
+  const result = {};
+  for (const id of kommoLeadIds) result[id] = 0;
+  // Kommo API allows up to 250 items per page; for a small batch this is enough
+  const chunkSize = 50;
+  for (let i = 0; i < kommoLeadIds.length; i += chunkSize) {
+    const chunk = kommoLeadIds.slice(i, i + chunkSize);
+    try {
+      await rateLimit();
+      const params = new URLSearchParams();
+      for (const id of chunk) params.append('filter[entity_id][]', String(id));
+      params.append('filter[entity_type]', 'leads');
+      params.append('filter[is_completed]', '0');
+      params.append('limit', '250');
+      const res = await kommoClient.get(`/api/v4/tasks?${params.toString()}`);
+      const tasks = res.data?._embedded?.tasks || [];
+      for (const task of tasks) {
+        if (task.entity_type === 'leads' && result[task.entity_id] !== undefined) {
+          result[task.entity_id]++;
+        }
+      }
+    } catch (e) {
+      logger.warn(`Kommo getActiveTasksCount error: ${e.message}`);
+    }
+  }
+  return result;
+}
+
 module.exports = {
   getPipelines,
   getPipeline,
@@ -599,4 +629,5 @@ module.exports = {
   deleteLeadsBatch,
   deleteContactsBatch,
   deleteCompaniesBatch,
+  getActiveTasksCount,
 };
