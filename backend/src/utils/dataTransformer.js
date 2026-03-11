@@ -242,9 +242,12 @@ function transformTask(amoTask, userMapping, entityKommoResponsibleId) {
   // Map AMO task_type_id → Kommo task_type_id using full mapping; fallback to 1 (Follow-up)
   const rawTypeId = amoTask.task_type_id;
   const safeTypeId = AMO_TO_KOMMO_TASK_TYPE[rawTypeId] || 1;
+  // If creator and responsible are the same person — mark as own task
+  const selfTask = (amoTask.created_by && amoTask.responsible_user_id && amoTask.created_by === amoTask.responsible_user_id);
+  const textBody = fmtDatePrefix(amoTask.created_at) + ((amoTask.text && amoTask.text.trim()) ? amoTask.text : 'Задача');
   const obj = {
     task_type_id: safeTypeId,
-    text: fmtDatePrefix(amoTask.created_at) + ((amoTask.text && amoTask.text.trim()) ? amoTask.text : 'Задача'),
+    text: selfTask ? 'МОЯ ЗАДАЧА: ' + textBody : textBody,
     complete_till: (amoTask.complete_till && amoTask.complete_till > 0)
       ? amoTask.complete_till
       : fallbackTill,
