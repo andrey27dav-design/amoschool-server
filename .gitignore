@@ -2,3 +2,5 @@
 dist/
 *.log
 server-backup-*/
+.env
+*.env
