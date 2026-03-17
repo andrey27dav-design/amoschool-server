@@ -2,6 +2,18 @@
 // Each version: { date, title, changes[] }
 const VERSIONS = [
   {
+    version: 'V1.7.6',
+    date: '2026-03-17',
+    title: 'Безопасность: убраны токены из git, добавлен .env.example',
+    changes: [
+      'API-токены AMO и Kommo удалены из git-трекинга (git rm --cached backend/.env)',
+      '.gitignore обновлён: добавлены .env и *.env — токены больше не попадут в репозиторий',
+      'Создан шаблон backend/.env.example для документирования структуры конфига',
+      'migration_instructions.md очищен от токенов — заменены ссылкой на .env',
+      '/api/version переведён на versions.js[0] как единый источник версии (без git-лога)',
+    ],
+  },
+  {
     version: 'V1.7.5-fix',
     date: '2026-03-11',
     title: 'Сохранение migrationMode и batchSize в localStorage',

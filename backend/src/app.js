@@ -57,20 +57,12 @@ app.use('/api/managers',  managersRoutes);
 app.use('/api/sessions',  sessionsRoutes);
 app.use('/api/copy',      copyRoutes);
 
-// Version endpoint — returns version + description from versions.js
+// Version endpoint — returns current version from versions.js (first entry = current)
 app.get('/api/version', (req, res) => {
+  // Clear require cache so version updates take effect without restart
+  delete require.cache[require.resolve('./versions')];
   const VERSIONS = require('./versions');
-  let ver = 'unknown';
-  try {
-    const { execSync } = require('child_process');
-    const msg = execSync('git -C /var/www/amoschool log -1 --format=%s', { encoding: 'utf8' }).trim();
-    const match = msg.match(/^(V\d+\.\d+\.\d+)/);
-    ver = match ? match[1] : msg.slice(0, 20);
-  } catch (e) {
-    try {
-      ver = fs.readFileSync(path.join(__dirname, '../../VERSION'), 'utf8').trim();
-    } catch (_) {}
-  }
+  const ver = (VERSIONS && VERSIONS.length > 0) ? VERSIONS[0].version : 'unknown';
   res.json({ version: ver });
 });
 
