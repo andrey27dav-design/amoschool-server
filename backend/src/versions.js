@@ -2,6 +2,67 @@
 // Each version: { date, title, changes[] }
 const VERSIONS = [
   {
+    version: 'V1.7.6',
+    date: '2026-03-17',
+    title: 'Безопасность: убраны токены из git, добавлен .env.example',
+    changes: [
+      'API-токены AMO и Kommo удалены из git-трекинга (git rm --cached backend/.env)',
+      '.gitignore обновлён: добавлены .env и *.env — токены больше не попадут в репозиторий',
+      'Создан шаблон backend/.env.example для документирования структуры конфига',
+      'migration_instructions.md очищен от токенов — заменены ссылкой на .env',
+      '/api/version переведён на versions.js[0] как единый источник версии (без git-лога)',
+    ],
+  },
+  {
+    version: 'V1.7.5-fix',
+    date: '2026-03-11',
+    title: 'Сохранение migrationMode и batchSize в localStorage',
+    changes: [
+      'migrationMode (Все/Фикс/Новые) сохраняется в localStorage и восстанавливается при перезагрузке',
+      'batchSize сохраняется в localStorage и восстанавливается при перезагрузке',
+      'Настройки не сбрасываются при обновлении страницы',
+    ],
+  },
+  {
+    version: 'V1.7.5',
+    date: '2026-03-11',
+    title: 'Кумулятивные счётчики в режиме Фикс (fixProcessed/fixEligible)',
+    changes: [
+      'В режиме Фикс счётчики fixProcessed и fixEligible накапливаются по всем пакетам',
+      'Отображается общий прогресс фикс-миграции, а не только данные текущего пакета',
+      'Исправлен сброс счётчиков при переключении режимов',
+    ],
+  },
+  {
+    version: 'V1.7.4',
+    date: '2026-03-11',
+    title: 'Колонка количества задач в таблице dealPairs',
+    changes: [
+      'В таблице верификации dealPairs добавлена колонка «Задачи»',
+      'Отображается количество задач, перенесённых для каждой сделки',
+      'Помогает быстро найти сделки без задач или с неполным переносом',
+    ],
+  },
+  {
+    version: 'V1.7.3-fix',
+    date: '2026-03-11',
+    title: 'Исправление scope для _batchContactTasksSkipped/_batchCompanyTasksSkipped',
+    changes: [
+      'Переменные _batchContactTasksSkipped и _batchCompanyTasksSkipped объявлены через let вне блока',
+      'Исправлена ошибка ReferenceError при подсчёте пропущенных задач контактов/компаний',
+    ],
+  },
+  {
+    version: 'V1.7.3',
+    date: '2026-03-11',
+    title: 'dealPairs в batchState + таблица верификации в UI',
+    changes: [
+      'batchState теперь содержит dealPairs — массив пар {amoId, kommoId} для верификации',
+      'На дашборде добавлена таблица верификации с парами AMO → Kommo ID сделок',
+      'Можно сверить корректность маппинга ID сделок после каждого пакета',
+    ],
+  },
+  {
     version: 'V1.7.2',
     date: '2026-03-11',
     title: 'Только активные задачи + PATCH текста «МОЯ ЗАДАЧА» для существующих',
